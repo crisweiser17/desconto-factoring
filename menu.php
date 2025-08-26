@@ -48,7 +48,19 @@ $menuItems = [
             'listar_cedentes.php' => '<i class="bi bi-building"></i> Cedentes (Vendedores)'
         ]
     ],
-    'relatorio.php' => '<i class="bi bi-graph-up"></i> Relatório',
+    // Estrutura para o dropdown de Relatórios
+    'relatorio_dropdown' => [
+        'label' => 'Relatórios',
+        'icon' => 'bi-graph-up',
+        'pages' => [
+            'relatorio.php',
+            'relatorio_cedentes.php'
+        ],
+        'items' => [
+            'relatorio.php' => '<i class="bi bi-graph-up"></i> Relatório Geral',
+            'relatorio_cedentes.php' => '<i class="bi bi-pie-chart"></i> Relatório por Cedente'
+        ]
+    ],
     // NOVO ITEM DE MENU - CONFIGURAÇÕES
     'config.php' => '<i class="bi bi-gear"></i> Configurações' //
 ];
@@ -56,7 +68,7 @@ $menuItems = [
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
   <div class="container">
     <a class="navbar-brand" href="index.php">
-        <i class="bi bi-calculator-fill me-2"></i>Factoring v4.5.2
+        <i class="bi bi-calculator-fill me-2"></i>Factoring 5.0
         <small class="text-secondary ms-2" style="font-size: 0.7em;">agosto 2025</small>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
