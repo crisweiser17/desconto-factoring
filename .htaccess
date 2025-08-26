@@ -1,0 +1,5 @@
+# Permitir acesso a recursos do Vite sem autenticação
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^@vite/ - [L]
+</IfModule>

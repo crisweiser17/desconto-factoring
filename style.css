@@ -1,0 +1,54 @@
+/* style.css */
+body {
+    padding-top: 20px; /* Add some padding below the navbar if you add one */
+    background-color: #f8f9fa; /* Bootstrap light grey background */
+}
+
+.container {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px; /* Space at the bottom */
+}
+
+#titulosTable th, #titulosTable td {
+    vertical-align: middle;
+    text-align: center;
+}
+
+#titulosTable input {
+    min-width: 120px; /* Ensure inputs have minimum width */
+}
+
+.resultado-total-item {
+    background-color: #e9ecef; /* Bootstrap secondary light grey */
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 10px; /* Space between total items */
+    text-align: center;
+}
+.resultado-total-item .label {
+    font-size: 0.9em;
+    color: #6c757d; /* Bootstrap muted text color */
+    display: block;
+}
+.resultado-total-item .value {
+    font-size: 1.3em;
+    font-weight: bold;
+}
+.value.profit {
+    color: #198754; /* Bootstrap success green */
+}
+.value.loss {
+    color: #dc3545; /* Bootstrap danger red */
+}
+
+.remove-row-btn {
+    padding: 0.3rem 0.6rem; /* Smaller padding for remove button */
+    font-size: 0.8em;
+}
+/* Hide the template row used for cloning */
+#tituloTemplateRow {
+    display: none;
+}
