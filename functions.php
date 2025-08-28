@@ -121,5 +121,3 @@ if (!function_exists('logError')) {
         error_log($logMessage);
     }
 }
-
-?>

@@ -2,10 +2,10 @@
 // db_connection.php
 
 // --- Substitua pelos seus detalhes ---
-$db_host = 'localhost'; // MySQL host
+$db_host = 'localhost'; // MAMP host
 $db_name = 'rfqkezvjge'; // Nome do banco de dados que você criou
-$db_user = 'root';      // Seu usuário do MySQL
-$db_pass = '';          // Sua senha do MySQL (vazia para root local)
+$db_user = 'rfqkezvjge';      // Seu usuário do MySQL
+$db_pass = 'Tgbyhn123@';          // Sua senha do MySQL
 $charset = 'utf8mb4';
 // ------------------------------------
 
@@ -31,3 +31,4 @@ try {
 }
 
 // A variável $pdo está agora disponível para ser usada nos scripts que incluírem este arquivo.
+?>

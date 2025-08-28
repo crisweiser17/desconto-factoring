@@ -32,7 +32,7 @@ try {
     }
     
     // Buscar recebíveis da operação
-    $sql_rec = "SELECT r.*, s.empresa as sacado_nome, r.tipo_recebivel 
+    $sql_rec = "SELECT r.*, s.empresa as sacado_nome 
                 FROM recebiveis r 
                 LEFT JOIN sacados s ON r.sacado_id = s.id 
                 WHERE r.operacao_id = :operacao_id 

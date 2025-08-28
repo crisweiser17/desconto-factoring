@@ -698,7 +698,8 @@ if ($exportar === 'pdf') {
                                                 <th>Vencimento</th>
                                                 <th>Valor</th>
                                                 <th>Sacado</th>
-                                                <th>Tipo</th>
+                                                <th>Tipo de Pagamento</th>
+                                                <th>Tipo de Recebível</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -734,6 +735,11 @@ if ($exportar === 'pdf') {
                                                     </td>
                                                     <td>
                                                         <?php echo htmlspecialchars($recebivel['sacado_nome'] ?: 'N/A'); ?>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-info">
+                                                            <?php echo htmlspecialchars(ucfirst($recebivel['tipo_pagamento'] ?: 'N/A')); ?>
+                                                        </span>
                                                     </td>
                                                     <td>
                                                         <span class="badge bg-secondary">
@@ -798,7 +804,8 @@ if ($exportar === 'pdf') {
                                                 <th>Vencimento</th>
                                                 <th>Valor</th>
                                                 <th>Sacado</th>
-                                                <th>Tipo</th>
+                                                <th>Tipo de Pagamento</th>
+                                                <th>Tipo de Recebível</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -834,6 +841,11 @@ if ($exportar === 'pdf') {
                                                     </td>
                                                     <td>
                                                         <?php echo htmlspecialchars($cheque['sacado_nome'] ?: 'N/A'); ?>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-info">
+                                                            <?php echo htmlspecialchars(ucfirst($cheque['tipo_pagamento'] ?: 'N/A')); ?>
+                                                        </span>
                                                     </td>
                                                     <td>
                                                         <span class="badge bg-warning text-dark">

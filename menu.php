@@ -16,13 +16,11 @@ $menuItems = [
             'listar_operacoes.php',
             'detalhes_operacao.php', // Detalhes de operação também ativa o menu "Operações"
             'listar_recebiveis.php', // Listar recebíveis agora ativa o menu "Operações"
-            'form_operacao.php', // Se você tiver um form para adicionar/editar operações
-            'relatorio_contas_a_pagar.php' // Relatório de contas a pagar
+            'form_operacao.php' // Se você tiver um form para adicionar/editar operações
         ],
         'items' => [ // Itens dentro do dropdown
             'listar_operacoes.php' => '<i class="bi bi-list-ul"></i> Gerenciar Operações',
-            'listar_recebiveis.php' => '<i class="bi bi-list-check"></i> Gerenciar Recebíveis', // Recebíveis movido para cá
-            'relatorio_contas_a_pagar.php' => '<i class="bi bi-file-earmark-text"></i> Contas a Pagar'
+            'listar_recebiveis.php' => '<i class="bi bi-list-check"></i> Gerenciar Recebíveis' // Recebíveis movido para cá
             // Se houver um formulário para adicionar operação, adicione aqui
             // 'form_operacao.php' => '<i class="bi bi-plus-circle"></i> Nova Operação'
         ]
@@ -54,11 +52,15 @@ $menuItems = [
         'icon' => 'bi-graph-up',
         'pages' => [
             'relatorio.php',
-            'relatorio_cedentes.php'
+            'relatorio_cedentes.php',
+            'relatorio_sacados.php',
+            'relatorio_contas_a_pagar.php' // Relatório de contas a pagar movido para cá
         ],
         'items' => [
             'relatorio.php' => '<i class="bi bi-graph-up"></i> Relatório Geral',
-            'relatorio_cedentes.php' => '<i class="bi bi-pie-chart"></i> Relatório por Cedente'
+            'relatorio_cedentes.php' => '<i class="bi bi-pie-chart"></i> Relatório por Cedente',
+            'relatorio_sacados.php' => '<i class="bi bi-building"></i> Relatório por Sacado',
+            'relatorio_contas_a_pagar.php' => '<i class="bi bi-file-earmark-text"></i> Contas a Pagar'
         ]
     ],
     // NOVO ITEM DE MENU - CONFIGURAÇÕES

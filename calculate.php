@@ -266,6 +266,12 @@ if (!$error) {
                         'lucro' => 0,
                         'displayLabel' => $displayLabelVencimento
                     ];
+                } else {
+                    // Se o mês já existe, atualiza apenas o displayLabel se necessário
+                    // (mantém o displayLabel mais descritivo)
+                    if (empty($fullChartData[$monthKeyVencimento]['displayLabel'])) {
+                        $fullChartData[$monthKeyVencimento]['displayLabel'] = $displayLabelVencimento;
+                    }
                 }
                 $fullChartData[$monthKeyVencimento]['capital_retornado'] += $valorOriginalTitulo;
                 $fullChartData[$monthKeyVencimento]['lucro'] += $lucroLiquidoTitulo;
@@ -339,6 +345,14 @@ if (!$error) {
             
             // Deduzir o custo da compensação do lucro líquido total
             $totalLucroLiquido -= $custoTotalCompensacao;
+            
+            // Adicionar o valor presente da compensação como capital retornado no mês da operação
+            // A compensação é uma entrada de caixa imediata que quita títulos em aberto
+            if ($valorPresenteTotalCompensacao > 0) {
+                if (isset($fullChartData[$monthKeyOperacao])) {
+                    $fullChartData[$monthKeyOperacao]['capital_retornado'] += $valorPresenteTotalCompensacao;
+                }
+            }
             
             // Ajustar o lucro no gráfico (deduzir proporcionalmente por mês)
             if ($custoTotalCompensacao > 0 && count($fullChartData) > 0) {

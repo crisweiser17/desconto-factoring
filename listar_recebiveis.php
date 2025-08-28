@@ -1,9 +1,9 @@
 <?php require_once 'auth_check.php'; ?>
 <?php
 // --- APENAS PARA DEBUG - REMOVER/COMENTAR EM PRODUÇÃO ---
-// ini_set('display_errors', 1); // Descomente para ver erros no navegador
-// ini_set('display_startup_errors', 1); // Descomente para ver erros de inicialização
-// error_reporting(E_ALL); // Descomente para reportar todos os tipos de erros
+ini_set('display_errors', 1); // Descomente para ver erros no navegador
+ini_set('display_startup_errors', 1); // Descomente para ver erros de inicialização
+error_reporting(E_ALL); // Descomente para reportar todos os tipos de erros
 // --- FIM DEBUG ---
 
 require_once 'db_connection.php'; // Conexão $pdo

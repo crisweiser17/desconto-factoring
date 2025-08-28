@@ -654,30 +654,78 @@ try {
           };
           
           // Atualizar interface com detalhes
-          const primeiroRecebivel = recebiveisSelecionados[0];
           compensacaoValor.textContent = formatCurrencyJS(valorTotal);
-          compensacaoRecebiveis.textContent = `#${primeiroRecebivel.id}`;
-          compensacaoValorOriginal.textContent = formatCurrencyJS(primeiroRecebivel.valor_original);
           
-          const saldoRemanescente = primeiroRecebivel.valor_original - valorTotal;
-          compensacaoSaldoRemanescente.textContent = formatCurrencyJS(saldoRemanescente);
-          
-          // Calcular valor presente e crédito do cliente (custo da antecipação)
-          const valorOriginalRecebivel = primeiroRecebivel.valor_original;
-          const valorPresenteCompensacao = calcularValorPresente(valorTotal, primeiroRecebivel.dias_vencimento);
-          const creditoCliente = valorTotal - valorPresenteCompensacao;
-          
-          // Preencher os novos campos
-          compensacaoValorPresente.textContent = formatCurrencyJS(valorPresenteCompensacao);
-          compensacaoRemuneracao.textContent = formatCurrencyJS(creditoCliente);
-          
-          // Determinar status
-          if (saldoRemanescente > 0.01) {
-              compensacaoStatus.textContent = 'Parcialmente Quitado';
-              compensacaoStatus.className = 'badge bg-warning';
+          // Para múltiplos recebíveis, mostrar lista de IDs
+          if (recebiveisSelecionados.length === 1) {
+              const primeiroRecebivel = recebiveisSelecionados[0];
+              compensacaoRecebiveis.textContent = `#${primeiroRecebivel.id}`;
+              compensacaoValorOriginal.textContent = formatCurrencyJS(primeiroRecebivel.valor_original);
+              
+              const saldoRemanescente = primeiroRecebivel.valor_original - valorTotal;
+              compensacaoSaldoRemanescente.textContent = formatCurrencyJS(saldoRemanescente);
+              
+              // Calcular valor presente e crédito do cliente (custo da antecipação)
+              const valorPresenteCompensacao = calcularValorPresente(valorTotal, primeiroRecebivel.dias_vencimento);
+              const creditoCliente = valorTotal - valorPresenteCompensacao;
+              
+              // Preencher os novos campos
+              compensacaoValorPresente.textContent = formatCurrencyJS(valorPresenteCompensacao);
+              compensacaoRemuneracao.textContent = formatCurrencyJS(creditoCliente);
+              
+              // Determinar status
+              if (saldoRemanescente > 0.01) {
+                  compensacaoStatus.textContent = 'Parcialmente Quitado';
+                  compensacaoStatus.className = 'badge bg-warning';
+              } else {
+                  compensacaoStatus.textContent = 'Totalmente Quitado';
+                  compensacaoStatus.className = 'badge bg-success';
+              }
           } else {
-              compensacaoStatus.textContent = 'Totalmente Quitado';
-              compensacaoStatus.className = 'badge bg-success';
+              // Múltiplos recebíveis selecionados
+              const idsRecebíveis = recebiveisSelecionados.map(r => `#${r.id}`).join(', ');
+              compensacaoRecebiveis.textContent = idsRecebíveis;
+              
+              // Calcular valor original total de todos os recebíveis
+              const valorOriginalTotal = recebiveisSelecionados.reduce((sum, r) => sum + r.valor_original, 0);
+              compensacaoValorOriginal.textContent = formatCurrencyJS(valorOriginalTotal);
+              
+              // Para múltiplos títulos, o saldo remanescente deve ser zero se todos forem totalmente compensados
+              // ou a soma dos saldos individuais se houver compensação parcial
+              let saldoRemanescente = 0;
+              let todosQuitados = true;
+              
+              recebiveisSelecionados.forEach(recebivel => {
+                  const saldoIndividual = recebivel.valor_original - recebivel.valor;
+                  if (saldoIndividual > 0.01) {
+                      saldoRemanescente += saldoIndividual;
+                      todosQuitados = false;
+                  }
+              });
+              
+              compensacaoSaldoRemanescente.textContent = formatCurrencyJS(saldoRemanescente);
+              
+              // Calcular valor presente médio ponderado
+              let valorPresenteTotal = 0;
+              recebiveisSelecionados.forEach(recebivel => {
+                  const valorPresenteIndividual = calcularValorPresente(recebivel.valor, recebivel.dias_vencimento);
+                  valorPresenteTotal += valorPresenteIndividual;
+              });
+              
+              const creditoCliente = valorTotal - valorPresenteTotal;
+              
+              // Preencher os novos campos
+              compensacaoValorPresente.textContent = formatCurrencyJS(valorPresenteTotal);
+              compensacaoRemuneracao.textContent = formatCurrencyJS(creditoCliente);
+              
+              // Determinar status para múltiplos títulos
+              if (todosQuitados) {
+                  compensacaoStatus.textContent = 'Totalmente Quitados';
+                  compensacaoStatus.className = 'badge bg-success';
+              } else {
+                  compensacaoStatus.textContent = 'Parcialmente Quitados';
+                  compensacaoStatus.className = 'badge bg-warning';
+              }
           }
           
           compensacaoInfo.style.display = 'block';
@@ -823,9 +871,15 @@ try {
                    // Verificar se há compensação ativa e atualizar campos correspondentes
                    if (compensacaoAtiva && compensacaoAtiva.recebiveis && compensacaoAtiva.recebiveis.length > 0) {
                        const valorCompensacao = compensacaoAtiva.valor_total;
-                       const primeiroRecebivel = compensacaoAtiva.recebiveis[0];
-                       const valorPresenteCompensacao = calcularValorPresente(valorCompensacao, primeiroRecebivel.dias_vencimento);
-                       const creditoCliente = valorCompensacao - valorPresenteCompensacao;
+                       
+                       // Calcular valor presente total considerando todos os recebíveis
+                       let valorPresenteCompensacaoTotal = 0;
+                       compensacaoAtiva.recebiveis.forEach(recebivel => {
+                           const valorPresenteIndividual = calcularValorPresente(recebivel.valor, recebivel.dias_vencimento);
+                           valorPresenteCompensacaoTotal += valorPresenteIndividual;
+                       });
+                       
+                       const creditoCliente = valorCompensacao - valorPresenteCompensacaoTotal;
                        
                        // Mostrar linha de compensação
                        compensacaoRow.style.display = 'block';
