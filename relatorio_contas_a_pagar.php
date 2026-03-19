@@ -292,6 +292,7 @@ if ($exportar === 'csv') {
         'Email',
         'Telefone',
         'Operação',
+        'ID Recebível',
         'Vencimento',
         'Valor',
         'Sacado',
@@ -306,6 +307,7 @@ if ($exportar === 'csv') {
                 $grupo['cedente']['email'],
                 $grupo['cedente']['telefone'],
                 $recebivel['operacao_id'],
+                $recebivel['id'],
                 date('d/m/Y', strtotime($recebivel['data_vencimento'])),
                 number_format($recebivel['valor_original'], 2, ',', '.'),
                 $recebivel['sacado_nome'] ?: 'N/A',
@@ -334,6 +336,7 @@ if ($exportar === 'csv') {
         'Email',
         'Telefone',
         'Operação',
+        'ID Recebível',
         'Vencimento',
         'Valor',
         'Sacado',
@@ -348,6 +351,7 @@ if ($exportar === 'csv') {
                 $grupo['cedente']['email'],
                 $grupo['cedente']['telefone'],
                 $cheque['operacao_id'],
+                $cheque['id'],
                 date('d/m/Y', strtotime($cheque['data_vencimento'])),
                 number_format($cheque['valor_original'], 2, ',', '.'),
                 $cheque['sacado_nome'] ?: 'N/A',
@@ -427,19 +431,21 @@ if ($exportar === 'pdf') {
         
         // Tabela de recebíveis
         $pdf->SetFont('Arial','B',8);
-        $pdf->Cell(20, 6, mb_convert_encoding('Op.', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
-        $pdf->Cell(25, 6, mb_convert_encoding('Vencimento', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
-        $pdf->Cell(30, 6, mb_convert_encoding('Valor', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
-        $pdf->Cell(50, 6, mb_convert_encoding('Sacado', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
-        $pdf->Cell(25, 6, mb_convert_encoding('Tipo', 'ISO-8859-1', 'UTF-8'), 1, 1, 'C');
+        $pdf->Cell(18, 6, mb_convert_encoding('Op.', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
+        $pdf->Cell(18, 6, mb_convert_encoding('ID Rec.', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
+        $pdf->Cell(22, 6, mb_convert_encoding('Vencimento', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
+        $pdf->Cell(25, 6, mb_convert_encoding('Valor', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
+        $pdf->Cell(40, 6, mb_convert_encoding('Sacado', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
+        $pdf->Cell(22, 6, mb_convert_encoding('Tipo', 'ISO-8859-1', 'UTF-8'), 1, 1, 'C');
         
         $pdf->SetFont('Arial','',8);
         foreach ($grupo['recebiveis'] as $recebivel) {
-            $pdf->Cell(20, 5, $recebivel['operacao_id'], 1, 0, 'C');
-            $pdf->Cell(25, 5, date('d/m/Y', strtotime($recebivel['data_vencimento'])), 1, 0, 'C');
-            $pdf->Cell(30, 5, 'R$ ' . number_format($recebivel['valor_original'], 2, ',', '.'), 1, 0, 'R');
-            $pdf->Cell(50, 5, mb_convert_encoding(substr($recebivel['sacado_nome'] ?: 'N/A', 0, 25), 'ISO-8859-1', 'UTF-8'), 1, 0, 'L');
-            $pdf->Cell(25, 5, mb_convert_encoding($recebivel['tipo_recebivel'] ?: 'N/A', 'ISO-8859-1', 'UTF-8'), 1, 1, 'C');
+            $pdf->Cell(18, 5, $recebivel['operacao_id'], 1, 0, 'C');
+            $pdf->Cell(18, 5, $recebivel['id'], 1, 0, 'C');
+            $pdf->Cell(22, 5, date('d/m/Y', strtotime($recebivel['data_vencimento'])), 1, 0, 'C');
+            $pdf->Cell(25, 5, 'R$ ' . number_format($recebivel['valor_original'], 2, ',', '.'), 1, 0, 'R');
+            $pdf->Cell(40, 5, mb_convert_encoding(substr($recebivel['sacado_nome'] ?: 'N/A', 0, 20), 'ISO-8859-1', 'UTF-8'), 1, 0, 'L');
+            $pdf->Cell(22, 5, mb_convert_encoding($recebivel['tipo_recebivel'] ?: 'N/A', 'ISO-8859-1', 'UTF-8'), 1, 1, 'C');
         }
         $pdf->Ln(5);
     }
@@ -467,19 +473,21 @@ if ($exportar === 'pdf') {
             
             // Tabela de cheques
             $pdf->SetFont('Arial','B',8);
-            $pdf->Cell(20, 6, mb_convert_encoding('Op.', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
-            $pdf->Cell(25, 6, mb_convert_encoding('Vencimento', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
-            $pdf->Cell(30, 6, mb_convert_encoding('Valor', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
-            $pdf->Cell(50, 6, mb_convert_encoding('Sacado', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
-            $pdf->Cell(25, 6, mb_convert_encoding('Tipo', 'ISO-8859-1', 'UTF-8'), 1, 1, 'C');
+            $pdf->Cell(18, 6, mb_convert_encoding('Op.', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
+            $pdf->Cell(18, 6, mb_convert_encoding('ID Rec.', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
+            $pdf->Cell(22, 6, mb_convert_encoding('Vencimento', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
+            $pdf->Cell(25, 6, mb_convert_encoding('Valor', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
+            $pdf->Cell(40, 6, mb_convert_encoding('Sacado', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C');
+            $pdf->Cell(22, 6, mb_convert_encoding('Tipo', 'ISO-8859-1', 'UTF-8'), 1, 1, 'C');
             
             $pdf->SetFont('Arial','',8);
             foreach ($grupo['cheques'] as $cheque) {
-                $pdf->Cell(20, 5, $cheque['operacao_id'], 1, 0, 'C');
-                $pdf->Cell(25, 5, date('d/m/Y', strtotime($cheque['data_vencimento'])), 1, 0, 'C');
-                $pdf->Cell(30, 5, 'R$ ' . number_format($cheque['valor_original'], 2, ',', '.'), 1, 0, 'R');
-                $pdf->Cell(50, 5, mb_convert_encoding(substr($cheque['sacado_nome'] ?: 'N/A', 0, 25), 'ISO-8859-1', 'UTF-8'), 1, 0, 'L');
-                $pdf->Cell(25, 5, mb_convert_encoding('Cheque', 'ISO-8859-1', 'UTF-8'), 1, 1, 'C');
+                $pdf->Cell(18, 5, $cheque['operacao_id'], 1, 0, 'C');
+                $pdf->Cell(18, 5, $cheque['id'], 1, 0, 'C');
+                $pdf->Cell(22, 5, date('d/m/Y', strtotime($cheque['data_vencimento'])), 1, 0, 'C');
+                $pdf->Cell(25, 5, 'R$ ' . number_format($cheque['valor_original'], 2, ',', '.'), 1, 0, 'R');
+                $pdf->Cell(40, 5, mb_convert_encoding(substr($cheque['sacado_nome'] ?: 'N/A', 0, 20), 'ISO-8859-1', 'UTF-8'), 1, 0, 'L');
+                $pdf->Cell(22, 5, mb_convert_encoding('Cheque', 'ISO-8859-1', 'UTF-8'), 1, 1, 'C');
             }
             $pdf->Ln(5);
         }
@@ -695,6 +703,7 @@ if ($exportar === 'pdf') {
                                         <thead class="table-light">
                                             <tr>
                                                 <th>Operação</th>
+                                                <th>ID Recebível</th>
                                                 <th>Vencimento</th>
                                                 <th>Valor</th>
                                                 <th>Sacado</th>
@@ -710,6 +719,9 @@ if ($exportar === 'pdf') {
                                                            class="text-decoration-none">
                                                             #<?php echo $recebivel['operacao_id']; ?>
                                                         </a>
+                                                    </td>
+                                                    <td>
+                                                        <?php echo $recebivel['id']; ?>
                                                     </td>
                                                     <td>
                                                         <?php 
@@ -801,6 +813,7 @@ if ($exportar === 'pdf') {
                                         <thead class="table-warning">
                                             <tr>
                                                 <th>Operação</th>
+                                                <th>ID Recebível</th>
                                                 <th>Vencimento</th>
                                                 <th>Valor</th>
                                                 <th>Sacado</th>
@@ -816,6 +829,9 @@ if ($exportar === 'pdf') {
                                                            class="text-decoration-none">
                                                             #<?php echo $cheque['operacao_id']; ?>
                                                         </a>
+                                                    </td>
+                                                    <td>
+                                                        <?php echo $cheque['id']; ?>
                                                     </td>
                                                     <td>
                                                         <?php 

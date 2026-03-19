@@ -1,176 +1,194 @@
 <?php
-// installer.php - Script para reinstalar o banco de dados no servidor online
-// ATENÇÃO: Este script irá DELETAR completamente o banco atual e recriar do zero!
+// installer.php - Script Interativo para instalação do banco de dados
 
 set_time_limit(300); // 5 minutos de timeout
 ini_set('memory_limit', '512M');
 
-// Configurações do banco (usando as mesmas do db_connection_o.php)
-$db_host = 'localhost';
-$db_name = 'rfqkezvjge';
-$db_user = 'rfqkezvjge';
-$db_pass = 'Tgbyhn123@';
-$charset = 'utf8mb4';
+$step = 1;
+$message = '';
+$messageType = '';
 
-echo "<!DOCTYPE html>\n<html>\n<head>\n<title>Installer - Factor System</title>\n<style>\nbody { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }\n.container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }\n.step { margin: 10px 0; padding: 10px; border-left: 4px solid #007cba; background: #f8f9fa; }\n.success { border-left-color: #28a745; background: #d4edda; }\n.error { border-left-color: #dc3545; background: #f8d7da; }\n.warning { border-left-color: #ffc107; background: #fff3cd; }\ncode { background: #e9ecef; padding: 2px 4px; border-radius: 3px; }\n</style>\n</head>\n<body>\n<div class='container'>\n<h1>🚀 Factor System Database Installer</h1>\n";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $db_host = $_POST['db_host'] ?? 'localhost';
+    $db_user = $_POST['db_user'] ?? 'root';
+    $db_pass = $_POST['db_pass'] ?? '';
+    $db_name = $_POST['db_name'] ?? 'factor_db';
+    $charset = 'utf8mb4';
 
-try {
-    echo "<div class='step'>📋 <strong>Passo 1:</strong> Conectando ao MySQL...</div>\n";
-    
-    // Conectar ao MySQL (sem especificar database)
-    $dsn_server = "mysql:host=$db_host;port=3306;charset=$charset";
-    $pdo_server = new PDO($dsn_server, $db_user, $db_pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-    
-    echo "<div class='step success'>✅ Conectado ao MySQL com sucesso!</div>\n";
-    
-    echo "<div class='step warning'>⚠️ <strong>Passo 2:</strong> ATENÇÃO! Deletando banco existente...</div>\n";
-    
-    // Dropar banco se existir
-    $pdo_server->exec("DROP DATABASE IF EXISTS `$db_name`");
-    echo "<div class='step'>🗑️ Banco '$db_name' removido (se existia)</div>\n";
-    
-    // Criar novo banco
-    $pdo_server->exec("CREATE DATABASE `$db_name` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    echo "<div class='step success'>✅ Novo banco '$db_name' criado com sucesso!</div>\n";
-    
-    echo "<div class='step'>📊 <strong>Passo 3:</strong> Conectando ao novo banco...</div>\n";
-    
-    // Conectar ao banco específico
-    $dsn = "mysql:host=$db_host;port=3306;dbname=$db_name;charset=$charset";
-    $pdo = new PDO($dsn, $db_user, $db_pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-    
-    echo "<div class='step success'>✅ Conectado ao banco '$db_name'!</div>\n";
-    
-    echo "<div class='step'>📥 <strong>Passo 4:</strong> Importando estrutura e dados...</div>\n";
-    
-    // Ler o arquivo SQL local
-    $sql_file = __DIR__ . '/banco_dump.sql.s';
-    
-    if (!file_exists($sql_file)) {
-        throw new Exception("Arquivo SQL não encontrado: $sql_file");
-    }
-    
-    $sql_content = file_get_contents($sql_file);
-    
-    if ($sql_content === false) {
-        throw new Exception("Erro ao ler o arquivo SQL");
-    }
-    
-    echo "<div class='step'>📄 Arquivo SQL carregado (" . number_format(strlen($sql_content)) . " caracteres)</div>\n";
-    
-    // Dividir em statements individuais
-    $statements = array_filter(
-        array_map('trim', explode(';', $sql_content)),
-        function($stmt) {
-            return !empty($stmt) && !preg_match('/^\s*(--|\/\*|#)/', $stmt);
+    try {
+        // Passo 1: Conectar ao MySQL (sem especificar database)
+        $dsn_server = "mysql:host=$db_host;port=3306;charset=$charset";
+        $pdo_server = new PDO($dsn_server, $db_user, $db_pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+
+        // Passo 2: Criar novo banco de dados (remover se existir para instalação limpa)
+        // Opcional: Avisar o usuário antes de apagar. Por padrão, vamos usar CREATE IF NOT EXISTS, 
+        // ou se o usuário marcou para recriar, fazemos DROP. Vamos fazer DROP para garantir estrutura limpa
+        // já que o instalador anterior fazia isso.
+        
+        $pdo_server->exec("DROP DATABASE IF EXISTS `$db_name`");
+        $pdo_server->exec("CREATE DATABASE `$db_name` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+        // Passo 3: Conectar ao novo banco
+        $dsn = "mysql:host=$db_host;port=3306;dbname=$db_name;charset=$charset";
+        $pdo = new PDO($dsn, $db_user, $db_pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+
+        // Passo 4: Importando estrutura e dados
+        $sql_file = __DIR__ . '/banco_dump.sql.s';
+        
+        if (!file_exists($sql_file)) {
+            throw new Exception("Arquivo de dump SQL não encontrado: $sql_file");
         }
-    );
-    
-    echo "<div class='step'>🔧 Executando " . count($statements) . " comandos SQL...</div>\n";
-    
-    $executed = 0;
-    $errors = 0;
-    
-    foreach ($statements as $statement) {
-        try {
+        
+        $sql_content = file_get_contents($sql_file);
+        
+        if ($sql_content === false) {
+            throw new Exception("Erro ao ler o arquivo SQL");
+        }
+
+        // Dividir em statements individuais
+        $statements = array_filter(
+            array_map('trim', explode(';', $sql_content)),
+            function($stmt) {
+                return !empty($stmt) && !preg_match('/^\s*(--|\/\*|#)/', $stmt);
+            }
+        );
+        
+        $executed = 0;
+        foreach ($statements as $statement) {
+            // Ignorar comandos DROP DATABASE e CREATE DATABASE que vêm no dump do Adminer, 
+            // pois já criamos o banco com o nome personalizado acima.
+            if (stripos($statement, 'DROP DATABASE') !== false || stripos($statement, 'CREATE DATABASE') !== false || stripos($statement, 'USE `') !== false) {
+                continue;
+            }
             $pdo->exec($statement);
             $executed++;
-            
-            // Mostrar progresso a cada 10 comandos
-            if ($executed % 10 == 0) {
-                echo "<div class='step'>⏳ Executados: $executed comandos...</div>\n";
-                flush();
-            }
-        } catch (PDOException $e) {
-            $errors++;
-            echo "<div class='step error'>❌ Erro no comando $executed: " . htmlspecialchars($e->getMessage()) . "</div>\n";
-            
-            // Se houver muitos erros, parar
-            if ($errors > 5) {
-                throw new Exception("Muitos erros durante a importação. Processo interrompido.");
-            }
         }
-    }
-    
-    echo "<div class='step success'>✅ Importação concluída! Executados: $executed comandos, Erros: $errors</div>\n";
-    
-    echo "<div class='step'>🔍 <strong>Passo 5:</strong> Verificando estrutura...</div>\n";
-    
-    // Verificar tabelas criadas
-    $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
-    echo "<div class='step'>📋 Tabelas criadas: " . implode(', ', $tables) . "</div>\n";
-    
-    // Verificar tabela sacados especificamente
-    if (in_array('sacados', $tables)) {
-        $sacados_count = $pdo->query("SELECT COUNT(*) FROM sacados")->fetchColumn();
-        echo "<div class='step success'>✅ Tabela 'sacados' criada com $sacados_count registros</div>\n";
-        
-        // Verificar se tem a coluna id
-        $columns = $pdo->query("DESCRIBE sacados")->fetchAll();
-        $has_id = false;
-        foreach ($columns as $col) {
-            if ($col['Field'] === 'id') {
-                $has_id = true;
-                break;
-            }
-        }
-        
-        if ($has_id) {
-            echo "<div class='step success'>✅ Coluna 'id' encontrada na tabela sacados</div>\n";
-        } else {
-            echo "<div class='step error'>❌ Coluna 'id' NÃO encontrada na tabela sacados!</div>\n";
-        }
-    } else {
-        echo "<div class='step error'>❌ Tabela 'sacados' não foi criada!</div>\n";
-    }
-    
-    echo "<div class='step'>🔧 <strong>Passo 6:</strong> Criando arquivo de conexão...</div>\n";
-    
-    // Criar o arquivo db_connection.php com as credenciais corretas
-    $db_connection_content = "<?php\n// db_connection.php - Gerado automaticamente pelo installer\n\n";
-    $db_connection_content .= "\$db_host = '$db_host';\n";
-    $db_connection_content .= "\$db_name = '$db_name';\n";
-    $db_connection_content .= "\$db_user = '$db_user';\n";
-    $db_connection_content .= "\$db_pass = '$db_pass';\n";
-    $db_connection_content .= "\$charset = '$charset';\n\n";
-    $db_connection_content .= "// Opções do PDO\n";
-    $db_connection_content .= "\$options = [\n";
-    $db_connection_content .= "    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,\n";
-    $db_connection_content .= "    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,\n";
-    $db_connection_content .= "    PDO::ATTR_EMULATE_PREPARES   => false,\n";
-    $db_connection_content .= "];\n\n";
-    $db_connection_content .= "// Data Source Name (DSN)\n";
-    $db_connection_content .= "\$dsn = \"mysql:host=\$db_host;port=3306;dbname=\$db_name;charset=\$charset\";\n\n";
-    $db_connection_content .= "try {\n";
-    $db_connection_content .= "    \$pdo = new PDO(\$dsn, \$db_user, \$db_pass, \$options);\n";
-    $db_connection_content .= "} catch (\\PDOException \$e) {\n";
-    $db_connection_content .= "    error_log(\"Erro de Conexão BD: \" . \$e->getMessage());\n";
-    $db_connection_content .= "    die(\"Erro ao conectar com o banco de dados. Tente novamente mais tarde.\");\n";
-    $db_connection_content .= "}\n";
-    $db_connection_content .= "?>";
-    
-    file_put_contents(__DIR__ . '/db_connection.php', $db_connection_content);
-    echo "<div class='step success'>✅ Arquivo 'db_connection.php' criado com sucesso!</div>\n";
-    
-    echo "<div class='step success'>🎉 <strong>INSTALAÇÃO CONCLUÍDA COM SUCESSO!</strong></div>\n";
-    echo "<div class='step'>📝 <strong>Próximos passos:</strong></div>\n";
-    echo "<div class='step'>1. ✅ Banco de dados reinstalado</div>\n";
-    echo "<div class='step'>2. ✅ Arquivo db_connection.php atualizado</div>\n";
-    echo "<div class='step'>3. 🔄 Teste o relatório de sacados agora</div>\n";
-    echo "<div class='step'>4. 🗑️ Você pode deletar este arquivo installer.php após confirmar que tudo funciona</div>\n";
-    
-    echo "<div class='step warning'>⚠️ <strong>IMPORTANTE:</strong> O erro 's.id' deve estar resolvido agora!</div>\n";
-    
-} catch (Exception $e) {
-    echo "<div class='step error'>❌ <strong>ERRO FATAL:</strong> " . htmlspecialchars($e->getMessage()) . "</div>\n";
-    echo "<div class='step error'>🔧 Verifique as credenciais do banco e tente novamente.</div>\n";
-}
 
-echo "</div>\n</body>\n</html>";
+        // Passo 5: Criando arquivo de conexão
+        $db_connection_content = "<?php\n// db_connection.php - Gerado automaticamente pelo installer.php\n\n";
+        $db_connection_content .= "\$db_host = '$db_host';\n";
+        $db_connection_content .= "\$db_name = '$db_name';\n";
+        $db_connection_content .= "\$db_user = '$db_user';\n";
+        $db_connection_content .= "\$db_pass = '$db_pass';\n";
+        $db_connection_content .= "\$charset = '$charset';\n\n";
+        $db_connection_content .= "// Opções do PDO\n";
+        $db_connection_content .= "\$options = [\n";
+        $db_connection_content .= "    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,\n";
+        $db_connection_content .= "    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,\n";
+        $db_connection_content .= "    PDO::ATTR_EMULATE_PREPARES   => false,\n";
+        $db_connection_content .= "];\n\n";
+        $db_connection_content .= "// Data Source Name (DSN)\n";
+        $db_connection_content .= "\$dsn = \"mysql:host=\$db_host;port=3306;dbname=\$db_name;charset=\$charset\";\n\n";
+        $db_connection_content .= "try {\n";
+        $db_connection_content .= "    \$pdo = new PDO(\$dsn, \$db_user, \$db_pass, \$options);\n";
+        $db_connection_content .= "} catch (\\PDOException \$e) {\n";
+        $db_connection_content .= "    error_log(\"Erro de Conexão BD: \" . \$e->getMessage());\n";
+        $db_connection_content .= "    die(\"Erro ao conectar com o banco de dados. Tente novamente mais tarde.\");\n";
+        $db_connection_content .= "}\n";
+        $db_connection_content .= "?>";
+        
+        file_put_contents(__DIR__ . '/db_connection.php', $db_connection_content);
+        
+        $step = 2; // Instalação concluída
+        $message = "Instalação concluída com sucesso! Banco de dados estruturado e arquivo de conexão gerado.";
+        $messageType = "success";
+
+    } catch (Exception $e) {
+        $message = "Erro durante a instalação: " . htmlspecialchars($e->getMessage());
+        $messageType = "danger";
+    }
+}
 ?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instalador do Sistema</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .install-container { max-width: 600px; margin: 50px auto; }
+        .card-header { background-color: #007cba; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container install-container">
+        <div class="card shadow-sm">
+            <div class="card-header text-center py-3">
+                <h2 class="h4 mb-0"><i class="bi bi-hdd-network"></i> Instalador do Sistema (MySQL)</h2>
+            </div>
+            <div class="card-body p-4">
+                
+                <?php if ($message): ?>
+                    <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show" role="alert">
+                        <?php echo $message; ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($step === 1): ?>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill"></i> <strong>Atenção:</strong> 
+                        Este instalador irá <strong>recriar</strong> o banco de dados informado (apagando dados anteriores) e carregar a estrutura inicial (<code>banco_dump.sql.s</code>).
+                    </div>
+                    
+                    <form method="POST" action="installer.php">
+                        <div class="mb-3">
+                            <label for="db_host" class="form-label">Servidor MySQL (Host)</label>
+                            <input type="text" class="form-control" id="db_host" name="db_host" value="localhost" required>
+                            <div class="form-text">Geralmente é 'localhost' ou o IP do servidor do banco.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="db_user" class="form-label">Usuário do Banco</label>
+                            <input type="text" class="form-control" id="db_user" name="db_user" value="root" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="db_pass" class="form-label">Senha do Banco</label>
+                            <input type="password" class="form-control" id="db_pass" name="db_pass">
+                            <div class="form-text">Deixe em branco se for um servidor local sem senha (como XAMPP/WAMP padrão).</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="db_name" class="form-label">Nome do Banco de Dados</label>
+                            <input type="text" class="form-control" id="db_name" name="db_name" value="factor_db" required>
+                            <div class="form-text">O banco será criado com este nome. Se já existir, ele será <strong>apagado e recriado</strong>.</div>
+                        </div>
+                        
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-play-circle"></i> Iniciar Instalação</button>
+                        </div>
+                    </form>
+                <?php elseif ($step === 2): ?>
+                    <div class="text-center mb-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                        <h3 class="mt-3">Tudo Pronto!</h3>
+                        <p class="text-muted">O banco de dados foi configurado e o sistema está pronto para uso.</p>
+                    </div>
+                    
+                    <div class="alert alert-danger">
+                        <h5><i class="bi bi-shield-lock-fill"></i> Segurança: Ação Necessária</h5>
+                        <p class="mb-0">Para proteger seu sistema, <strong>exclua este arquivo (<code>installer.php</code>)</strong> do servidor imediatamente.</p>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="index.php" class="btn btn-success btn-lg"><i class="bi bi-box-arrow-in-right"></i> Acessar o Sistema</a>
+                    </div>
+                <?php endif; ?>
+                
+            </div>
+            <div class="card-footer text-center text-muted py-3">
+                <small>&copy; <?php echo date('Y'); ?> Factor System. Todos os direitos reservados.</small>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
