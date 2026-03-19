@@ -77,12 +77,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             require_once 'db_connection.php'; // Usa a conexão existente
             
             try {
-                $pdo->beginTransaction();
-                
                 // Desativa a checagem de chave estrangeira para poder truncar
                 $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
                 
                 // Limpa as tabelas principais
+                // Nota: TRUNCATE no MySQL causa commit implícito, então não usamos beginTransaction() aqui
                 $tabelas = [
                     'compensacoes',
                     'operacao_arquivos',
@@ -99,8 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 
                 // Reativa a checagem de chave estrangeira
                 $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
-                
-                $pdo->commit();
                 
                 // Apaga os arquivos físicos
                 $uploadDir = __DIR__ . '/uploads/operacoes/';
