@@ -11,10 +11,10 @@ if (isset($_GET['id']) && filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT)) {
         // ---------------------------------------------------------
         // 2. VERIFICAÇÃO: Checar se existem recebíveis associados
         // ---------------------------------------------------------
+        // O sacado_id agora está na própria tabela de recebiveis
         $sqlCheck = "SELECT 1 -- Seleciona apenas 1 para indicar existência
                      FROM recebiveis r
-                     JOIN operacoes o ON r.operacao_id = o.id
-                     WHERE o.sacado_id = :sacado_id
+                     WHERE r.sacado_id = :sacado_id
                      LIMIT 1"; // Para assim que encontrar o primeiro
 
         $stmtCheck = $pdo->prepare($sqlCheck);
