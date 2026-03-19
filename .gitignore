@@ -2,3 +2,6 @@
 
 # On macOS you should ignore .DS_Store files.
 .DS_Store
+
+# Ignore o arquivo de conexão com o banco (para não sobrescrever em produção)
+db_connection.php
