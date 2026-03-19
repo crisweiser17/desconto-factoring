@@ -16,29 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $charset = 'utf8mb4';
 
     try {
-        // Passo 1: Conectar ao MySQL (sem especificar database)
-        $dsn_server = "mysql:host=$db_host;port=3306;charset=$charset";
-        $pdo_server = new PDO($dsn_server, $db_user, $db_pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-        ]);
-
-        // Passo 2: Criar novo banco de dados (remover se existir para instalação limpa)
-        // Opcional: Avisar o usuário antes de apagar. Por padrão, vamos usar CREATE IF NOT EXISTS, 
-        // ou se o usuário marcou para recriar, fazemos DROP. Vamos fazer DROP para garantir estrutura limpa
-        // já que o instalador anterior fazia isso.
-        
-        $pdo_server->exec("DROP DATABASE IF EXISTS `$db_name`");
-        $pdo_server->exec("CREATE DATABASE `$db_name` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-
-        // Passo 3: Conectar ao novo banco
+        // Passo 1: Conectar ao banco de dados (já deve ter sido criado no painel da Cloudways/Hospedagem)
         $dsn = "mysql:host=$db_host;port=3306;dbname=$db_name;charset=$charset";
         $pdo = new PDO($dsn, $db_user, $db_pass, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
         ]);
 
-        // Passo 4: Importando estrutura e dados
+        // Passo 2: Importando estrutura e dados
         $sql_file = __DIR__ . '/banco_dump.sql.s';
         
         if (!file_exists($sql_file)) {
@@ -70,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $executed++;
         }
 
-        // Passo 5: Criando arquivo de conexão
+        // Passo 3: Criando arquivo de conexão
         $db_connection_content = "<?php\n// db_connection.php - Gerado automaticamente pelo installer.php\n\n";
         $db_connection_content .= "\$db_host = '$db_host';\n";
         $db_connection_content .= "\$db_name = '$db_name';\n";
@@ -137,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php if ($step === 1): ?>
                     <div class="alert alert-warning">
                         <i class="bi bi-exclamation-triangle-fill"></i> <strong>Atenção:</strong> 
-                        Este instalador irá <strong>recriar</strong> o banco de dados informado (apagando dados anteriores) e carregar a estrutura inicial (<code>banco_dump.sql.s</code>).
+                        Crie um banco de dados vazio no painel da sua hospedagem (ex: Cloudways) antes de prosseguir. Este instalador irá carregar a estrutura inicial nele (<code>banco_dump.sql.s</code>).
                     </div>
                     
                     <form method="POST" action="installer.php">
@@ -158,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="mb-3">
                             <label for="db_name" class="form-label">Nome do Banco de Dados</label>
                             <input type="text" class="form-control" id="db_name" name="db_name" value="factor_db" required>
-                            <div class="form-text">O banco será criado com este nome. Se já existir, ele será <strong>apagado e recriado</strong>.</div>
+                            <div class="form-text">Nome do banco de dados que você já criou no painel da sua hospedagem.</div>
                         </div>
                         
                         <div class="d-grid mt-4">
