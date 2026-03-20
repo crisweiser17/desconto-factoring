@@ -55,6 +55,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $executed++;
         }
 
+        // Passo 2.5: Garantir criação da tabela de usuários (Caso falhe pelo dump)
+        $sqlUsuarios = "CREATE TABLE IF NOT EXISTS usuarios (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(255) NOT NULL UNIQUE,
+            senha_hash VARCHAR(255) NOT NULL,
+            criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        $pdo->exec($sqlUsuarios);
+
+        // Verifica se existe algum usuário, senão cria o admin padrão
+        $stmtCheck = $pdo->query("SELECT COUNT(*) FROM usuarios");
+        if ($stmtCheck->fetchColumn() == 0) {
+            $senhaPadrao = password_hash('Qazwsx123@', PASSWORD_DEFAULT);
+            $pdo->exec("INSERT INTO usuarios (email, senha_hash) VALUES ('admin', '$senhaPadrao')");
+        }
+
         // Passo 3: Criando arquivo de conexão
         $db_connection_content = "<?php\n// db_connection.php - Gerado automaticamente pelo installer.php\n\n";
         $db_connection_content .= "\$db_host = '$db_host';\n";
