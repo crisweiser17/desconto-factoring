@@ -82,8 +82,8 @@ $menuItems = [
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
   <div class="container">
     <a class="navbar-brand" href="index.php">
-        <i class="bi bi-calculator-fill me-2"></i>Factoring 5.0
-        <small class="text-secondary ms-2" style="font-size: 0.7em;">agosto 2025</small>
+        <i class="bi bi-calculator-fill me-2"></i>Factoring 5.1
+        <small class="text-secondary ms-2" style="font-size: 0.7em;">03.2026</small>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
