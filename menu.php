@@ -64,7 +64,8 @@ $menuItems = [
         ]
     ],
     // NOVO ITEM DE MENU - CONFIGURAÇÕES
-    'config.php' => '<i class="bi bi-gear"></i> Configurações' //
+    'config.php' => '<i class="bi bi-gear-fill"></i> Configurações Gerais', //
+    'listar_usuarios.php' => '<i class="bi bi-people-fill"></i> Gerenciar Usuários'
 ];
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
