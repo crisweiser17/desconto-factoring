@@ -57,119 +57,45 @@ try {
     <title>Nova Simulação / Registro - Calculadora Desconto</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- ADICIONANDO TAILWIND CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#007cba',
-                        success: '#198754',
-                        danger: '#dc3545',
-                        warning: '#ffc107',
-                        info: '#0dcaf0'
-                    }
-                }
-            },
-            corePlugins: {
-                preflight: false, // Desativa o reset do Tailwind para não quebrar o Bootstrap do menu
-            }
-        }
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <style>
+        /* Estilos CSS (mantidos como no seu arquivo) */
+        input#taxaMensal::-webkit-outer-spin-button, input#taxaMensal::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input#taxaMensal[type=number] { -moz-appearance: textfield; }
+        input#taxaMensal { text-align: center; }
+        .chart-wrapper { position: relative; max-height: 350px; margin-top: 20px; margin-bottom: 30px; }
+        .chart-wrapper canvas { max-width: 100%; max-height: 100%; }
+        .resultado-total-item { padding: 10px 12px; margin-bottom: 10px; text-align: center; }
+        .result-row-1 .resultado-total-item .value { font-size: 1.1em; font-weight: normal; }
+        .result-row-1 .resultado-total-item .label { font-size: 0.8em; }
+        .result-row-2 .resultado-total-item .value { font-size: 1.3em; font-weight: bold; }
+        .result-row-2 .resultado-total-item .label { font-size: 0.85em; }
+        .value.profit { color: #198754; }
+        .value.loss { color: #dc3545; }
+        .cobrar-iof-wrapper.d-none { display: none !important; }
+        .dias-restantes-cell { text-align: center; vertical-align: middle; font-style: italic; color: #6c757d; font-size: 0.9em;}
+        /* NOVA CLASSE CSS PARA A NOVA COLUNA */
+        .valor-pago-cell { text-align: right; vertical-align: middle; }
+    </style>
+</head>
+<body>
 
-    <!-- ADICIONANDO ALPINE.JS -->
-      <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-      
-      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-      <style>
-          /* Estilos CSS Base */
-          input#taxaMensal::-webkit-outer-spin-button, input#taxaMensal::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-          input#taxaMensal[type=number] { -moz-appearance: textfield; }
-          input#taxaMensal { text-align: center; }
-          .chart-wrapper { position: relative; max-height: 350px; margin-top: 20px; margin-bottom: 30px; }
-          .chart-wrapper canvas { max-width: 100%; max-height: 100%; }
-          /* Utilitários Tailwind mesclados */
-          .tw-card { @apply bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-6; }
-          .tw-label { @apply block text-sm font-medium text-gray-700 mb-1; }
-          .tw-input { @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm border p-2; }
-          .tw-btn-primary { @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500; }
-          .tw-btn-secondary { @apply inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary; }
-          
-          .resultado-total-item { padding: 10px 12px; margin-bottom: 10px; text-align: center; }
-          .result-row-1 .resultado-total-item .value { font-size: 1.1em; font-weight: normal; }
-          .result-row-1 .resultado-total-item .label { font-size: 0.8em; }
-          .result-row-2 .resultado-total-item .value { font-size: 1.3em; font-weight: bold; }
-          .result-row-2 .resultado-total-item .label { font-size: 0.85em; }
-          .value.profit { color: #198754; }
-          .value.loss { color: #dc3545; }
-          .cobrar-iof-wrapper.d-none { display: none !important; }
-          .dias-restantes-cell { text-align: center; vertical-align: middle; font-style: italic; color: #6c757d; font-size: 0.9em;}
-          /* NOVA CLASSE CSS PARA A NOVA COLUNA */
-          .valor-pago-cell { text-align: right; vertical-align: middle; }
-      </style>
-  </head>
-<body class="bg-gray-50 text-gray-900" x-data="calculadora()">
+  <div class="container mt-4">
+      <h1 class="mb-4">Nova Simulação / Registro de Operação</h1>
 
-  <div class="container mt-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 class="mb-4 text-3xl font-bold text-gray-900">Nova Simulação / Registro de Operação</h1>
-
-         <form id="calculationForm" method="post" @submit.prevent>
-          <fieldset class="tw-card">
-              <legend class="float-none w-auto px-3 text-lg font-medium text-gray-900 border-b pb-2 mb-4 w-full">Parâmetros da Operação</legend>
+      <form id="calculationForm" method="post">
+          <fieldset class="border p-3 rounded mb-4">
+              <legend class="float-none w-auto px-3 h6">Parâmetros da Operação</legend>
               <div class="row g-3 align-items-end">
-                  <div class="col-md-5">
-                      <label for="cedente" class="tw-label">Cedente</label>
-                      <select id="cedente" name="cedente_id" class="tw-input" x-model="params.cedenteId" @change="checkEncontroContas()">
-                          <option value="" selected>-- Selecione (Obrigatório p/ Registrar) --</option>
-                          <?php foreach ($cedentes as $cedente): ?>
-                              <option value="<?php echo htmlspecialchars($cedente['id']); ?>"><?php echo htmlspecialchars($cedente['nome']); ?></option>
-                          <?php endforeach; ?>
-                      </select>
-                  </div>
-                  <div class="col-md-4">
-                      <label for="taxaMensal" class="tw-label">Taxa de Desconto (% a.m.)</label>
-                      <div class="flex rounded-md shadow-sm">
-                          <button class="px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50 text-gray-500 hover:bg-gray-100" type="button" @click="params.taxa = Math.max(0, params.taxa - 0.25); updateCalculations()">-</button>
-                          <input type="number" class="tw-input !rounded-none text-center" id="taxaMensal" name="taxaMensal" step="0.25" min="0" x-model.number="params.taxa" @input.debounce.500ms="updateCalculations()" required>
-                          <button class="px-3 py-2 border border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100" type="button" @click="params.taxa += 0.25; updateCalculations()">+</button>
-                          <button class="px-3 py-2 border border-blue-300 rounded-r-md bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1" type="button" title="Descobrir taxa a partir de um valor líquido alvo" data-bs-toggle="modal" data-bs-target="#descobrirTaxaModal">
-                              <i class="bi bi-calculator"></i> Alvo
-                          </button>
-                      </div>
-                  </div>
-                  <div class="col-md-3">
-                      <label for="data_operacao" class="tw-label">Data Base de Cálculo:</label>
-                      <input type="date" class="tw-input" id="data_operacao" name="data_operacao" x-model="params.dataOperacao" @change="updateCalculations()" required>
-                  </div>
+                  <div class="col-md-5"><label for="cedente" class="form-label">Cedente</label><select id="cedente" name="cedente_id" class="form-select"><option value="" selected>-- Selecione (Obrigatório p/ Registrar) --</option><?php foreach ($cedentes as $cedente): ?><option value="<?php echo htmlspecialchars($cedente['id']); ?>"><?php echo htmlspecialchars($cedente['nome']); ?></option><?php endforeach; ?><?php if (empty($cedentes) && $erro_cedentes): ?><option value="" disabled><?php echo htmlspecialchars($erro_cedentes); ?></option><?php elseif (empty($cedentes)):?><option value="" disabled>Nenhum cedente cadastrado</option><?php endif; ?></select></div>
+                  <div class="col-md-4"><label for="taxaMensal" class="form-label">Taxa de Desconto (% a.m.)</label><div class="input-group"><button class="btn btn-outline-secondary" type="button" id="taxaDecrementBtn">-</button><input type="number" class="form-control" id="taxaMensal" name="taxaMensal" step="0.25" min="0" value="<?php echo htmlspecialchars($defaultTaxaMensal); ?>" required><button class="btn btn-outline-secondary" type="button" id="taxaIncrementBtn">+</button><button class="btn btn-outline-primary" type="button" id="btnAbrirModalTaxa" title="Descobrir taxa a partir de um valor líquido alvo" data-bs-toggle="modal" data-bs-target="#descobrirTaxaModal"><i class="bi bi-calculator"></i></button></div></div>
+                  <div class="col-md-3"><label for="data_operacao" class="form-label">Data Base de Cálculo:</label><?php $dataOperacaoDefault = date('Y-m-d'); ?><input type="date" class="form-control" id="data_operacao" name="data_operacao" value="<?php echo $dataOperacaoDefault; ?>" required></div>
               </div>
               <div class="row g-3 mt-1 align-items-end">
-                  <div class="col-md-3">
-                      <label for="tipoPagamento" class="tw-label">Tipo de Pagamento</label>
-                      <select id="tipoPagamento" name="tipoPagamento" class="tw-input" x-model="params.tipoPagamento" @change="updateCalculations()" required>
-                          <option value="direto">Pagamento Direto (Devedor Notificado)</option>
-                          <option value="escrow">Pagamento via Conta Escrow</option>
-                          <option value="indireto">Pagamento Indireto (Repasse via Cedente)</option>
-                      </select>
-                  </div>
-                  <div class="col-md-3">
-                      <label for="incorreIOF" class="tw-label">Você Incorre Custo IOF?</label>
-                      <select id="incorreIOF" name="incorreIOF" class="tw-input" x-model="params.incorreIOF" @change="updateCalculations()">
-                          <option value="Sim">Sim</option>
-                          <option value="Nao">Não</option>
-                      </select>
-                  </div>
-                  <div class="col-md-3" x-show="params.incorreIOF === 'Nao'" x-transition>
-                      <label for="cobrarIOF" class="tw-label">Cobrar IOF do Cliente?</label>
-                      <select id="cobrarIOF" name="cobrarIOF" class="tw-input" x-model="params.cobrarIOF" @change="updateCalculations()">
-                          <option value="Sim">Sim (Taxa Extra)</option>
-                          <option value="Nao">Não</option>
-                      </select>
-                  </div>
-                  <div class="col-md-3">
-                      <label for="notas" class="tw-label">Anotações da Operação</label>
-                      <textarea class="tw-input" id="notas" name="notas" rows="1" x-model="params.notas" placeholder="Detalhes..."></textarea>
-                  </div>
+                  <div class="col-md-3"><label for="tipoPagamento" class="form-label">Tipo de Pagamento</label><select id="tipoPagamento" name="tipoPagamento" class="form-select" required><option value="direto">Pagamento Direto (Devedor Notificado)</option><option value="escrow">Pagamento via Conta Escrow</option><option value="indireto">Pagamento Indireto (Repasse via Cedente)</option></select></div>
+                  <div class="col-md-3"><label for="incorreIOF" class="form-label">Você Incorre Custo IOF?</label><select id="incorreIOF" name="incorreIOF" class="form-select"><option value="Sim">Sim</option><option value="Nao" selected>Não</option></select></div>
+                  <div class="col-md-3 cobrar-iof-wrapper d-none"><label for="cobrarIOF" class="form-label">Cobrar IOF do Cliente?</label><select id="cobrarIOF" name="cobrarIOF" class="form-select"><option value="Sim">Sim (Taxa Extra)</option><option value="Nao">Não</option></select></div>
+                  <div class="col-md-3"><label for="notas" class="form-label">Anotações da Operação</label><textarea class="form-control" id="notas" name="notas" rows="1" placeholder="Detalhes..."></textarea></div>
               </div>
           </fieldset>
 
