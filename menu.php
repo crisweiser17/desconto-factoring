@@ -63,9 +63,20 @@ $menuItems = [
             'relatorio_contas_a_pagar.php' => '<i class="bi bi-file-earmark-text"></i> Contas a Pagar'
         ]
     ],
-    // NOVO ITEM DE MENU - CONFIGURAÇÕES
-    'config.php' => '<i class="bi bi-gear-fill"></i> Configurações Gerais', //
-    'listar_usuarios.php' => '<i class="bi bi-people-fill"></i> Gerenciar Usuários'
+    // Estrutura para o dropdown de Configurações
+    'config_dropdown' => [
+        'label' => 'Configurações',
+        'icon' => 'bi-gear-fill',
+        'pages' => [
+            'config.php',
+            'listar_usuarios.php',
+            'form_usuario.php'
+        ],
+        'items' => [
+            'config.php' => '<i class="bi bi-gear-fill"></i> Configurações Gerais',
+            'listar_usuarios.php' => '<i class="bi bi-people-fill"></i> Gerenciar Usuários'
+        ]
+    ]
 ];
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
