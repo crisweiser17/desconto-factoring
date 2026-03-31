@@ -77,6 +77,7 @@ try {
     
     $api_key = $config['resend_api_key'] ?? '';
     $from_email = $config['resend_from_email'] ?? '';
+    $from_name = $config['resend_from_name'] ?? 'Notificações';
     $template_raw = $config['email_template'] ?? '';
     $subject_raw = $config['email_subject'] ?? 'Notificação de Cessão de Crédito - Op #[BORDERO_NUMERO]';
     $cc_email = $config['resend_cc_email'] ?? '';
@@ -147,7 +148,7 @@ try {
         $assunto = str_replace('[BORDERO_VALOR]', 'R$ ' . number_format($sacado['total'], 2, ',', '.'), $assunto);
 
         // Enviar
-        $res = enviar_email_resend($sacado['email'], $assunto, $html_body, $api_key, $from_email, $cc_email, $bcc_email);
+        $res = enviar_email_resend($sacado['email'], $assunto, $html_body, $api_key, $from_email, $cc_email, $bcc_email, $from_name);
         
         if ($res['success']) {
             $resultados[] = ['sacado' => $sacado['nome'], 'status' => 'sucesso'];

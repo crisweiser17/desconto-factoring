@@ -15,6 +15,7 @@ function readConfig($filePath) {
             "iof_adicional_rate" => 0.0038,
             "iof_diaria_rate" => 0.000082,
             "resend_api_key" => "",
+            "resend_from_name" => "Notificações",
             "resend_from_email" => "notificacoes@seudominio.com",
             "email_subject" => "Notificação de Cessão de Crédito - Borderô #[BORDERO_NUMERO]",
             "email_template" => "## **NOTIFICAÇÃO DE CESSÃO DE CRÉDITO**\n\n**Cedente:** [CEDENTE_NOME] / [CEDENTE_CNPJ]\n**Cessionário:** SUA EMPRESA FACTORING / 00.000.000/0001-00\n**Sacado (Devedor):** [SACADO_NOME] / [SACADO_CNPJ]\n\n---\n\n**Assunto: Cessão de Crédito – Art. 290 do Código Civil**\n\nPrezado(a),\n\nInformamos que os créditos representados pelas duplicatas abaixo foram **cedidos** ao Cessionário acima identificado, por meio de operação de desconto.\n\nNos termos do Art. 290 do Código Civil, esta notificação torna a cessão eficaz perante V.Sa.\n\n---\n\n### **Borderô**\n\nNº: [BORDERO_NUMERO]\nData: [BORDERO_DATA]\nValor Total: [BORDERO_VALOR]\n\n---\n\n### **Títulos Cedidos**\n\n[TABELA_TITULOS]\n\n---\n\n### **Pagamento**\n\nA partir do recebimento desta, **os pagamentos deverão ser feitos exclusivamente ao Cessionário**:\n\nBanco: SEU BANCO\nAgência: 0000\nConta: 00000-0\nFavorecido: SUA EMPRESA FACTORING\nCNPJ: 00.000.000/0001-00\nPIX: sua-chave-pix\n\n---\n\n### **Importante**\n\n* Pagamento ao Cedente após esta notificação **não terá efeito liberatório**.\n* A obrigação de pagamento permanece válida independentemente de concordância com a cessão.\n\n---\n\n**Local e Data:** [CIDADE_DATA]\n\n**Cedente:** _________________________\n\n**Cessionário:** _________________________"
@@ -27,6 +28,7 @@ function readConfig($filePath) {
     
     // Garantir que os campos de email existam mesmo em configs antigas
     if (!isset($config['resend_api_key'])) $config['resend_api_key'] = '';
+    if (!isset($config['resend_from_name'])) $config['resend_from_name'] = 'Notificações';
     if (!isset($config['resend_from_email'])) $config['resend_from_email'] = 'notificacoes@seudominio.com';
     if (!isset($config['resend_cc_email'])) $config['resend_cc_email'] = '';
     if (!isset($config['resend_bcc_email'])) $config['resend_bcc_email'] = '';
@@ -42,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $newIofAdicionalRate = isset($_POST['iof_adicional_rate']) ? (float)$_POST['iof_adicional_rate'] : null;
     $newIofDiariaRate = isset($_POST['iof_diaria_rate']) ? (float)$_POST['iof_diaria_rate'] : null;
     $newResendApiKey = $_POST['resend_api_key'] ?? '';
+    $newResendFromName = $_POST['resend_from_name'] ?? 'Notificações';
     $newResendFromEmail = $_POST['resend_from_email'] ?? '';
     $newResendCcEmail = $_POST['resend_cc_email'] ?? '';
     $newResendBccEmail = $_POST['resend_bcc_email'] ?? '';
@@ -56,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             "iof_adicional_rate" => $newIofAdicionalRate,
             "iof_diaria_rate" => $newIofDiariaRate,
             "resend_api_key" => $newResendApiKey,
+            "resend_from_name" => $newResendFromName,
             "resend_from_email" => $newResendFromEmail,
             "resend_cc_email" => $newResendCcEmail,
             "resend_bcc_email" => $newResendBccEmail,
@@ -213,12 +217,17 @@ $currentConfig = readConfig($configFilePath);
                     <h5 class="mb-3"><i class="bi bi-envelope"></i> Configurações de E-mail (Resend)</h5>
                     
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="resend_api_key" class="form-label">Resend API Key:</label>
                             <input type="password" class="form-control" id="resend_api_key" name="resend_api_key" value="<?php echo htmlspecialchars($currentConfig['resend_api_key'] ?? ''); ?>" placeholder="re_...">
                             <small class="text-muted">Chave de API gerada no painel do Resend.com</small>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label for="resend_from_name" class="form-label">Nome do Remetente:</label>
+                            <input type="text" class="form-control" id="resend_from_name" name="resend_from_name" value="<?php echo htmlspecialchars($currentConfig['resend_from_name'] ?? 'Notificações'); ?>" placeholder="Ex: Sistema Factoring">
+                            <small class="text-muted">Nome que aparecerá no e-mail recebido</small>
+                        </div>
+                        <div class="col-md-4">
                             <label for="resend_from_email" class="form-label">E-mail do Remetente:</label>
                             <input type="email" class="form-control" id="resend_from_email" name="resend_from_email" value="<?php echo htmlspecialchars($currentConfig['resend_from_email'] ?? ''); ?>" placeholder="exemplo@seudominio.com">
                             <small class="text-muted">Deve ser um domínio verificado no Resend</small>

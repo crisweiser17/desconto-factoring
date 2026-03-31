@@ -2,23 +2,26 @@
 // funcoes_email.php
 // Funções para envio de e-mails usando a API REST do Resend
 
-function enviar_email_resend($to, $subject, $html_body, $api_key = null, $from_email = null, $cc = null, $bcc = null) {
+function enviar_email_resend($to, $subject, $html_body, $api_key = null, $from_email = null, $cc = null, $bcc = null, $from_name = null) {
     // Se as credenciais não forem passadas diretamente, buscar do config.json
-    if (!$api_key || !$from_email) {
+    if (!$api_key || !$from_email || !$from_name) {
         $configPath = __DIR__ . '/config.json';
         if (file_exists($configPath)) {
             $config = json_decode(file_get_contents($configPath), true);
             $api_key = $api_key ?: ($config['resend_api_key'] ?? '');
             $from_email = $from_email ?: ($config['resend_from_email'] ?? '');
+            $from_name = $from_name ?: ($config['resend_from_name'] ?? 'Sistema Factoring');
         }
     }
+
+    $from_name = $from_name ?: 'Sistema Factoring';
 
     if (empty($api_key) || empty($from_email)) {
         return ['success' => false, 'error' => 'API Key ou E-mail Remetente não configurados.'];
     }
 
     $data = [
-        'from' => 'Sistema Factoring <' . $from_email . '>',
+        'from' => $from_name . ' <' . $from_email . '>',
         'to' => is_array($to) ? $to : [$to],
         'subject' => $subject,
         'html' => nl2br($html_body) // Caso seja enviado texto plano com quebras de linha
