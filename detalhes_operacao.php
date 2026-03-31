@@ -429,6 +429,8 @@ if ($operacao && !isset($error_message)) {
                         <i class="bi bi-file-earmark-person"></i> Gerar Recibo Cliente
                     </a>
 
+                    <button id="notificarSacadosBtn" class="btn btn-info me-2" data-operacao-id="<?php echo htmlspecialchars($operacao['id']); ?>"><i class="bi bi-envelope-fill"></i> Notificar Sacados</button>
+
                     <a href="listar_operacoes.php" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Voltar para Lista</a>
                  </div>
             </div>
@@ -823,6 +825,42 @@ if ($operacao && !isset($error_message)) {
     </div>
 
     <script>
+    // Notificação de Sacados
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnNotificar = document.getElementById('notificarSacadosBtn');
+        if (btnNotificar) {
+            btnNotificar.addEventListener('click', function() {
+                const opId = this.getAttribute('data-operacao-id');
+                if (confirm('Deseja enviar e-mail de notificação para os sacados desta operação?')) {
+                    const originalHtml = this.innerHTML;
+                    this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enviando...';
+                    this.disabled = true;
+
+                    fetch('notificar_sacados.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ operacao_id: opId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Sucesso: ' + data.mensagem);
+                        } else {
+                            alert('Erro ao enviar notificações: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Erro na requisição: ' + error.message);
+                    })
+                    .finally(() => {
+                        this.innerHTML = originalHtml;
+                        this.disabled = false;
+                    });
+                }
+            });
+        }
+    });
+
     let myFluxoChart = null;
 
     function formatCurrencyJS(value) {

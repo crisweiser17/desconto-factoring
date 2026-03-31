@@ -234,11 +234,20 @@ try {
               </tr>
           </table>
 
-          <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mt-4 mb-4">
+          <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mt-4 mb-2">
               <button type="button" id="calculateBtn" class="btn btn-primary">Calcular Totais</button>
               <button type="button" id="exportPdfBtn" class="btn btn-secondary" disabled><i class="bi bi-file-earmark-pdf"></i> PDF Análise Completa</button>
               <button type="button" id="exportPdfClienteBtn" class="btn btn-outline-secondary" disabled><i class="bi bi-file-earmark-person"></i> PDF Simulação Cliente</button>
               <button type="button" id="registerBtn" class="btn btn-success" disabled><i class="bi bi-check-lg"></i> Registrar Operação</button>
+          </div>
+          
+          <div class="d-flex justify-content-center mb-3">
+              <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="notificar_sacado" name="notificar_sacado">
+                  <label class="form-check-label" for="notificar_sacado">
+                      <i class="bi bi-envelope"></i> Notificar Sacado(s) por E-mail após o registro
+                  </label>
+              </div>
           </div>
           <div id="register-feedback" class="text-center mt-2" style="min-height: 1.5em;"></div>
 
@@ -1149,6 +1158,30 @@ try {
                    // Mostrar seção de upload de arquivos
                    if (result.operacao_id) {
                        mostrarSecaoArquivos(result.operacao_id);
+                   }
+                   
+                   // Notificar sacados se o checkbox estiver marcado
+                   const chkNotificar = document.getElementById('notificar_sacado');
+                   if (chkNotificar && chkNotificar.checked && result.operacao_id) {
+                       registerFeedback.textContent += ' Enviando notificações...';
+                       fetch('notificar_sacados.php', {
+                           method: 'POST',
+                           headers: { 'Content-Type': 'application/json' },
+                           body: JSON.stringify({ operacao_id: result.operacao_id })
+                       })
+                       .then(res => res.json())
+                       .then(data => {
+                           if (data.success) {
+                               registerFeedback.textContent = `Operação #${result.operacao_id} registrada! E-mails enviados: ${data.mensagem}`;
+                           } else {
+                               registerFeedback.textContent = `Operação #${result.operacao_id} registrada, mas erro no envio: ${data.error}`;
+                               registerFeedback.className = 'mt-2 alert alert-warning p-1 text-center';
+                           }
+                       })
+                       .catch(err => {
+                           registerFeedback.textContent = `Operação #${result.operacao_id} registrada, erro no e-mail: ${err.message}`;
+                           registerFeedback.className = 'mt-2 alert alert-warning p-1 text-center';
+                       });
                    }
                }
                else { registerFeedback.textContent = `Erro: ${result.error || 'Desconhecido'}`; registerFeedback.className = 'mt-2 alert alert-danger p-1 text-center'; registerBtn.disabled = false; }

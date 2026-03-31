@@ -226,7 +226,38 @@ function formatCEP($cep) {
             </div>
         </div>
 
-        <!-- Sócios -->
+        <!-- Dados Bancários -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-bank me-2"></i>Dados Bancários</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="info-label">Banco</div>
+                            <div class="info-value"><?php echo htmlspecialchars($cedente['banco'] ?: 'Não informado'); ?></div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="info-label">Agência</div>
+                            <div class="info-value"><?php echo htmlspecialchars($cedente['agencia'] ?: 'Não informado'); ?></div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-label">Conta</div>
+                            <div class="info-value"><?php echo htmlspecialchars($cedente['conta'] ?: 'Não informado'); ?></div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-label">Tipo de Conta</div>
+                            <div class="info-value"><?php echo htmlspecialchars($cedente['tipo_conta'] ?: 'Não informado'); ?></div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="info-label">Chave PIX</div>
+                            <div class="info-value"><?php echo htmlspecialchars($cedente['chave_pix'] ?: 'Não informada'); ?></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sócios -->
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-people"></i> Sócios da Empresa</h5>

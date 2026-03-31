@@ -18,6 +18,13 @@ $bairro = trim($_POST['bairro'] ?? '');
 $cidade = trim($_POST['cidade'] ?? '');
 $estado = trim($_POST['estado'] ?? '');
 
+// Dados bancários
+$banco = trim($_POST['banco'] ?? '');
+$agencia = trim($_POST['agencia'] ?? '');
+$conta = trim($_POST['conta'] ?? '');
+$tipo_conta = trim($_POST['tipo_conta'] ?? '');
+$chave_pix = trim($_POST['chave_pix'] ?? '');
+
 // Documento principal (CPF ou CNPJ)
 $documentoPrincipal = preg_replace('/\D/', '', trim($_POST['documento_principal'] ?? ''));
 
@@ -92,12 +99,17 @@ try {
                                 complemento = :complemento,
                                 bairro = :bairro,
                                 cidade = :cidade,
-                                estado = :estado
+                                estado = :estado,
+                                banco = :banco,
+                                agencia = :agencia,
+                                conta = :conta,
+                                tipo_conta = :tipo_conta,
+                                chave_pix = :chave_pix
                                 WHERE id = :id");
         $stmt->bindParam(':id', $cedenteId, PDO::PARAM_INT);
     } else { // Modo de Adição
-        $stmt = $pdo->prepare("INSERT INTO cedentes (empresa, email, telefone, tipo_pessoa, documento_principal, endereco, cep, logradouro, numero, complemento, bairro, cidade, estado, nome)
-                                VALUES (:empresa, :email, :telefone, :tipo_pessoa, :documento_principal, :endereco, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :estado, :nome)");
+        $stmt = $pdo->prepare("INSERT INTO cedentes (empresa, email, telefone, tipo_pessoa, documento_principal, endereco, cep, logradouro, numero, complemento, bairro, cidade, estado, nome, banco, agencia, conta, tipo_conta, chave_pix)
+                                VALUES (:empresa, :email, :telefone, :tipo_pessoa, :documento_principal, :endereco, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :estado, :nome, :banco, :agencia, :conta, :tipo_conta, :chave_pix)");
     }
 
     $stmt->bindParam(':empresa', $empresa);
@@ -113,7 +125,17 @@ try {
     $stmt->bindParam(':bairro', $bairro);
     $stmt->bindParam(':cidade', $cidade);
     $stmt->bindParam(':estado', $estado);
-    $stmt->bindParam(':nome', $empresa); // nome = empresa
+    
+    // Bind dados bancários
+    $stmt->bindParam(':banco', $banco);
+    $stmt->bindParam(':agencia', $agencia);
+    $stmt->bindParam(':conta', $conta);
+    $stmt->bindParam(':tipo_conta', $tipo_conta);
+    $stmt->bindParam(':chave_pix', $chave_pix);
+    
+    if (!$cedenteId) {
+        $stmt->bindParam(':nome', $empresa); // nome = empresa
+    }
 
     if (!$stmt->execute()) {
         throw new Exception("Erro ao salvar dados do cedente: " . implode(" ", $stmt->errorInfo()));

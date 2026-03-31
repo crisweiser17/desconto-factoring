@@ -186,6 +186,41 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 </div>
             </div>
 
+            <!-- Dados Bancários -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bank"></i> Dados Bancários</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="banco" class="form-label">Banco</label>
+                            <input type="text" class="form-control" id="banco" name="banco" value="<?php echo htmlspecialchars($cedente['banco'] ?? ''); ?>" placeholder="Ex: Itaú, Bradesco">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="agencia" class="form-label">Agência</label>
+                            <input type="text" class="form-control" id="agencia" name="agencia" value="<?php echo htmlspecialchars($cedente['agencia'] ?? ''); ?>" placeholder="0000">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="conta" class="form-label">Conta</label>
+                            <input type="text" class="form-control" id="conta" name="conta" value="<?php echo htmlspecialchars($cedente['conta'] ?? ''); ?>" placeholder="00000-0">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tipo_conta" class="form-label">Tipo de Conta</label>
+                            <select class="form-select" id="tipo_conta" name="tipo_conta">
+                                <option value="" <?php echo empty($cedente['tipo_conta']) ? 'selected' : ''; ?>>Selecione...</option>
+                                <option value="Corrente" <?php echo ($cedente['tipo_conta'] ?? '') === 'Corrente' ? 'selected' : ''; ?>>Conta Corrente</option>
+                                <option value="Poupanca" <?php echo ($cedente['tipo_conta'] ?? '') === 'Poupanca' ? 'selected' : ''; ?>>Conta Poupança</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="chave_pix" class="form-label">Chave PIX</label>
+                            <input type="text" class="form-control" id="chave_pix" name="chave_pix" value="<?php echo htmlspecialchars($cedente['chave_pix'] ?? ''); ?>" placeholder="CPF, CNPJ, E-mail, Telefone ou Chave Aleatória">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Sócios -->
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
