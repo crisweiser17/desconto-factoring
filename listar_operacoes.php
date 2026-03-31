@@ -374,6 +374,32 @@ try {
             word-wrap: break-word;
         }
         
+        /* Ações Fixas na direita */
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .acoes-col {
+            position: sticky;
+            right: 0;
+            background-color: #fff;
+            z-index: 1;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+        }
+        thead .acoes-col {
+            background-color: #f8f9fa; /* igual ao .table-light */
+            z-index: 2;
+        }
+        tfoot .acoes-col {
+            background-color: #e2e3e5; /* igual ao .table-secondary */
+            z-index: 2;
+        }
+        .table-striped tbody tr:nth-of-type(odd) td.acoes-col {
+            background-color: rgba(0, 0, 0, 0.05); /* Aproximação do bg listrado do Bootstrap */
+        }
+        .table-hover tbody tr:hover td.acoes-col {
+            background-color: rgba(0, 0, 0, 0.075);
+        }
+        
         /* Animação suave para o ícone do collapse */
         .card-header i.bi-chevron-down {
             transition: transform 0.3s ease;
@@ -383,7 +409,7 @@ try {
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container mt-4">
+    <div class="container-fluid px-3 px-md-4 mt-4">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
             <h1>Gerenciar Operações</h1>
             <form method="GET" action="listar_operacoes.php" class="d-flex ms-auto" style="max-width: 300px;">
@@ -560,7 +586,7 @@ try {
                             <th class="text-center"><?php echo getSortLink('num_recebiveis', '# Rec.', $sort, $dir, $search, $current_filters); ?></th>
                             <th class="text-end"><?php echo getSortLink('saldo_em_aberto', 'Saldo', $sort, $dir, $search, $current_filters); ?></th>
                             <th><?php echo getSortLink('data_base_calculo', 'Data Base', $sort, $dir, $search, $current_filters); ?></th>
-                            <th class="text-center">Ações</th>
+                            <th class="text-center acoes-col">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -600,7 +626,7 @@ try {
                                     ?>
                                 </td>
                                 <td><?php echo htmlspecialchars(isset($operacao['data_base_calculo']) ? date('d/m/Y', strtotime($operacao['data_base_calculo'])) : '-'); ?></td>
-                                <td class="text-center">
+                                <td class="text-center acoes-col">
                                     <a href="detalhes_operacao.php?id=<?php echo $operacao['id']; ?>" class="btn btn-sm btn-info action-icon" title="Ver Detalhes">
                                         <i class="bi bi-eye-fill"></i>
                                     </a>
@@ -609,10 +635,8 @@ try {
                                        data-operacao-id="<?php echo $operacao['id']; ?>"
                                        title="Excluir Operação">
                                         <i class="bi bi-trash3-fill"></i>
-                                        <?php /* Ou use: <i class="bi bi-x-circle-fill"></i> */ ?>
                                     </a>
                                 </td>
-
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -697,7 +721,7 @@ try {
                                 echo formatHtmlCurrency($total_saldo);
                                 ?>
                             </th>
-                            <th colspan="2" class="text-center">
+                            <th colspan="2" class="text-center acoes-col">
                                 <small><?php echo count($operacoes); ?> operações</small>
                             </th>
                         </tr>

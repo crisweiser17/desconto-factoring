@@ -120,8 +120,8 @@ function formatCEP($cep) {
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="container-fluid px-3 px-md-4 mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <h1><i class="bi bi-eye-fill me-2"></i><?php echo htmlspecialchars($pageTitle); ?></h1>
             <div>
                 <span class="badge bg-primary badge-id">ID: <?php echo $sacado['id']; ?></span>

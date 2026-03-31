@@ -185,8 +185,8 @@ function formatDocumento($documento, $tipo_pessoa) {
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <div class="container-fluid px-3 px-md-4 mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <h1>Gerenciar Cedentes</h1>
              <form method="GET" action="listar_cedentes.php" class="d-flex ms-auto me-3" style="max-width: 300px;">
                 <input type="hidden" name="sort" value="<?php echo htmlspecialchars($sort); ?>">

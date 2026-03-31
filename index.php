@@ -80,7 +80,7 @@ try {
 </head>
 <body>
 
-  <div class="container mt-4">
+  <div class="container-fluid px-3 px-md-4 mt-4">
       <h1 class="mb-4">Nova Simulação / Registro de Operação</h1>
 
       <form id="calculationForm" method="post">

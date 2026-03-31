@@ -37,8 +37,8 @@ try {
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="container-fluid px-3 px-md-4 mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <h1>Gerenciar Usuários</h1>
             <a href="form_usuario.php" class="btn btn-primary"><i class="bi bi-person-plus-fill"></i> Novo Usuário</a>
         </div>

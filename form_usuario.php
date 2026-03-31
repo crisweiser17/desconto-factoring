@@ -37,7 +37,7 @@ if ($id) {
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container mt-4">
+    <div class="container-fluid px-3 px-md-4 mt-4">
         <div class="row justify-content-center">
             <div class="col-md-6">
                 <div class="card shadow-sm">

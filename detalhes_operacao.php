@@ -402,7 +402,7 @@ if ($operacao && !isset($error_message)) {
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container mt-4">
+    <div class="container-fluid px-3 px-md-4 mt-4">
 
         <?php if (isset($_GET['status']) && $_GET['status'] === 'updated'): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -416,22 +416,22 @@ if ($operacao && !isset($error_message)) {
             <a href="listar_operacoes.php" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Voltar para Lista</a>
         <?php elseif ($operacao): ?>
 
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                 <h1>Detalhes da Operação #<?php echo htmlspecialchars($operacao['id']); ?></h1>
-                 <div>
-                    <button id="editarOperacaoBtn" class="btn btn-warning me-2"><i class="bi bi-pencil-fill"></i> Editar Operação</button>
-                    <button id="gerarAnaliseInternaBtn" class="btn btn-primary me-2"><i class="bi bi-bar-chart-fill"></i> Gerar Análise Interna</button>
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-3">
+                 <h1 class="mb-0">Detalhes da Operação #<?php echo htmlspecialchars($operacao['id']); ?></h1>
+                 <div class="d-flex flex-wrap gap-2">
+                    <button id="editarOperacaoBtn" class="btn btn-warning btn-sm"><i class="bi bi-pencil-fill"></i> Editar Operação</button>
+                    <button id="gerarAnaliseInternaBtn" class="btn btn-primary btn-sm"><i class="bi bi-bar-chart-fill"></i> Gerar Análise Interna</button>
 
                     <a href="gerar_recibo_cliente.php?id=<?php echo htmlspecialchars($operacao['id']); ?>"
-                       class="btn btn-outline-secondary me-2"
+                       class="btn btn-outline-secondary btn-sm"
                        target="_blank"
                        title="Gerar Recibo do Cliente">
                         <i class="bi bi-file-earmark-person"></i> Gerar Recibo Cliente
                     </a>
 
-                    <button id="notificarSacadosBtn" class="btn btn-info me-2" data-operacao-id="<?php echo htmlspecialchars($operacao['id']); ?>"><i class="bi bi-envelope-fill"></i> Notificar Sacados</button>
+                    <button id="notificarSacadosBtn" class="btn btn-info btn-sm" data-operacao-id="<?php echo htmlspecialchars($operacao['id']); ?>"><i class="bi bi-envelope-fill"></i> Notificar Sacados</button>
 
-                    <a href="listar_operacoes.php" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Voltar para Lista</a>
+                    <a href="listar_operacoes.php" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Voltar para Lista</a>
                  </div>
             </div>
 
@@ -806,6 +806,42 @@ if ($operacao && !isset($error_message)) {
                 </div>
             </div>
 
+            <!-- Modal para Pré-visualização de Notificação -->
+            <div class="modal fade" id="previewNotificacaoModal" tabindex="-1" aria-labelledby="previewNotificacaoModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="previewNotificacaoModalLabel">Pré-visualização do E-mail para Sacados</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="previewNotificacaoLoading" class="text-center" style="display: none;">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Carregando...</span>
+                                </div>
+                                <p class="mt-2">Gerando pré-visualização...</p>
+                            </div>
+                            <div id="previewNotificacaoContent" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="selectSacadoPreview" class="form-label">Selecione o Sacado para visualizar o e-mail que ele receberá:</label>
+                                    <select class="form-select" id="selectSacadoPreview"></select>
+                                </div>
+                                <div class="border rounded p-4 bg-light shadow-sm" style="min-height: 400px; overflow-y: auto;">
+                                    <iframe id="iframePreviewEmail" style="width: 100%; min-height: 500px; border: none; background: #fff;"></iframe>
+                                </div>
+                            </div>
+                            <div id="previewNotificacaoError" class="alert alert-danger" style="display: none;"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-success" id="confirmarDisparoBtn">
+                                <i class="bi bi-send-fill"></i> Confirmar e Enviar E-mails
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="status-feedback" class="mt-2 mb-3" style="min-height: 1.5em;"></div> <fieldset class="border p-3 rounded mb-5 mt-4">
                 <legend class="float-none w-auto px-3 h6">Fluxo de Caixa (Saída, Retorno e Lucro por Mês)</legend>
                 <?php if (empty($recebiveis_para_exibir) && $totalLiquidoPagoCalculado == 0): ?>
@@ -825,38 +861,109 @@ if ($operacao && !isset($error_message)) {
     </div>
 
     <script>
-    // Notificação de Sacados
+    // Notificação de Sacados - Novo fluxo com preview
     document.addEventListener('DOMContentLoaded', function() {
         const btnNotificar = document.getElementById('notificarSacadosBtn');
+        let previewModal;
+        if (document.getElementById('previewNotificacaoModal')) {
+            previewModal = new bootstrap.Modal(document.getElementById('previewNotificacaoModal'));
+        }
+        
+        let currentPreviews = [];
+        let currentOperacaoId = null;
+
         if (btnNotificar) {
             btnNotificar.addEventListener('click', function() {
-                const opId = this.getAttribute('data-operacao-id');
-                if (confirm('Deseja enviar e-mail de notificação para os sacados desta operação?')) {
-                    const originalHtml = this.innerHTML;
-                    this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enviando...';
-                    this.disabled = true;
+                currentOperacaoId = this.getAttribute('data-operacao-id');
+                
+                // Mostrar modal de loading
+                const loading = document.getElementById('previewNotificacaoLoading');
+                const content = document.getElementById('previewNotificacaoContent');
+                const errorDiv = document.getElementById('previewNotificacaoError');
+                const btnConfirmar = document.getElementById('confirmarDisparoBtn');
+                
+                loading.style.display = 'block';
+                content.style.display = 'none';
+                errorDiv.style.display = 'none';
+                btnConfirmar.disabled = true;
+                
+                previewModal.show();
 
-                    fetch('notificar_sacados.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ operacao_id: opId })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('Sucesso: ' + data.mensagem);
-                        } else {
-                            alert('Erro ao enviar notificações: ' + data.error);
-                        }
-                    })
-                    .catch(error => {
-                        alert('Erro na requisição: ' + error.message);
-                    })
-                    .finally(() => {
-                        this.innerHTML = originalHtml;
-                        this.disabled = false;
-                    });
-                }
+                fetch('preview_notificacao_sacados.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ operacao_id: currentOperacaoId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    if (data.success && data.previews && data.previews.length > 0) {
+                        currentPreviews = data.previews;
+                        const select = document.getElementById('selectSacadoPreview');
+                        select.innerHTML = '';
+                        
+                        data.previews.forEach((p, index) => {
+                            const option = document.createElement('option');
+                            option.value = index;
+                            option.textContent = p.sacado + (p.email ? ` (${p.email})` : ' - Sem E-mail Cadastrado');
+                            select.appendChild(option);
+                        });
+                        
+                        select.onchange = function() {
+                            const p = currentPreviews[this.value];
+                            const iframe = document.getElementById('iframePreviewEmail');
+                            iframe.srcdoc = p.html_body;
+                        };
+                        
+                        // Selecionar o primeiro
+                        select.selectedIndex = 0;
+                        select.dispatchEvent(new Event('change'));
+                        
+                        content.style.display = 'block';
+                        btnConfirmar.disabled = false;
+                    } else {
+                        errorDiv.textContent = data.error || 'Nenhum sacado encontrado para notificar.';
+                        errorDiv.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    loading.style.display = 'none';
+                    errorDiv.textContent = 'Erro na requisição de preview: ' + error.message;
+                    errorDiv.style.display = 'block';
+                });
+            });
+        }
+        
+        const btnConfirmar = document.getElementById('confirmarDisparoBtn');
+        if (btnConfirmar) {
+            btnConfirmar.addEventListener('click', function() {
+                if (!currentOperacaoId) return;
+                
+                const originalHtml = this.innerHTML;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enviando...';
+                this.disabled = true;
+
+                fetch('notificar_sacados.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ operacao_id: currentOperacaoId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Sucesso: ' + data.mensagem);
+                        previewModal.hide();
+                    } else {
+                        alert('Erro ao enviar notificações: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Erro na requisição: ' + error.message);
+                })
+                .finally(() => {
+                    this.innerHTML = originalHtml;
+                    this.disabled = false;
+                });
             });
         }
     });

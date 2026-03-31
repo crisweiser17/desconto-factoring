@@ -27,6 +27,8 @@ function readConfig($filePath) {
     // Garantir que os campos de email existam mesmo em configs antigas
     if (!isset($config['resend_api_key'])) $config['resend_api_key'] = '';
     if (!isset($config['resend_from_email'])) $config['resend_from_email'] = 'notificacoes@seudominio.com';
+    if (!isset($config['resend_cc_email'])) $config['resend_cc_email'] = '';
+    if (!isset($config['resend_bcc_email'])) $config['resend_bcc_email'] = '';
     if (!isset($config['email_template'])) $config['email_template'] = "<h2><strong>NOTIFICAÇÃO DE CESSÃO DE CRÉDITO</strong></h2><p><strong>Cedente:</strong> [CEDENTE_NOME] / [CEDENTE_CNPJ]<br><strong>Cessionário:</strong> SUA EMPRESA FACTORING / 00.000.000/0001-00<br><strong>Sacado (Devedor):</strong> [SACADO_NOME] / [SACADO_CNPJ]</p><hr><p><strong>Assunto: Cessão de Crédito – Art. 290 do Código Civil</strong></p><p>Prezado(a),</p><p>Informamos que os créditos representados pelas duplicatas abaixo foram <strong>cedidos</strong> ao Cessionário acima identificado, por meio de operação de desconto.</p><p>Nos termos do Art. 290 do Código Civil, esta notificação torna a cessão eficaz perante V.Sa.</p><hr><h3><strong>Borderô</strong></h3><p>Nº: [BORDERO_NUMERO]<br>Data: [BORDERO_DATA]<br>Valor Total: [BORDERO_VALOR]</p><hr><h3><strong>Títulos Cedidos</strong></h3><p>[TABELA_TITULOS]</p><hr><h3><strong>Pagamento</strong></h3><p>A partir do recebimento desta, <strong>os pagamentos deverão ser feitos exclusivamente ao Cessionário</strong>:</p><p>Banco: SEU BANCO<br>Agência: 0000<br>Conta: 00000-0<br>Favorecido: SUA EMPRESA FACTORING<br>CNPJ: 00.000.000/0001-00<br>PIX: sua-chave-pix</p><hr><h3><strong>Importante</strong></h3><ul><li>Pagamento ao Cedente após esta notificação <strong>não terá efeito liberatório</strong>.</li><li>A obrigação de pagamento permanece válida independentemente de concordância com a cessão.</li></ul><hr><p><strong>Local e Data:</strong> [CIDADE_DATA]</p><p><strong>Cedente:</strong> _________________________</p><p><strong>Cessionário:</strong> _________________________</p>";
     
     return $config;
@@ -39,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $newIofDiariaRate = isset($_POST['iof_diaria_rate']) ? (float)$_POST['iof_diaria_rate'] : null;
     $newResendApiKey = $_POST['resend_api_key'] ?? '';
     $newResendFromEmail = $_POST['resend_from_email'] ?? '';
+    $newResendCcEmail = $_POST['resend_cc_email'] ?? '';
+    $newResendBccEmail = $_POST['resend_bcc_email'] ?? '';
     $newEmailTemplate = $_POST['email_template'] ?? '';
 
     if ($newDefaultTaxaMensal !== null && $newIofAdicionalRate !== null && $newIofDiariaRate !== null &&
@@ -50,6 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             "iof_diaria_rate" => $newIofDiariaRate,
             "resend_api_key" => $newResendApiKey,
             "resend_from_email" => $newResendFromEmail,
+            "resend_cc_email" => $newResendCcEmail,
+            "resend_bcc_email" => $newResendBccEmail,
             "email_template" => $newEmailTemplate
         ];
 
@@ -166,7 +172,7 @@ $currentConfig = readConfig($configFilePath);
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container mt-4">
+    <div class="container-fluid px-3 px-md-4 mt-4">
         <h1 class="mb-4">Configurações do Sistema</h1>
 
         <?php if ($message): ?>
@@ -212,6 +218,19 @@ $currentConfig = readConfig($configFilePath);
                             <label for="resend_from_email" class="form-label">E-mail do Remetente:</label>
                             <input type="email" class="form-control" id="resend_from_email" name="resend_from_email" value="<?php echo htmlspecialchars($currentConfig['resend_from_email'] ?? ''); ?>" placeholder="exemplo@seudominio.com">
                             <small class="text-muted">Deve ser um domínio verificado no Resend</small>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="resend_cc_email" class="form-label">Cópia (CC):</label>
+                            <input type="text" class="form-control" id="resend_cc_email" name="resend_cc_email" value="<?php echo htmlspecialchars($currentConfig['resend_cc_email'] ?? ''); ?>">
+                            <small class="text-muted">E-mails separados por vírgula que receberão cópia das notificações.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="resend_bcc_email" class="form-label">Cópia Oculta (BCC):</label>
+                            <input type="text" class="form-control" id="resend_bcc_email" name="resend_bcc_email" value="<?php echo htmlspecialchars($currentConfig['resend_bcc_email'] ?? ''); ?>">
+                            <small class="text-muted">E-mails separados por vírgula que receberão cópia oculta.</small>
                         </div>
                     </div>
                     

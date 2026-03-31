@@ -363,6 +363,32 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
             opacity: 1;
         }
         
+        /* Ações Fixas na direita */
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .acoes-col {
+            position: sticky;
+            right: 0;
+            background-color: #fff;
+            z-index: 1;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+        }
+        thead .acoes-col {
+            background-color: #f8f9fa; /* igual ao .table-light */
+            z-index: 2;
+        }
+        tfoot .acoes-col {
+            background-color: #e2e3e5; /* igual ao .table-secondary */
+            z-index: 2;
+        }
+        .table-striped tbody tr:nth-of-type(odd) td.acoes-col {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        .table-hover tbody tr:hover td.acoes-col {
+            background-color: rgba(0, 0, 0, 0.075);
+        }
+        
         /* Animação suave para o ícone do collapse */
         .card-header i.bi-chevron-down {
             transition: transform 0.3s ease;
@@ -372,7 +398,7 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container mt-4">
+    <div class="container-fluid px-3 px-md-4 mt-4">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
             <h1>Lista de Recebíveis</h1>
              <div>
@@ -510,7 +536,7 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                               <th class="text-center"><?php echo getRecebivelSortLink('data_vencimento', 'Vencimento', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center">Dias p/ Vencimento</th> <th class="text-end"><?php echo getRecebivelSortLink('valor_original', 'Valor Original', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center"><?php echo getRecebivelSortLink('status', 'Status', $sort, $dir, $current_filters_for_links); ?></th>
-                              <th class="text-center" style="width: 110px;">Ações</th>
+                              <th class="text-center acoes-col" style="width: 110px;">Ações</th>
                           </tr>
                       </thead>
                     <tbody>
@@ -541,7 +567,7 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-center status-cell"><?php echo formatHtmlStatus($r, $r['data_recebimento'] ?? null); ?></td>
-                                <td class="text-center actions-cell">
+                                <td class="text-center actions-cell acoes-col">
                                     <?php if ($r['status_real'] === 'Em Aberto'): ?>
                                         <button class="btn btn-success action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Recebido" title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
                                         <button class="btn btn-danger action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Problema" title="Marcar com Problema"><i class="bi bi-exclamation-triangle-fill"></i></button>
@@ -575,7 +601,7 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                                 <div><strong><?php echo formatHtmlCurrency($total_valor_original); ?></strong></div>
                                 <small class="text-muted">Saldo: <?php echo formatHtmlCurrency($total_saldo_disponivel); ?></small>
                             </th>
-                            <th colspan="2" class="text-center">
+                            <th colspan="2" class="text-center acoes-col">
                                 <small><?php echo count($recebiveis); ?> recebíveis na página</small>
                                 <?php if ($total_results > count($recebiveis)): ?>
                                     <br><small class="text-muted">Total geral: <?php echo $total_results; ?> recebíveis</small>

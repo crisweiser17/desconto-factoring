@@ -1,8 +1,7 @@
 <?php
-// notificar_sacados.php
+// preview_notificacao_sacados.php
 require_once 'auth_check.php';
 require_once 'db_connection.php';
-require_once 'funcoes_email.php';
 
 header('Content-Type: application/json');
 
@@ -75,32 +74,16 @@ try {
         $config = json_decode(file_get_contents($configPath), true);
     }
     
-    $api_key = $config['resend_api_key'] ?? '';
-    $from_email = $config['resend_from_email'] ?? '';
     $template_raw = $config['email_template'] ?? '';
-    $cc_email = $config['resend_cc_email'] ?? '';
-    $bcc_email = $config['resend_bcc_email'] ?? '';
 
-    if (empty($api_key) || empty($from_email) || empty($template_raw)) {
-        echo json_encode(['success' => false, 'error' => 'Configurações de e-mail (Resend) incompletas no painel de configurações.']);
+    if (empty($template_raw)) {
+        echo json_encode(['success' => false, 'error' => 'Template de e-mail não configurado.']);
         exit;
     }
 
-    require_once 'lib/Parsedown.php'; // Se existir. Como não temos certeza, usaremos nl2br ou Markdown simples.
-    // O sistema pode não ter um parser Markdown. Vamos fazer uma conversão simples de HTML ou enviar em plain/text.
-    // Melhor enviar como HTML com formatação básica.
-
-    $resultados = [];
-    $sucessos = 0;
-    $falhas = 0;
+    $previews = [];
 
     foreach ($sacados as $sid => $sacado) {
-        if (empty($sacado['email'])) {
-            $resultados[] = ['sacado' => $sacado['nome'], 'status' => 'falha', 'motivo' => 'Sem e-mail cadastrado'];
-            $falhas++;
-            continue;
-        }
-
         // Construir tabela de títulos HTML
         $tabela_html = '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 600px;">
             <tr style="background-color: #f2f2f2;">
@@ -135,24 +118,16 @@ try {
         $html_body = str_replace('[TABELA_TITULOS]', $tabela_html, $html_body); // Inserimos HTML cru no final
         $html_body = str_replace('[CIDADE_DATA]', htmlspecialchars('Data: ' . date('d/m/Y')), $html_body);
 
-        $assunto = "Notificação de Cessão de Crédito - Op #" . $operacao['id'];
-
-        // Enviar
-        $res = enviar_email_resend($sacado['email'], $assunto, $html_body, $api_key, $from_email, $cc_email, $bcc_email);
-        
-        if ($res['success']) {
-            $resultados[] = ['sacado' => $sacado['nome'], 'status' => 'sucesso'];
-            $sucessos++;
-        } else {
-            $resultados[] = ['sacado' => $sacado['nome'], 'status' => 'falha', 'motivo' => $res['error']];
-            $falhas++;
-        }
+        $previews[] = [
+            'sacado' => $sacado['nome'],
+            'email' => $sacado['email'],
+            'html_body' => $html_body
+        ];
     }
 
     echo json_encode([
         'success' => true,
-        'mensagem' => "Envio concluído: $sucessos sucesso(s), $falhas falha(s).",
-        'resultados' => $resultados
+        'previews' => $previews
     ]);
 
 } catch (Exception $e) {

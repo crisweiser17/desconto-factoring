@@ -88,7 +88,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container mt-4">
+    <div class="container-fluid px-3 px-md-4 mt-4">
         <h1 class="mb-4"><?php echo htmlspecialchars($pageTitle); ?></h1>
 
         <form action="salvar_cedente.php" method="post" id="form-cedente">

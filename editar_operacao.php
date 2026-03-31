@@ -120,8 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="container-fluid px-3 px-md-4 mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <h1>Editar Operação #<?php echo htmlspecialchars($operacao_id); ?></h1>
             <a href="detalhes_operacao.php?id=<?php echo $operacao_id; ?>" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Voltar para Detalhes
