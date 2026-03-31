@@ -21,7 +21,7 @@ if (!$operacao_id) {
 
 try {
     // 1. Buscar a operação e o cedente
-    $sql_op = "SELECT o.id, o.data_operacao, o.valor_total_liquido, c.nome as cedente_nome, c.documento_principal as cedente_cnpj
+    $sql_op = "SELECT o.id, o.data_operacao, c.nome as cedente_nome, c.documento_principal as cedente_cnpj
                FROM operacoes o
                JOIN cedentes c ON o.cedente_id = c.id
                WHERE o.id = :operacao_id";
