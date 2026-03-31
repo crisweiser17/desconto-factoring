@@ -118,14 +118,11 @@ try {
         }
         $tabela_html .= '</table>';
 
-        // Converter quebras de linha para <br> e **texto** para <strong>texto</strong> se o usuário usar Markdown
-        // Importante fazer isso ANTES de inserir a tabela HTML para não escapar as tags <table>
-        $html_body = nl2br(htmlspecialchars($template_raw));
-        $html_body = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $html_body);
-        $html_body = preg_replace('/\#\# (.*?)<br \/>/', '<h2>$1</h2>', $html_body);
-        $html_body = preg_replace('/\#\#\# (.*?)<br \/>/', '<h3>$1</h3>', $html_body);
+        // O template agora é salvo em HTML puro pelo Quill.js, não precisamos mais usar nl2br e htmlspecialchars
+        // Apenas vamos substituir as variáveis
+        $html_body = $template_raw;
         
-        // Substituir variáveis
+        // Substituir variáveis (os dados do banco precisam de htmlspecialchars para evitar XSS)
         $html_body = str_replace('[CEDENTE_NOME]', htmlspecialchars($operacao['cedente_nome']), $html_body);
         $html_body = str_replace('[CEDENTE_CNPJ]', htmlspecialchars($operacao['cedente_cnpj']), $html_body);
         $html_body = str_replace('[SACADO_NOME]', htmlspecialchars($sacado['nome']), $html_body);

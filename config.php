@@ -27,7 +27,7 @@ function readConfig($filePath) {
     // Garantir que os campos de email existam mesmo em configs antigas
     if (!isset($config['resend_api_key'])) $config['resend_api_key'] = '';
     if (!isset($config['resend_from_email'])) $config['resend_from_email'] = 'notificacoes@seudominio.com';
-    if (!isset($config['email_template'])) $config['email_template'] = "## **NOTIFICAÇÃO DE CESSÃO DE CRÉDITO**\n\n**Cedente:** [CEDENTE_NOME] / [CEDENTE_CNPJ]\n**Cessionário:** SUA EMPRESA FACTORING / 00.000.000/0001-00\n**Sacado (Devedor):** [SACADO_NOME] / [SACADO_CNPJ]\n\n---\n\n**Assunto: Cessão de Crédito – Art. 290 do Código Civil**\n\nPrezado(a),\n\nInformamos que os créditos representados pelas duplicatas abaixo foram **cedidos** ao Cessionário acima identificado, por meio de operação de desconto.\n\nNos termos do Art. 290 do Código Civil, esta notificação torna a cessão eficaz perante V.Sa.\n\n---\n\n### **Borderô**\n\nNº: [BORDERO_NUMERO]\nData: [BORDERO_DATA]\nValor Total: [BORDERO_VALOR]\n\n---\n\n### **Títulos Cedidos**\n\n[TABELA_TITULOS]\n\n---\n\n### **Pagamento**\n\nA partir do recebimento desta, **os pagamentos deverão ser feitos exclusivamente ao Cessionário**:\n\nBanco: SEU BANCO\nAgência: 0000\nConta: 00000-0\nFavorecido: SUA EMPRESA FACTORING\nCNPJ: 00.000.000/0001-00\nPIX: sua-chave-pix\n\n---\n\n### **Importante**\n\n* Pagamento ao Cedente após esta notificação **não terá efeito liberatório**.\n* A obrigação de pagamento permanece válida independentemente de concordância com a cessão.\n\n---\n\n**Local e Data:** [CIDADE_DATA]\n\n**Cedente:** _________________________\n\n**Cessionário:** _________________________";
+    if (!isset($config['email_template'])) $config['email_template'] = "<h2><strong>NOTIFICAÇÃO DE CESSÃO DE CRÉDITO</strong></h2><p><strong>Cedente:</strong> [CEDENTE_NOME] / [CEDENTE_CNPJ]<br><strong>Cessionário:</strong> SUA EMPRESA FACTORING / 00.000.000/0001-00<br><strong>Sacado (Devedor):</strong> [SACADO_NOME] / [SACADO_CNPJ]</p><hr><p><strong>Assunto: Cessão de Crédito – Art. 290 do Código Civil</strong></p><p>Prezado(a),</p><p>Informamos que os créditos representados pelas duplicatas abaixo foram <strong>cedidos</strong> ao Cessionário acima identificado, por meio de operação de desconto.</p><p>Nos termos do Art. 290 do Código Civil, esta notificação torna a cessão eficaz perante V.Sa.</p><hr><h3><strong>Borderô</strong></h3><p>Nº: [BORDERO_NUMERO]<br>Data: [BORDERO_DATA]<br>Valor Total: [BORDERO_VALOR]</p><hr><h3><strong>Títulos Cedidos</strong></h3><p>[TABELA_TITULOS]</p><hr><h3><strong>Pagamento</strong></h3><p>A partir do recebimento desta, <strong>os pagamentos deverão ser feitos exclusivamente ao Cessionário</strong>:</p><p>Banco: SEU BANCO<br>Agência: 0000<br>Conta: 00000-0<br>Favorecido: SUA EMPRESA FACTORING<br>CNPJ: 00.000.000/0001-00<br>PIX: sua-chave-pix</p><hr><h3><strong>Importante</strong></h3><ul><li>Pagamento ao Cedente após esta notificação <strong>não terá efeito liberatório</strong>.</li><li>A obrigação de pagamento permanece válida independentemente de concordância com a cessão.</li></ul><hr><p><strong>Local e Data:</strong> [CIDADE_DATA]</p><p><strong>Cedente:</strong> _________________________</p><p><strong>Cessionário:</strong> _________________________</p>";
     
     return $config;
 }
@@ -156,6 +156,12 @@ $currentConfig = readConfig($configFilePath);
     <title>Configurações do Sistema</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Quill.js CSS -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        .ql-editor { font-family: Arial, sans-serif; font-size: 14px; }
+        .var-btn { margin-bottom: 5px; font-family: monospace; font-size: 0.85em !important; }
+    </style>
 </head>
 <body>
     <?php require_once 'menu.php'; ?>
@@ -211,11 +217,27 @@ $currentConfig = readConfig($configFilePath);
                     
                     <div class="mb-3">
                         <label for="email_template" class="form-label">Template de E-mail (Notificação de Sacado):</label>
-                        <textarea class="form-control" id="email_template" name="email_template" rows="15" style="font-family: monospace; font-size: 13px;"><?php echo htmlspecialchars($currentConfig['email_template'] ?? ''); ?></textarea>
-                        <small class="text-muted">Variáveis disponíveis: [CEDENTE_NOME], [CEDENTE_CNPJ], [SACADO_NOME], [SACADO_CNPJ], [BORDERO_NUMERO], [BORDERO_DATA], [BORDERO_VALOR], [TABELA_TITULOS], [CIDADE_DATA]</small>
+                        <div class="mb-2">
+                            <span class="text-muted" style="font-size: 0.9em;">Clique nas variáveis abaixo para inserir no template:</span><br>
+                            <div class="btn-group flex-wrap mt-1" role="group" aria-label="Variáveis">
+                                <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[CEDENTE_NOME]">[CEDENTE_NOME]</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[CEDENTE_CNPJ]">[CEDENTE_CNPJ]</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[SACADO_NOME]">[SACADO_NOME]</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[SACADO_CNPJ]">[SACADO_CNPJ]</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[BORDERO_NUMERO]">[BORDERO_NUMERO]</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[BORDERO_DATA]">[BORDERO_DATA]</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[BORDERO_VALOR]">[BORDERO_VALOR]</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[TABELA_TITULOS]">[TABELA_TITULOS]</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[CIDADE_DATA]">[CIDADE_DATA]</button>
+                            </div>
+                        </div>
+                        <!-- Container do Quill -->
+                        <div id="editor-container" style="height: 300px; background-color: #fff;"></div>
+                        <!-- Textarea oculta que vai enviar o conteúdo pro PHP -->
+                        <textarea id="email_template" name="email_template" style="display:none;"><?php echo htmlspecialchars($currentConfig['email_template'] ?? ''); ?></textarea>
                     </div>
 
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Salvar Configurações</button>
+                    <button type="submit" class="btn btn-primary" id="btnSalvarConfig"><i class="bi bi-save"></i> Salvar Configurações</button>
                     <button type="button" class="btn btn-outline-info ms-2" id="btnTestarEmail" data-bs-toggle="modal" data-bs-target="#testEmailModal"><i class="bi bi-send"></i> Testar Disparo</button>
                 </form>
             </div>
@@ -289,9 +311,44 @@ $currentConfig = readConfig($configFilePath);
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Quill.js JS -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script>
-        // Habilitar botão de reset apenas quando digitar CONFIRMAR
         document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar Quill editor
+            var quill = new Quill('#editor-container', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['clean']
+                    ]
+                }
+            });
+            
+            // Carregar conteúdo existente no editor
+            const textarea = document.getElementById('email_template');
+            quill.clipboard.dangerouslyPasteHTML(textarea.value);
+            
+            // Sincronizar editor com textarea no submit do formulário
+            document.getElementById('btnSalvarConfig').addEventListener('click', function() {
+                textarea.value = quill.root.innerHTML;
+            });
+            
+            // Botões de variáveis
+            document.querySelectorAll('.var-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const variable = this.getAttribute('data-var');
+                    const range = quill.getSelection(true); // Retorna seleção atual ou final do texto
+                    quill.insertText(range.index, variable, 'bold', true);
+                    quill.setSelection(range.index + variable.length);
+                });
+            });
+
+            // Habilitar botão de reset apenas quando digitar CONFIRMAR
             const inputConfirmacao = document.getElementById('confirmacao');
             const btnReset = document.getElementById('btnReset');
             
