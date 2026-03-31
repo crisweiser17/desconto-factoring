@@ -78,6 +78,7 @@ try {
     $api_key = $config['resend_api_key'] ?? '';
     $from_email = $config['resend_from_email'] ?? '';
     $template_raw = $config['email_template'] ?? '';
+    $subject_raw = $config['email_subject'] ?? 'Notificação de Cessão de Crédito - Op #[BORDERO_NUMERO]';
     $cc_email = $config['resend_cc_email'] ?? '';
     $bcc_email = $config['resend_bcc_email'] ?? '';
 
@@ -135,7 +136,15 @@ try {
         $html_body = str_replace('[TABELA_TITULOS]', $tabela_html, $html_body); // Inserimos HTML cru no final
         $html_body = str_replace('[CIDADE_DATA]', htmlspecialchars('Data: ' . date('d/m/Y')), $html_body);
 
-        $assunto = "Notificação de Cessão de Crédito - Op #" . $operacao['id'];
+        // Substituir variáveis no assunto
+        $assunto = $subject_raw;
+        $assunto = str_replace('[CEDENTE_NOME]', $operacao['cedente_nome'], $assunto);
+        $assunto = str_replace('[CEDENTE_CNPJ]', $operacao['cedente_cnpj'], $assunto);
+        $assunto = str_replace('[SACADO_NOME]', $sacado['nome'], $assunto);
+        $assunto = str_replace('[SACADO_CNPJ]', $sacado['cnpj'], $assunto);
+        $assunto = str_replace('[BORDERO_NUMERO]', $operacao['id'], $assunto);
+        $assunto = str_replace('[BORDERO_DATA]', date('d/m/Y', strtotime($operacao['data_operacao'])), $assunto);
+        $assunto = str_replace('[BORDERO_VALOR]', 'R$ ' . number_format($sacado['total'], 2, ',', '.'), $assunto);
 
         // Enviar
         $res = enviar_email_resend($sacado['email'], $assunto, $html_body, $api_key, $from_email, $cc_email, $bcc_email);
