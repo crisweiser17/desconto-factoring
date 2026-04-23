@@ -23,6 +23,7 @@ $filter_valor_max = isset($_GET['filter_valor_max']) ? floatval($_GET['filter_va
 $filter_data = isset($_GET['filter_data']) ? trim($_GET['filter_data']) : '';
 $filter_data_inicio = isset($_GET['filter_data_inicio']) ? trim($_GET['filter_data_inicio']) : '';
 $filter_data_fim = isset($_GET['filter_data_fim']) ? trim($_GET['filter_data_fim']) : '';
+$filter_tipo_operacao = isset($_GET['filter_tipo_operacao']) && is_array($_GET['filter_tipo_operacao']) ? $_GET['filter_tipo_operacao'] : [];
 
 $allowed_sort_columns = [ /* ... colunas permitidas ... */
     'id' => 'o.id',
@@ -33,6 +34,7 @@ $allowed_sort_columns = [ /* ... colunas permitidas ... */
     'total_lucro_liquido_calc' => 'o.total_lucro_liquido_calc',
     'data_operacao' => 'o.data_operacao',
     'data_base_calculo' => 'o.data_operacao',
+    'tipo_operacao' => 'o.tipo_operacao',
     'media_dias_operacao' => 'media_dias_operacao',
     'status_operacao' => 'status_operacao',
     'num_recebiveis' => 'num_recebiveis',
@@ -104,6 +106,17 @@ if ($filter_valor_max > 0) {
     $params_data[':filter_valor_max'] = $filter_valor_max;
 }
 
+// Filtro de tipo de operação (múltipla seleção)
+if (!empty($filter_tipo_operacao)) {
+    $placeholders = [];
+    for ($i = 0; $i < count($filter_tipo_operacao); $i++) {
+        $placeholders[] = ":tipo_operacao_$i";
+        $params_count[":tipo_operacao_$i"] = $filter_tipo_operacao[$i];
+        $params_data[":tipo_operacao_$i"] = $filter_tipo_operacao[$i];
+    }
+    $whereClauses[] = "o.tipo_operacao IN (" . implode(',', $placeholders) . ")";
+}
+
 // Filtro por data
 if ($data_inicio && $data_fim) {
     $whereClauses[] = "DATE(o.data_operacao) BETWEEN :data_inicio AND :data_fim";
@@ -150,10 +163,11 @@ if (!isset($error_message_count)) { // Só busca dados se contagem funcionou
                     o.cedente_id,
                     o.data_operacao,
                     o.taxa_mensal,
+                    o.tipo_operacao,
                     o.total_original_calc,
                     o.total_liquido_pago_calc,
                     o.total_lucro_liquido_calc,
-                    s.empresa AS cedente_nome,
+                    COALESCE(s.empresa, (SELECT sac.empresa FROM recebiveis r2 JOIN sacados sac ON r2.sacado_id = sac.id WHERE r2.operacao_id = o.id LIMIT 1)) AS cedente_nome,
                     AVG(DATEDIFF(r.data_vencimento, o.data_operacao)) AS media_dias_operacao,
                     -- Lógica para determinar o status da operação
                     CASE
@@ -189,6 +203,7 @@ if (!isset($error_message_count)) { // Só busca dados se contagem funcionou
                     o.cedente_id,
                     o.data_operacao,
                     o.taxa_mensal,
+                    o.tipo_operacao,
                     o.total_original_calc,
                     o.total_liquido_pago_calc,
                     o.total_lucro_liquido_calc,
@@ -232,6 +247,11 @@ if (!isset($error_message_count)) { // Só busca dados se contagem funcionou
         if (!empty($filter_status)) {
             for ($i = 0; $i < count($filter_status); $i++) {
                 $stmt->bindParam(":filter_status_$i", $filter_status[$i]);
+            }
+        }
+        if (!empty($filter_tipo_operacao)) {
+            for ($i = 0; $i < count($filter_tipo_operacao); $i++) {
+                $stmt->bindParam(":tipo_operacao_$i", $params_data[":tipo_operacao_$i"]);
             }
         }
         
@@ -474,6 +494,27 @@ try {
                                 </div>
                             </div>
                             
+                            <!-- Filtro por Tipo de Operação (Múltipla Seleção) -->
+                            <div class="col-md-3">
+                                <label class="form-label">Tipo de Operação</label>
+                                <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
+                                    <?php
+                                    $tipo_operacao_options = ['antecipacao', 'emprestimo'];
+                                    foreach ($tipo_operacao_options as $tipo_option):
+                                        $checked = in_array($tipo_option, $filter_tipo_operacao) ? 'checked' : '';
+                                    ?>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="filter_tipo_operacao[]"
+                                                   value="<?php echo htmlspecialchars($tipo_option); ?>"
+                                                   id="tipo_op_<?php echo htmlspecialchars($tipo_option); ?>" <?php echo $checked; ?>>
+                                            <label class="form-check-label" for="tipo_op_<?php echo htmlspecialchars($tipo_option); ?>">
+                                                <?php echo ucfirst(htmlspecialchars($tipo_option)); ?>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+
                             <!-- Filtro por Valor Mínimo -->
                             <div class="col-md-3">
                                 <label for="filter_valor_min" class="form-label">Valor Mínimo</label>
@@ -568,6 +609,7 @@ try {
                             $current_filters = [
                                 'filter_cedente' => $filter_cedente,
                                 'filter_status' => $filter_status,
+                                'filter_tipo_operacao' => $filter_tipo_operacao,
                                 'filter_valor_min' => $filter_valor_min > 0 ? $filter_valor_min : '',
                                 'filter_valor_max' => $filter_valor_max > 0 ? $filter_valor_max : '',
                                 'filter_data' => $filter_data,
@@ -576,7 +618,8 @@ try {
                             ];
                             ?>
                             <th><?php echo getSortLink('id', 'ID', $sort, $dir, $search, $current_filters); ?></th>
-                            <th><?php echo getSortLink('cedente_nome', 'Cedente', $sort, $dir, $search, $current_filters); ?></th>
+                            <th><?php echo getSortLink('cedente_nome', 'Cliente', $sort, $dir, $search, $current_filters); ?></th>
+                            <th class="text-center"><?php echo getSortLink('tipo_operacao', 'Tipo', $sort, $dir, $search, $current_filters); ?></th>
                             <th><?php echo getSortLink('taxa_mensal', 'Taxa', $sort, $dir, $search, $current_filters); ?></th>
                             <th class="text-end"><?php echo getSortLink('total_original_calc', 'T. Original', $sort, $dir, $search, $current_filters); ?></th>
                             <th class="text-end"><?php echo getSortLink('total_liquido_pago_calc', 'T. Líquido', $sort, $dir, $search, $current_filters); ?></th>
@@ -594,6 +637,15 @@ try {
                             <tr>
                                 <th scope="row"><?php echo htmlspecialchars($operacao['id']); ?></th>
                                 <td><?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'N/A'); ?></td>
+                                <td class="text-center">
+                                    <?php 
+                                    if (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') {
+                                        echo '<span class="badge bg-warning text-dark" title="Empréstimo"><i class="bi bi-cash-coin"></i></span>';
+                                    } else {
+                                        echo '<span class="badge bg-success text-white" title="Antecipação"><i class="bi bi-arrow-return-left"></i></span>';
+                                    }
+                                    ?>
+                                </td>
                                 <td><?php echo htmlspecialchars(number_format(($operacao['taxa_mensal'] ?? 0) * 100, 2, ',', '.') . '%'); ?></td>
                                 <td class="text-end"><?php echo formatHtmlCurrency($operacao['total_original_calc'] ?? 0); ?></td>
                                 <td class="text-end"><?php echo formatHtmlCurrency($operacao['total_liquido_pago_calc'] ?? 0); ?></td>

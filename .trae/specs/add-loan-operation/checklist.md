@@ -1,0 +1,9 @@
+- [x] Tabela `operacoes` foi modificada com sucesso com `tipo_operacao` (ENUM('antecipacao', 'emprestimo')).
+- [x] Formulário em `index.php` possui a nova opção de Tipo de Operação.
+- [x] A Calculadora de Empréstimo HTML (Valor, Frequência, Qtd, Data) está visível e operante quando o Tipo de Operação = Empréstimo.
+- [x] A função JS da Calculadora de Empréstimo está calculando a fórmula da Tabela Price de forma precisa.
+- [x] Quando um Empréstimo é simulado, as linhas da tabela de títulos são geradas automaticamente na interface, com valores nominais (Valor Original) e datas de vencimento corretas (incrementadas pela frequência selecionada).
+- [x] A operação é calculada corretamente usando o motor do sistema existente (mostrando o "Valor Líquido Pago").
+- [x] Ao salvar, `registrar_operacao.php` insere a operação no banco com o novo tipo `tipo_operacao`.
+- [x] As listagens de recebíveis (`listar_recebiveis.php` e `listar_operacoes.php`) permitem ver se a origem é um Empréstimo ou Antecipação, exibindo o tipo e filtrando.
+- [x] Todas as telas existentes ainda funcionam sem quebrar operações de "Antecipação" anteriores.

@@ -129,8 +129,18 @@ $taxaMensal = isset($input['taxaMensal']) ? (float) $input['taxaMensal'] / 100 :
 $dataOperacaoStr = isset($input['data_base_calculo']) ? $input['data_base_calculo'] : (isset($input['data_operacao']) ? $input['data_operacao'] : null);
 $dataOperacao = null;
 $tipoPagamento = isset($input['tipo_pagamento']) ? $input['tipo_pagamento'] : 'direto';
+$tipoOperacao = isset($input['tipoOperacao']) ? $input['tipoOperacao'] : 'antecipacao';
+$valorEmprestimo = isset($input['valor_emprestimo']) ? (float)$input['valor_emprestimo'] : null;
+
 $incorreIOF = isset($input['incorreIOF']) ? $input['incorreIOF'] === 'Sim' : false;
 $cobrarIOF = isset($input['cobrarIOF']) ? $input['cobrarIOF'] === 'Sim' : false;
+
+// Se for empréstimo, forçamos IOF para false
+if ($tipoOperacao === 'emprestimo') {
+    $incorreIOF = false;
+    $cobrarIOF = false;
+}
+
 $notas = isset($input['notas']) ? trim($input['notas']) : '';
 $titulos = isset($input['titulos']) && is_array($input['titulos']) ? $input['titulos'] : [];
 
@@ -288,6 +298,32 @@ if (!$error) {
             $fullChartData[$monthKeyOperacao]['capital_emprestado'] = $totalLiquidoPago;
         }
 
+        // Se for empréstimo, o valor líquido e presente devem cravar no valor emprestado
+        if ($tipoOperacao === 'emprestimo' && $valorEmprestimo > 0) {
+            $totalLiquidoPago = $valorEmprestimo;
+            $totalPresente = $valorEmprestimo;
+            $totalLucroLiquido = max(0, $totalOriginal - $valorEmprestimo);
+            
+            // Recalcula o capital emprestado no gráfico com o valor cravado
+            if (isset($fullChartData[$monthKeyOperacao])) {
+                $fullChartData[$monthKeyOperacao]['capital_emprestado'] = $valorEmprestimo;
+            }
+            // Recalcula o lucro para distribuição no gráfico (distribuindo proporcionalmente)
+            if ($totalLucroLiquido > 0) {
+                $lucroCalculadoTotal = 0;
+                foreach ($fullChartData as $monthKey => $monthData) {
+                    if ($monthData['lucro'] > 0) $lucroCalculadoTotal += $monthData['lucro'];
+                }
+                if ($lucroCalculadoTotal > 0) {
+                    foreach ($fullChartData as $monthKey => &$monthData) {
+                        if ($monthData['lucro'] > 0) {
+                            $monthData['lucro'] = $totalLucroLiquido * ($monthData['lucro'] / $lucroCalculadoTotal);
+                        }
+                    }
+                }
+            }
+        }
+
         // --- Calcular Custo da Compensação (CORRIGIDO) ---
         $custoTotalCompensacao = 0; // Inicializar sempre
         $valorPresenteTotalCompensacao = 0; // Valor presente total da compensação
@@ -379,7 +415,9 @@ if (!$error) {
     $mediaPonderadaDiasFormatado = round($mediaPonderadaDiasNumerico) . ' dias';
     $totalLucroPercentual = ($totalOriginal > 0) ? ($totalLucroLiquido / $totalOriginal) : 0;
 
-    if ($totalLiquidoPago > 0 && $mediaPonderadaDiasNumerico > 0) {
+    if ($tipoOperacao === 'emprestimo') {
+        $retornoMensalDecimal = $taxaMensal; // Para empréstimo, o retorno é exatamente a taxa combinada
+    } elseif ($totalLiquidoPago > 0 && $mediaPonderadaDiasNumerico > 0) {
         $taxaPeriodo = $totalLucroLiquido / $totalLiquidoPago;
         $base = 1 + $taxaPeriodo;
         $expoente = 30.0 / $mediaPonderadaDiasNumerico;

@@ -80,113 +80,27 @@ try {
 </head>
 <body>
 
-  <div class="container-fluid px-3 px-md-4 mt-4">
+  <div class="container mt-4">
       <h1 class="mb-4">Nova Simulação / Registro de Operação</h1>
 
       <form id="calculationForm" method="post">
           <fieldset class="border p-3 rounded mb-4">
-              <legend class="float-none w-auto px-3 h6">Modalidade da Operação</legend>
-              <div class="row g-3">
-                  <div class="col-md-12">
-                      <div class="btn-group w-100" role="group" aria-label="Tipo de Operação">
-                          <input type="radio" class="btn-check" name="tipoOperacao" id="tipoAntecipacao" value="antecipacao" autocomplete="off" checked>
-                          <label class="btn btn-outline-primary" for="tipoAntecipacao">Antecipação de Recebíveis</label>
-
-                          <input type="radio" class="btn-check" name="tipoOperacao" id="tipoEmprestimo" value="emprestimo" autocomplete="off">
-                          <label class="btn btn-outline-primary" for="tipoEmprestimo">Empréstimo (Gerar Parcelas)</label>
-                      </div>
-                  </div>
-              </div>
-          </fieldset>
-
-          <fieldset class="border p-3 rounded mb-4">
               <legend class="float-none w-auto px-3 h6">Parâmetros da Operação</legend>
               <div class="row g-3 align-items-end">
-                  <div class="col-md-5" id="containerCedente">
-                      <label for="cedente" class="form-label" id="labelCedente">Cedente</label>
-                      <select id="cedente" name="cedente_id" class="form-select">
-                          <option value="" selected>-- Selecione (Obrigatório p/ Registrar) --</option>
-                          <?php foreach ($cedentes as $cedente): ?>
-                              <option value="<?php echo htmlspecialchars($cedente['id']); ?>"><?php echo htmlspecialchars($cedente['nome']); ?></option>
-                          <?php endforeach; ?>
-                          <?php if (empty($cedentes) && $erro_cedentes): ?>
-                              <option value="" disabled><?php echo htmlspecialchars($erro_cedentes); ?></option>
-                          <?php elseif (empty($cedentes)):?>
-                              <option value="" disabled>Nenhum cedente cadastrado</option>
-                          <?php endif; ?>
-                      </select>
-                  </div>
-                  <div class="col-md-5" id="containerTomador" style="display: none;">
-                      <label for="tomador" class="form-label">Tomador de Empréstimo (Sacado)</label>
-                      <select id="tomador" name="tomador_id" class="form-select">
-                          <option value="" selected>-- Selecione Tomador --</option>
-                          <?php foreach ($sacados as $sacado): ?>
-                              <option value="<?php echo htmlspecialchars($sacado['id']); ?>"><?php echo htmlspecialchars($sacado['nome']); ?></option>
-                          <?php endforeach; ?>
-                          <?php if (empty($sacados) && $erro_sacados): ?>
-                              <option value="" disabled><?php echo htmlspecialchars($erro_sacados); ?></option>
-                          <?php elseif (empty($sacados)): ?>
-                              <option value="" disabled>Nenhum sacado cadastrado</option>
-                          <?php endif; ?>
-                      </select>
-                  </div>
-                  <div class="col-md-4"><label for="taxaMensal" class="form-label" id="labelTaxa">Taxa de Desconto (% a.m.)</label><div class="input-group"><button class="btn btn-outline-secondary" type="button" id="taxaDecrementBtn">-</button><input type="number" class="form-control" id="taxaMensal" name="taxaMensal" step="0.25" min="0" value="<?php echo htmlspecialchars($defaultTaxaMensal); ?>" required><button class="btn btn-outline-secondary" type="button" id="taxaIncrementBtn">+</button><button class="btn btn-outline-primary" type="button" id="btnAbrirModalTaxa" title="Descobrir taxa a partir de um valor líquido alvo" data-bs-toggle="modal" data-bs-target="#descobrirTaxaModal"><i class="bi bi-calculator"></i></button></div></div>
+                  <div class="col-md-5"><label for="cedente" class="form-label">Cedente</label><select id="cedente" name="cedente_id" class="form-select"><option value="" selected>-- Selecione (Obrigatório p/ Registrar) --</option><?php foreach ($cedentes as $cedente): ?><option value="<?php echo htmlspecialchars($cedente['id']); ?>"><?php echo htmlspecialchars($cedente['nome']); ?></option><?php endforeach; ?><?php if (empty($cedentes) && $erro_cedentes): ?><option value="" disabled><?php echo htmlspecialchars($erro_cedentes); ?></option><?php elseif (empty($cedentes)):?><option value="" disabled>Nenhum cedente cadastrado</option><?php endif; ?></select></div>
+                  <div class="col-md-4"><label for="taxaMensal" class="form-label">Taxa de Desconto (% a.m.)</label><div class="input-group"><button class="btn btn-outline-secondary" type="button" id="taxaDecrementBtn">-</button><input type="number" class="form-control" id="taxaMensal" name="taxaMensal" step="0.25" min="0" value="<?php echo htmlspecialchars($defaultTaxaMensal); ?>" required><button class="btn btn-outline-secondary" type="button" id="taxaIncrementBtn">+</button><button class="btn btn-outline-primary" type="button" id="btnAbrirModalTaxa" title="Descobrir taxa a partir de um valor líquido alvo" data-bs-toggle="modal" data-bs-target="#descobrirTaxaModal"><i class="bi bi-calculator"></i></button></div></div>
                   <div class="col-md-3"><label for="data_operacao" class="form-label">Data Base de Cálculo:</label><?php $dataOperacaoDefault = date('Y-m-d'); ?><input type="date" class="form-control" id="data_operacao" name="data_operacao" value="<?php echo $dataOperacaoDefault; ?>" required></div>
               </div>
               <div class="row g-3 mt-1 align-items-end">
-                  <div class="col-md-3" id="containerTipoPagamento"><label for="tipoPagamento" class="form-label">Tipo de Pagamento</label><select id="tipoPagamento" name="tipoPagamento" class="form-select" required><option value="direto">Pagamento Direto (Devedor Notificado)</option><option value="escrow">Pagamento via Conta Escrow</option><option value="indireto">Pagamento Indireto (Repasse via Cedente)</option></select></div>
-                  <div class="col-md-3" id="containerIncorreIOF"><label for="incorreIOF" class="form-label">Você Incorre Custo IOF?</label><select id="incorreIOF" name="incorreIOF" class="form-select"><option value="Sim">Sim</option><option value="Nao" selected>Não</option></select></div>
-                  <div class="col-md-3 cobrar-iof-wrapper d-none" id="containerCobrarIOF"><label for="cobrarIOF" class="form-label">Cobrar IOF do Cliente?</label><select id="cobrarIOF" name="cobrarIOF" class="form-select"><option value="Sim">Sim (Taxa Extra)</option><option value="Nao">Não</option></select></div>
+                  <div class="col-md-3"><label for="tipoPagamento" class="form-label">Tipo de Pagamento</label><select id="tipoPagamento" name="tipoPagamento" class="form-select" required><option value="direto">Pagamento Direto (Devedor Notificado)</option><option value="escrow">Pagamento via Conta Escrow</option><option value="indireto">Pagamento Indireto (Repasse via Cedente)</option></select></div>
+                  <div class="col-md-3"><label for="incorreIOF" class="form-label">Você Incorre Custo IOF?</label><select id="incorreIOF" name="incorreIOF" class="form-select"><option value="Sim">Sim</option><option value="Nao" selected>Não</option></select></div>
+                  <div class="col-md-3 cobrar-iof-wrapper d-none"><label for="cobrarIOF" class="form-label">Cobrar IOF do Cliente?</label><select id="cobrarIOF" name="cobrarIOF" class="form-select"><option value="Sim">Sim (Taxa Extra)</option><option value="Nao">Não</option></select></div>
                   <div class="col-md-3"><label for="notas" class="form-label">Anotações da Operação</label><textarea class="form-control" id="notas" name="notas" rows="1" placeholder="Detalhes..."></textarea></div>
               </div>
           </fieldset>
 
-          <fieldset class="border p-3 rounded mb-4" id="emprestimoParamsSection" style="display: none; background-color: #f8f9fa;">
-              <legend class="float-none w-auto px-3 h6 text-primary"><i class="bi bi-cash-coin"></i> Calculadora de Empréstimo</legend>
-              <div class="row g-3 align-items-end">
-                  <div class="col-md-3">
-                      <label for="valorEmprestimo" class="form-label">Valor do Empréstimo (R$)</label>
-                      <input type="number" class="form-control" id="valorEmprestimo" name="valor_emprestimo" step="0.01" min="0.01" placeholder="10000.00">
-                  </div>
-                  <div class="col-md-3">
-                      <label for="frequenciaParcelas" class="form-label">Frequência</label>
-                      <select id="frequenciaParcelas" class="form-select">
-                          <option value="mensal" selected>Mensal (30 dias)</option>
-                          <option value="quinzenal">Quinzenal (15 dias)</option>
-                          <option value="semanal">Semanal (7 dias)</option>
-                      </select>
-                  </div>
-                  <div class="col-md-3">
-                      <label for="quantidadeParcelas" class="form-label">Qtd. de Parcelas</label>
-                      <input type="number" class="form-control" id="quantidadeParcelas" min="1" max="120" value="1">
-                  </div>
-                  <div class="col-md-3">
-                      <label for="dataPrimeiroVencimento" class="form-label">1º Vencimento</label>
-                      <input type="date" class="form-control" id="dataPrimeiroVencimento">
-                  </div>
-              </div>
-              <div class="row g-3 mt-2">
-                  <div class="col-md-3">
-                      <label for="temGarantia" class="form-label">Possui Garantia?</label>
-                      <select id="temGarantia" name="tem_garantia" class="form-select">
-                          <option value="Nao" selected>Não</option>
-                          <option value="Sim">Sim</option>
-                      </select>
-                  </div>
-                  <div class="col-md-9" id="containerDescricaoGarantia" style="display: none;">
-                      <label for="descricaoGarantia" class="form-label">Descrição da Garantia (anexe fotos/docs após registrar)</label>
-                      <input type="text" class="form-control" id="descricaoGarantia" name="descricao_garantia" placeholder="Ex: Veículo placa ABC-1234, Imóvel...">
-                  </div>
-              </div>
-              <div class="row g-3 mt-1">
-                  <div class="col-md-12 text-end">
-                      <button type="button" class="btn btn-primary" id="btnGerarParcelas"><i class="bi bi-gear-fill"></i> Gerar Parcelas</button>
-                  </div>
-              </div>
-          </fieldset>
-
           <fieldset class="border p-3 rounded mb-4">
-            <legend id="legendTitulos" class="float-none w-auto px-3 h6">Títulos a Descontar</legend>
+            <legend class="float-none w-auto px-3 h6">Títulos a Descontar</legend>
             <div class="table-responsive">
                 <table class="table" id="titulosTable">
                     <thead class="table-light">
@@ -195,7 +109,7 @@ try {
                             <th scope="col">Data Vencimento</th>
                             <th scope="col">Sacado (Devedor)</th>
                             <th scope="col">Tipo Recebível</th>
-                            <th scope="col" class="text-end" id="colHeaderValorPago">Valor Líquido Pago (R$)</th>
+                            <th scope="col" class="text-end">Valor Líquido Pago (R$)</th>
                             <th scope="col" class="text-center" style="width: 80px;">Dias Rest.</th>
                             <th scope="col" style="width: 50px;">Ação</th>
                         </tr>
@@ -225,7 +139,6 @@ try {
                                     <option value="boleto">Boleto</option>
                                     <option value="fatura">Fatura</option>
                                     <option value="nota_fiscal">Nota Fiscal</option>
-                                    <option value="parcela_emprestimo">Parcela de Empréstimo</option>
                                     <option value="outros">Outros</option>
                                 </select>
                             </td>
@@ -264,7 +177,7 @@ try {
 
           <!-- Seção de Upload de Arquivos -->
           <fieldset class="border p-3 rounded mb-4" id="arquivosSection" style="display: none;">
-            <legend class="float-none w-auto px-3 h6">Anexar Documentos (Garantias, Contratos, etc.)</legend>
+            <legend class="float-none w-auto px-3 h6">Anexar Documentos</legend>
             <div class="row">
                 <div class="col-md-8">
                     <label for="arquivos" class="form-label">Selecionar Arquivos</label>
@@ -312,7 +225,6 @@ try {
                           <option value="boleto">Boleto</option>
                           <option value="fatura">Fatura</option>
                           <option value="nota_fiscal">Nota Fiscal</option>
-                          <option value="parcela_emprestimo">Parcela de Empréstimo</option>
                           <option value="outros">Outros</option>
                       </select>
                   </td>
@@ -322,20 +234,11 @@ try {
               </tr>
           </table>
 
-          <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mt-4 mb-2">
+          <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mt-4 mb-4">
               <button type="button" id="calculateBtn" class="btn btn-primary">Calcular Totais</button>
               <button type="button" id="exportPdfBtn" class="btn btn-secondary" disabled><i class="bi bi-file-earmark-pdf"></i> PDF Análise Completa</button>
               <button type="button" id="exportPdfClienteBtn" class="btn btn-outline-secondary" disabled><i class="bi bi-file-earmark-person"></i> PDF Simulação Cliente</button>
               <button type="button" id="registerBtn" class="btn btn-success" disabled><i class="bi bi-check-lg"></i> Registrar Operação</button>
-          </div>
-          
-          <div class="d-flex justify-content-center mb-3" id="containerNotificarSacado">
-              <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="notificar_sacado" name="notificar_sacado">
-                  <label class="form-check-label" for="notificar_sacado">
-                      <i class="bi bi-envelope"></i> Notificar Sacado(s) por E-mail após o registro
-                  </label>
-              </div>
           </div>
           <div id="register-feedback" class="text-center mt-2" style="min-height: 1.5em;"></div>
 
@@ -348,7 +251,7 @@ try {
                   <div class="col-auto col-md"><div class="resultado-total-item bg-light border rounded"><span class="label">Média Dias</span><span class="value" id="resMediaDias">--</span></div></div>
                   <div class="col-auto col-md"><div class="resultado-total-item bg-light border rounded"><span class="label">Total Original</span><span class="value" id="resTotalOriginal">--</span></div></div>
                   <div class="col-auto col-md"><div class="resultado-total-item bg-light border rounded"><span class="label">Total Vl. Presente</span><span class="value" id="resTotalPresente">--</span></div></div>
-                  <div class="col-auto col-md" id="containerResTotalIOF"><div class="resultado-total-item bg-light border rounded"><span class="label">Total IOF Calc.</span><span class="value" id="resTotalIOF">--</span></div></div>
+                  <div class="col-auto col-md"><div class="resultado-total-item bg-light border rounded"><span class="label">Total IOF Calc.</span><span class="value" id="resTotalIOF">--</span></div></div>
               </div>
               
               <!-- Segunda linha: Compensação e Antecipação -->
@@ -584,160 +487,6 @@ try {
       let recebiveisDisponiveis = [];
       let compensacaoAtiva = null;
 
-      // --- Funções do Empréstimo ---
-      const tipoAntecipacaoRadio = document.getElementById('tipoAntecipacao');
-      const tipoEmprestimoRadio = document.getElementById('tipoEmprestimo');
-      const emprestimoParamsSection = document.getElementById('emprestimoParamsSection');
-      // addTituloBtn and titulosTable are already defined above
-      
-      function toggleModoOperacao() {
-          const labelTaxa = document.getElementById('labelTaxa');
-          const containerCedente = document.getElementById('containerCedente');
-          const containerTomador = document.getElementById('containerTomador');
-          const legendTitulos = document.getElementById('legendTitulos');
-          const colHeaderValorPago = document.getElementById('colHeaderValorPago');
-          const containerIncorreIOF = document.getElementById('containerIncorreIOF');
-          const containerCobrarIOF = document.getElementById('containerCobrarIOF');
-          const containerTipoPagamento = document.getElementById('containerTipoPagamento');
-          const containerNotificarSacado = document.getElementById('containerNotificarSacado');
-          const containerResTotalIOF = document.getElementById('containerResTotalIOF');
-
-          if (tipoEmprestimoRadio.checked) {
-              emprestimoParamsSection.style.display = 'block';
-              addTituloBtn.style.display = 'none';
-              
-              // Updates text and visibility
-              labelTaxa.textContent = 'Taxa de Juros (% a.m.)';
-              legendTitulos.textContent = 'Parcelas do Empréstimo';
-              containerCedente.style.display = 'none';
-              containerTomador.style.display = 'block';
-              colHeaderValorPago.style.display = 'none';
-              containerIncorreIOF.style.display = 'none';
-              containerCobrarIOF.classList.add('d-none'); // Hide cobrar IOF for loans
-              containerTipoPagamento.style.display = 'none';
-              containerNotificarSacado.classList.add('d-none');
-              containerResTotalIOF.style.display = 'none';
-
-              // Make table inputs readonly
-              titulosBody.querySelectorAll('.valor-pago-cell').forEach(el => el.style.display = 'none');
-              titulosBody.querySelectorAll('input, select').forEach(el => el.setAttribute('readonly', 'readonly'));
-              titulosBody.querySelectorAll('select').forEach(el => el.style.pointerEvents = 'none');
-              titulosBody.querySelectorAll('.remove-row-btn').forEach(el => el.style.display = 'none');
-
-              // Default to 30 days if empty
-              const dataPrimeiroVencimento = document.getElementById('dataPrimeiroVencimento');
-              if(!dataPrimeiroVencimento.value) {
-                  const today = new Date();
-                  today.setDate(today.getDate() + 30);
-                  dataPrimeiroVencimento.value = today.toISOString().split('T')[0];
-              }
-
-          } else {
-              emprestimoParamsSection.style.display = 'none';
-              addTituloBtn.style.display = 'inline-block';
-
-              labelTaxa.textContent = 'Taxa de Desconto (% a.m.)';
-              legendTitulos.textContent = 'Títulos a Descontar';
-              containerCedente.style.display = 'block';
-              containerTomador.style.display = 'none';
-              colHeaderValorPago.style.display = '';
-              containerIncorreIOF.style.display = 'block';
-              if (document.getElementById('incorreIOF').value === 'Sim') {
-                  containerCobrarIOF.classList.remove('d-none');
-              }
-              containerTipoPagamento.style.display = 'block';
-              containerNotificarSacado.classList.remove('d-none');
-              containerResTotalIOF.style.display = 'block';
-
-              titulosBody.querySelectorAll('.valor-pago-cell').forEach(el => el.style.display = '');
-
-              // Make table inputs editable
-              titulosBody.querySelectorAll('input, select').forEach(el => el.removeAttribute('readonly'));
-              titulosBody.querySelectorAll('select').forEach(el => el.style.pointerEvents = 'auto');
-              titulosBody.querySelectorAll('.remove-row-btn').forEach(el => el.style.display = 'inline-block');
-          }
-          clearResultsAndRegister();
-      }
-
-      tipoAntecipacaoRadio.addEventListener('change', toggleModoOperacao);
-      tipoEmprestimoRadio.addEventListener('change', toggleModoOperacao);
-
-      document.getElementById('btnGerarParcelas').addEventListener('click', function() {
-          const pv = parseFloat(document.getElementById('valorEmprestimo').value);
-          const freq = document.getElementById('frequenciaParcelas').value;
-          const qtd = parseInt(document.getElementById('quantidadeParcelas').value);
-          const dataInicio = document.getElementById('dataPrimeiroVencimento').value;
-          const taxaMensal = parseFloat(taxaMensalInput.value) / 100;
-          const tomadorId = document.getElementById('tomador').value;
-
-          if (!pv || isNaN(pv) || pv <= 0) { alert('Informe um valor de empréstimo válido.'); return; }
-          if (!qtd || isNaN(qtd) || qtd <= 0) { alert('Informe uma quantidade de parcelas válida.'); return; }
-          if (!dataInicio) { alert('Informe a data do 1º vencimento.'); return; }
-          if (isNaN(taxaMensal) || taxaMensal < 0) { alert('Informe uma taxa mensal válida.'); return; }
-
-          let i = taxaMensal; // default mensal
-          let diasIntervalo = 30;
-          if (freq === 'quinzenal') {
-              i = Math.pow(1 + taxaMensal, 15/30) - 1;
-              diasIntervalo = 15;
-          } else if (freq === 'semanal') {
-              i = Math.pow(1 + taxaMensal, 7/30) - 1;
-              diasIntervalo = 7;
-          }
-
-          let pmt = 0;
-          if (i === 0) {
-              pmt = pv / qtd;
-          } else {
-              pmt = pv * (i / (1 - Math.pow(1 + i, -qtd)));
-          }
-
-          // Clear table
-          titulosBody.innerHTML = '';
-          
-          let dataAtual = new Date(dataInicio + 'T00:00:00');
-          for (let step = 0; step < qtd; step++) {
-              const nR = tituloTemplateRow.cloneNode(true);
-              nR.removeAttribute('id');
-              nR.style.display = '';
-              nR.querySelectorAll('input, button, select').forEach(e => e.disabled = false);
-              
-              nR.querySelector('.valor-original').value = pmt.toFixed(2);
-              
-              // Set date
-              nR.querySelector('.data-vencimento').value = dataAtual.toISOString().split('T')[0];
-              
-              // Set tipo_recebivel to parcela_emprestimo
-              nR.querySelector('.tipo-recebivel-select').value = 'parcela_emprestimo';
-              
-              // Set sacado_id to tomador
-              if (tomadorId) {
-                  nR.querySelector('.sacado-select').value = tomadorId;
-              } else {
-                  nR.querySelector('.sacado-select').selectedIndex = 0; // Deixa "-- Selecione Sacado --"
-              }
-              
-              // Apply readonly
-              nR.querySelectorAll('input, select').forEach(el => el.setAttribute('readonly', 'readonly'));
-              nR.querySelectorAll('select').forEach(el => el.style.pointerEvents = 'none');
-              nR.querySelector('.valor-pago-cell').style.display = 'none';
-              const rB = nR.querySelector('.remove-row-btn');
-              if(rB) rB.style.display = 'none';
-
-              titulosBody.appendChild(nR);
-              
-              // Increment date
-              if (freq === 'mensal') {
-                  dataAtual.setMonth(dataAtual.getMonth() + 1);
-              } else {
-                  dataAtual.setDate(dataAtual.getDate() + diasIntervalo);
-              }
-          }
-          
-          // Trigger calculation
-          document.getElementById('calculateBtn').click();
-      });
-
       // --- Funções Auxiliares ---
       const taxaStep=0.25; taxaDecrementBtn.addEventListener('click',()=>{let v=parseFloat(taxaMensalInput.value)||0;taxaMensalInput.value=Math.max(0,v-taxaStep).toFixed(2);clearResultsAndRegister();}); taxaIncrementBtn.addEventListener('click',()=>{let v=parseFloat(taxaMensalInput.value)||0;taxaMensalInput.value=(v+taxaStep).toFixed(2);clearResultsAndRegister();});
       addTituloBtn.addEventListener('click',()=>{const nR=tituloTemplateRow.cloneNode(true);nR.removeAttribute('id');nR.style.display='';nR.querySelectorAll('input,button,select').forEach(e=>e.disabled=false);nR.querySelectorAll('input').forEach(i=>i.value='');nR.querySelectorAll('select').forEach(s=>s.selectedIndex=0);const nDI=nR.querySelector('.data-vencimento');if(nDI)setFutureDate(nDI,30);const rB=nR.querySelector('.remove-row-btn');if(rB){rB.addEventListener('click',function(){this.closest('tr').remove();clearResultsAndRegister();})}addInputListeners(nR);titulosBody.appendChild(nR);clearResultsAndRegister();});
@@ -745,11 +494,6 @@ try {
       function setFutureDate(iE,dA){if(!iE)return;try{const bDS=dataOperacaoInput.value;let bD=bDS?new Date(bDS+'T00:00:00'):new Date();if(isNaN(bD.getTime())){bD=new Date();}bD.setUTCHours(0,0,0,0);const fTS=bD.getTime()+dA*24*60*60*1000;const fD=new Date(fTS);iE.value=fD.toISOString().split('T')[0];}catch(e){console.error("Erro setFutureDate.",e);}} const fDI=titulosBody.querySelector('.data-vencimento');if(fDI&&!fDI.value){setFutureDate(fDI,30);}
       [taxaMensalInput,dataOperacaoInput,incorreIOFSelect,cobrarIOFSelect,tipoPagamentoSelect].forEach(el=>{el.addEventListener('change',clearResultsAndRegister);if(el.tagName==='INPUT'&&el.type==='number'){el.addEventListener('input',clearResultsAndRegister);}});
       cedenteSelect.addEventListener('change',()=>{registerFeedback.textContent='';registerFeedback.className='mt-2';cedenteSelect.classList.remove('is-invalid');checkEncontroContasVisibility();});
-      document.getElementById('tomador').addEventListener('change', function() {
-          registerFeedback.textContent = '';
-          registerFeedback.className = 'mt-2';
-          this.classList.remove('is-invalid');
-      });
       function toggleCobrarIofVisibility(){if(incorreIOFSelect.value==='Nao'){cobrarIofWrapper.classList.remove('d-none');cobrarIOFSelect.disabled=false;}else{cobrarIofWrapper.classList.add('d-none');}} incorreIOFSelect.addEventListener('change',toggleCobrarIofVisibility);document.addEventListener('DOMContentLoaded',toggleCobrarIofVisibility);
 
       // --- Funções do Encontro de Contas ---
@@ -1223,22 +967,7 @@ try {
           const titulos = []; const rows = titulosBody.querySelectorAll('tr');
           if(rows.length===0){errorMessageDiv.textContent='Adicione título.';valid=false;} else {rows.forEach((row,index)=>{const vI=row.querySelector('.valor-original:not([disabled])');const dI=row.querySelector('.data-vencimento:not([disabled])');const sI=row.querySelector('.sacado-select:not([disabled])');const tI=row.querySelector('.tipo-recebivel-select:not([disabled])');let rV=true;if(!vI||!vI.value||parseFloat(vI.value)<=0){if(vI)vI.classList.add('is-invalid');rV=false;valid=false;}else{if(vI)vI.classList.remove('is-invalid');}if(!dI||!dI.value){if(dI)dI.classList.add('is-invalid');rV=false;valid=false;}else{if(dI)dI.classList.remove('is-invalid');}if(dI&&dI.value&&dataOperacaoInput.value&&dI.value<dataOperacaoInput.value){if(dI)dI.classList.add('is-invalid');errorMessageDiv.textContent='Venc. anterior à Data Op.';rV=false;valid=false;}if(vI&&dI&&rV){titulos.push({valorOriginal:parseFloat(vI.value),dataVencimento:dI.value,sacadoId:sI?sI.value||null:null,tipoRecebivel:tI?tI.value||'duplicata':'duplicata'});}});if(valid&&titulos.length===0&&rows.length>0){errorMessageDiv.textContent='Preencha títulos.';valid=false;}}
           if(!valid){if(!errorMessageDiv.textContent){errorMessageDiv.textContent='Verifique campos.';}errorMessageDiv.classList.remove('d-none');registerBtn.disabled=true;exportPdfBtn.disabled=true;return;}
-          const tipoOperacaoChecked = document.querySelector('input[name="tipoOperacao"]:checked').value;
-          const data = { 
-              cedente_id: tipoOperacaoChecked === 'emprestimo' ? null : cedenteSelect.value,
-              tomador_id: tipoOperacaoChecked === 'emprestimo' ? document.getElementById('tomador').value : null,
-              tipo_pagamento:tipoPagamentoSelect.value,
-              tipoOperacao:tipoOperacaoChecked,
-              valor_emprestimo: tipoOperacaoChecked === 'emprestimo' ? parseFloat(document.getElementById('valorEmprestimo').value) : null,
-              tem_garantia: document.getElementById('temGarantia').value === 'Sim' ? 1 : 0,
-              descricao_garantia: document.getElementById('descricaoGarantia').value,
-              taxaMensal:parseFloat(taxaMensalInput.value)||0,
-              data_operacao:dataOperacaoInput.value,
-              incorreIOF: tipoOperacaoChecked === 'emprestimo' ? 'Nao' : incorreIOFSelect.value,
-              cobrarIOF: tipoOperacaoChecked === 'emprestimo' ? 'Nao' : cobrarIOFSelect.value,
-              notas:notasInput.value.trim(),
-              titulos:titulos 
-          };
+          const data = { cedente_id:cedenteSelect.value,tipo_pagamento:tipoPagamentoSelect.value,taxaMensal:parseFloat(taxaMensalInput.value)||0,data_operacao:dataOperacaoInput.value,incorreIOF:incorreIOFSelect.value,cobrarIOF:cobrarIOFSelect.value,notas:notasInput.value.trim(),titulos:titulos };
           
           // Adicionar dados de compensação se houver
           if (compensacaoAtiva && compensacaoAtiva.recebiveis && compensacaoAtiva.recebiveis.length > 0) {
@@ -1384,39 +1113,13 @@ try {
       // --- Lógica Registrar ---
       registerBtn.addEventListener('click', async () => {
           if (!lastInputDataForRegister) { registerFeedback.textContent = 'Erro: Calcule antes de registrar.'; registerFeedback.className = 'mt-2 alert alert-warning p-1 text-center'; return; }
-          const isEmprestimo = document.querySelector('input[name="tipoOperacao"]:checked').value === 'emprestimo';
-          
-          if (!isEmprestimo) {
-              const currentCedenteId = cedenteSelect.value;
-              if (!currentCedenteId) { registerFeedback.textContent = 'Erro: Selecione Cedente.'; registerFeedback.className = 'mt-2 alert alert-danger p-1 text-center'; cedenteSelect.classList.add('is-invalid'); return; }
-              else { cedenteSelect.classList.remove('is-invalid'); lastInputDataForRegister.cedente_id = currentCedenteId; }
-          } else {
-              const currentTomadorId = document.getElementById('tomador').value;
-              if (!currentTomadorId) { 
-                  registerFeedback.textContent = 'Erro: Selecione o Tomador de Empréstimo (Sacado) para registrar.'; 
-                  registerFeedback.className = 'mt-2 alert alert-danger p-1 text-center'; 
-                  document.getElementById('tomador').classList.add('is-invalid'); 
-                  return; 
-              } else {
-                  document.getElementById('tomador').classList.remove('is-invalid');
-                  lastInputDataForRegister.tomador_id = currentTomadorId;
-                  
-                  // Garantir que todos os títulos no payload de registro tenham o sacado preenchido
-                  if (lastInputDataForRegister.titulos && Array.isArray(lastInputDataForRegister.titulos)) {
-                      lastInputDataForRegister.titulos.forEach(titulo => {
-                          if (!titulo.sacadoId) {
-                              titulo.sacadoId = currentTomadorId;
-                          }
-                      });
-                  }
-              }
-          }
+          const currentCedenteId = cedenteSelect.value;
+          if (!currentCedenteId) { registerFeedback.textContent = 'Erro: Selecione Cedente.'; registerFeedback.className = 'mt-2 alert alert-danger p-1 text-center'; cedenteSelect.classList.add('is-invalid'); return; }
+          else { cedenteSelect.classList.remove('is-invalid'); lastInputDataForRegister.cedente_id = currentCedenteId; }
           lastInputDataForRegister.tipo_pagamento = tipoPagamentoSelect.value;
           lastInputDataForRegister.data_operacao = dataOperacaoInput.value;
-          lastInputDataForRegister.incorreIOF = isEmprestimo ? 'Nao' : incorreIOFSelect.value;
-          lastInputDataForRegister.cobrarIOF = isEmprestimo ? 'Nao' : cobrarIOFSelect.value;
-          lastInputDataForRegister.tem_garantia = document.getElementById('temGarantia').value === 'Sim' ? 1 : 0;
-          lastInputDataForRegister.descricao_garantia = document.getElementById('descricaoGarantia').value;
+          lastInputDataForRegister.incorreIOF = incorreIOFSelect.value;
+          lastInputDataForRegister.cobrarIOF = cobrarIOFSelect.value;
           
           // Adiciona dados de compensação se houver
           if (compensacaoAtiva && compensacaoAtiva.recebiveis && compensacaoAtiva.recebiveis.length > 0) {
@@ -1447,32 +1150,8 @@ try {
                    if (result.operacao_id) {
                        mostrarSecaoArquivos(result.operacao_id);
                    }
-                   
-                   // Notificar sacados se o checkbox estiver marcado e não for empréstimo
-                  const chkNotificar = document.getElementById('notificar_sacado');
-                  if (chkNotificar && chkNotificar.checked && result.operacao_id && !isEmprestimo) {
-                      registerFeedback.textContent += ' Enviando notificações...';
-                      fetch('notificar_sacados.php', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ operacao_id: result.operacao_id })
-                      })
-                      .then(res => res.json())
-                      .then(data => {
-                          if (data.success) {
-                              registerFeedback.textContent = `Operação #${result.operacao_id} registrada! E-mails enviados: ${data.mensagem}`;
-                          } else {
-                              registerFeedback.textContent = `Operação #${result.operacao_id} registrada, mas erro no envio: ${data.error}`;
-                              registerFeedback.className = 'mt-2 alert alert-warning p-1 text-center';
-                          }
-                      })
-                      .catch(err => {
-                          registerFeedback.textContent = `Operação #${result.operacao_id} registrada, erro no e-mail: ${err.message}`;
-                          registerFeedback.className = 'mt-2 alert alert-warning p-1 text-center';
-                      });
-                  }
-              }
-              else { registerFeedback.textContent = `Erro: ${result.error || 'Desconhecido'}`; registerFeedback.className = 'mt-2 alert alert-danger p-1 text-center'; registerBtn.disabled = false; }
+               }
+               else { registerFeedback.textContent = `Erro: ${result.error || 'Desconhecido'}`; registerFeedback.className = 'mt-2 alert alert-danger p-1 text-center'; registerBtn.disabled = false; }
           } catch (error) {
               console.error("Erro registro:", error);
               registerFeedback.textContent = `Erro comunicação: ${error.message}`;

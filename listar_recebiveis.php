@@ -28,6 +28,8 @@ $filtro_data_inicio = isset($_GET['data_inicio']) ? $_GET['data_inicio'] : '';
 $filtro_data_fim = isset($_GET['data_fim']) ? $_GET['data_fim'] : '';
 // Filtro por tipo de pagamento (múltipla seleção)
 $filtro_tipo_pagamento = isset($_GET['tipo_pagamento']) && is_array($_GET['tipo_pagamento']) ? $_GET['tipo_pagamento'] : [];
+// Filtro por tipo de operação (múltipla seleção)
+$filtro_tipo_operacao = isset($_GET['tipo_operacao']) && is_array($_GET['tipo_operacao']) ? $_GET['tipo_operacao'] : [];
 // Busca
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
@@ -39,6 +41,7 @@ $allowed_sort_columns = [
     'sacado_nome' => 'sac.empresa',
     'data_operacao' => 'o.data_operacao',
     'tipo_pagamento' => 'o.tipo_pagamento',
+    'tipo_operacao' => 'o.tipo_operacao',
     'data_vencimento' => 'r.data_vencimento',
     'valor_original' => 'r.valor_original',
     'status' => 'r.status'
@@ -80,6 +83,17 @@ if (!empty($filtro_tipo_pagamento)) {
         $params_data[":tipo_pagamento_$i"] = $filtro_tipo_pagamento[$i];
     }
     $whereClauses[] = "o.tipo_pagamento IN (" . implode(',', $placeholders) . ")";
+}
+
+// Filtro de tipo de operação (múltipla seleção)
+if (!empty($filtro_tipo_operacao)) {
+    $placeholders = [];
+    for ($i = 0; $i < count($filtro_tipo_operacao); $i++) {
+        $placeholders[] = ":tipo_operacao_$i";
+        $params_count[":tipo_operacao_$i"] = $filtro_tipo_operacao[$i];
+        $params_data[":tipo_operacao_$i"] = $filtro_tipo_operacao[$i];
+    }
+    $whereClauses[] = "o.tipo_operacao IN (" . implode(',', $placeholders) . ")";
 }
 
 // Filtro de data de início
@@ -156,7 +170,7 @@ if ($page > $total_pages) {
 // --- Query para Buscar os Dados da Página Atual ---
 $recebiveis = []; // Inicializa
 try {
-    $sql = "SELECT r.*, o.data_operacao, o.tipo_pagamento, r.tipo_recebivel, s.empresa AS cedente_nome,
+    $sql = "SELECT r.*, o.data_operacao, o.tipo_pagamento, o.tipo_operacao, r.tipo_recebivel, s.empresa AS cedente_nome,
                    sac.empresa AS sacado_nome,
                    COALESCE(SUM(c.valor_compensado), 0) as total_compensado
             FROM recebiveis r
@@ -166,7 +180,7 @@ try {
             LEFT JOIN compensacoes c ON r.id = c.recebivel_compensado_id
             $whereSql
             GROUP BY r.id, r.operacao_id, r.valor_original, r.data_vencimento, r.status,
-                     o.data_operacao, o.tipo_pagamento, o.cedente_id, s.empresa, r.sacado_id, sac.empresa
+                     o.data_operacao, o.tipo_pagamento, o.tipo_operacao, o.cedente_id, s.empresa, r.sacado_id, sac.empresa
             ORDER BY $sort_column_sql $dir
             LIMIT :limit OFFSET :offset";
 
@@ -294,6 +308,7 @@ function getRecebivelSortLink($column, $text, $currentSort, $currentDir, $curren
 $current_filters_for_links = [
     'status' => $filtro_status,
     'tipo_pagamento' => $filtro_tipo_pagamento,
+    'tipo_operacao' => $filtro_tipo_operacao,
     'data_inicio' => $filtro_data_inicio,
     'data_fim' => $filtro_data_fim,
     'search' => $search,
@@ -475,6 +490,27 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                                 </div>
                             </div>
                             
+                            <!-- Filtro por Tipo de Operação (Múltipla Seleção) -->
+                            <div class="col-md-3">
+                                <label class="form-label">Tipo de Operação</label>
+                                <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
+                                    <?php
+                                    $tipo_operacao_options = ['antecipacao', 'emprestimo'];
+                                    foreach ($tipo_operacao_options as $tipo_option):
+                                        $checked = in_array($tipo_option, $filtro_tipo_operacao) ? 'checked' : '';
+                                    ?>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="tipo_operacao[]"
+                                                   value="<?php echo htmlspecialchars($tipo_option); ?>"
+                                                   id="tipo_op_<?php echo htmlspecialchars($tipo_option); ?>" <?php echo $checked; ?>>
+                                            <label class="form-check-label" for="tipo_op_<?php echo htmlspecialchars($tipo_option); ?>">
+                                                <?php echo ucfirst(htmlspecialchars($tipo_option)); ?>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            
                             <!-- Filtro por Data de Vencimento -->
                             <div class="col-md-3">
                                 <label for="data_inicio" class="form-label">Vencimento De</label>
@@ -532,6 +568,7 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                               <th><?php echo getRecebivelSortLink('sacado_nome', 'Sacado', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center"><?php echo getRecebivelSortLink('data_operacao', 'Data Operacao', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center"><?php echo getRecebivelSortLink('tipo_pagamento', 'Tipo Pagamento', $sort, $dir, $current_filters_for_links); ?></th>
+                              <th class="text-center"><?php echo getRecebivelSortLink('tipo_operacao', 'Tipo Op.', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center">Tipo Recebível</th>
                               <th class="text-center"><?php echo getRecebivelSortLink('data_vencimento', 'Vencimento', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center">Dias p/ Vencimento</th> <th class="text-end"><?php echo getRecebivelSortLink('valor_original', 'Valor Original', $sort, $dir, $current_filters_for_links); ?></th>
@@ -558,6 +595,15 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                                 <td><?php echo htmlspecialchars($r['sacado_nome'] ?? 'N/A'); ?></td>
                                 <td class="text-center"><?php echo formatHtmlDate($r['data_operacao']); ?></td>
                                 <td class="text-center"><?php echo htmlspecialchars($r['tipo_pagamento'] ?? 'N/A'); ?></td>
+                                <td class="text-center">
+                                    <?php 
+                                    if (($r['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') {
+                                        echo '<span class="badge bg-warning text-dark"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
+                                    } else {
+                                        echo '<span class="badge bg-success text-white"><i class="bi bi-arrow-return-left"></i> Antecipação</span>';
+                                    }
+                                    ?>
+                                </td>
                                 <td class="text-center"><?php echo htmlspecialchars($r['tipo_recebivel'] ?? 'N/A'); ?></td>
                                 <td class="text-center"><?php echo formatHtmlDate($r['data_vencimento']); ?></td>
                                 <td class="text-center"><?php echo htmlspecialchars($dias_p_vencimento); ?></td> <td class="text-end">

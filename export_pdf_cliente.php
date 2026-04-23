@@ -31,22 +31,35 @@ function pdfEncodeText($text) {
 
 // 3. Definição da Classe PDF personalizada
 class PDF_Cliente extends FPDF {
-    function Header() { $this->SetFont('Arial','B',14); $this->Cell(0,10,pdfEncodeText('Resumo da Operação de Desconto'),0,1,'C'); $this->Ln(5); }
+    public $tituloPdf = 'Resumo da Operação de Desconto';
+    public $isEmprestimo = false;
+
+    function Header() { $this->SetFont('Arial','B',14); $this->Cell(0,10,pdfEncodeText($this->tituloPdf),0,1,'C'); $this->Ln(5); }
     function Footer() { $this->SetY(-15); $this->SetFont('Arial','I',8); $this->Cell(0,10,pdfEncodeText('Página ').$this->PageNo().'/{nb}',0,0,'C'); }
     function SectionTitle($label) { $this->SetFont('Arial','B',11); $this->SetFillColor(230,230,230); $this->Cell(0,7,pdfEncodeText($label),0,1,'L',true); $this->Ln(4); $this->SetFont('Arial','',10); }
     function ParameterLine($key, $value) { $this->SetFont('Arial','B',10); $this->Cell(60, 6, pdfEncodeText($key.': '), 0, 0, 'L'); $this->SetFont('Arial','',10); $this->MultiCell(0, 6, pdfEncodeText($value), 0, 'L'); $this->Ln(1); }
     // Tabela ajustada para cliente (incluindo sacado)
     function BasicTable($header_cliente, $data) {
         $this->SetFillColor(230,230,230); $this->SetFont('Arial','B',8);
-        $widths = [35, 30, 40, 15, 50]; // Ajustado para incluir coluna sacado
+        if ($this->isEmprestimo) {
+            $widths = [45, 35, 70, 20]; // Sem coluna Liquido
+        } else {
+            $widths = [35, 30, 40, 15, 50]; // Original
+        }
+        
         for($i=0; $i<count($header_cliente); $i++) { $this->Cell($widths[$i], 7, pdfEncodeText($header_cliente[$i]), 1, 0, 'C', true); }
         $this->Ln(); $this->SetFont('Arial','',8); $this->SetFillColor(255);
         foreach($data as $row){
             $this->Cell($widths[0], 6, pdfFormatCurrency($row['original']), 'LR', 0, 'R');
             $this->Cell($widths[1], 6, pdfFormatDate($row['vencimento']), 'LR', 0, 'C');
-            $this->Cell($widths[2], 6, pdfEncodeText(substr($row['sacado'] ?? 'N/D', 0, 18)), 'LR', 0, 'L');
-            $this->Cell($widths[3], 6, $row['dias'], 'LR', 0, 'C');
-            $this->Cell($widths[4], 6, pdfFormatCurrency($row['liquido']), 'LR', 0, 'R');
+            if ($this->isEmprestimo) {
+                $this->Cell($widths[2], 6, pdfEncodeText(substr($row['sacado'] ?? 'N/D', 0, 30)), 'LR', 0, 'L');
+                $this->Cell($widths[3], 6, $row['dias'], 'LR', 0, 'C');
+            } else {
+                $this->Cell($widths[2], 6, pdfEncodeText(substr($row['sacado'] ?? 'N/D', 0, 18)), 'LR', 0, 'L');
+                $this->Cell($widths[3], 6, $row['dias'], 'LR', 0, 'C');
+                $this->Cell($widths[4], 6, pdfFormatCurrency($row['liquido']), 'LR', 0, 'R');
+            }
             $this->Ln();
         }
         $this->Cell(array_sum($widths), 0, '', 'T'); $this->Ln(5);
@@ -55,17 +68,53 @@ class PDF_Cliente extends FPDF {
 
 // 4. Receber Dados POST (Mantido)
 $cedente_id = isset($_POST['cedente_id']) ? filter_input(INPUT_POST, 'cedente_id', FILTER_VALIDATE_INT) : null;
+$tomador_id = isset($_POST['tomador_id']) ? filter_input(INPUT_POST, 'tomador_id', FILTER_VALIDATE_INT) : null;
+$tipoOperacao = isset($_POST['tipoOperacao']) ? trim($_POST['tipoOperacao']) : 'antecipacao';
+$valorEmprestimo = isset($_POST['valor_emprestimo']) ? (float)$_POST['valor_emprestimo'] : null;
+
 $taxaMensal = isset($_POST['taxaMensal']) ? (float) $_POST['taxaMensal'] / 100 : 0;
 $dataOperacaoStr = isset($_POST['data_operacao']) ? $_POST['data_operacao'] : date('Y-m-d');
 $incorreIOF = isset($_POST['incorreIOF']) ? $_POST['incorreIOF'] === 'Sim' : false;
 $cobrarIOF = isset($_POST['cobrarIOF']) ? $_POST['cobrarIOF'] === 'Sim' : false;
+$temGarantia = isset($_POST['tem_garantia']) ? (int)$_POST['tem_garantia'] : 0;
+$descricaoGarantia = isset($_POST['descricao_garantia']) ? trim($_POST['descricao_garantia']) : '';
+
+// Se for empréstimo, ignora IOF e troca cedente_id pelo tomador_id
+if ($tipoOperacao === 'emprestimo') {
+    $incorreIOF = false;
+    $cobrarIOF = false;
+    $cedente_id = $tomador_id;
+}
+
 $notas = isset($_POST['notas']) ? trim($_POST['notas']) : '';
 $valoresOriginais = isset($_POST['titulo_valor']) && is_array($_POST['titulo_valor']) ? $_POST['titulo_valor'] : [];
 $datasVencimento = isset($_POST['titulo_data']) && is_array($_POST['titulo_data']) ? $_POST['titulo_data'] : [];
 $sacadosIds = isset($_POST['titulo_sacado']) && is_array($_POST['titulo_sacado']) ? $_POST['titulo_sacado'] : [];
 
-// 4.5 Buscar nome do Cedente (Mantido)
-$cedenteNome = 'N/D'; if ($cedente_id && $cedente_id > 0) { try { $stmtSacado = $pdo->prepare("SELECT empresa FROM cedentes WHERE id = :id"); $stmtSacado->bindParam(':id', $cedente_id, PDO::PARAM_INT); $stmtSacado->execute(); $resultSacado = $stmtSacado->fetch(PDO::FETCH_ASSOC); if ($resultSacado) { $cedenteNome = $resultSacado['empresa']; } else { $cedenteNome = 'ID '.$cedente_id.' não encontrado'; } } catch (PDOException $e) { error_log("Erro PDF Cliente Cedente: " . $e->getMessage()); $cedenteNome = 'Erro BD'; } } else { $cedenteNome = 'Não informado'; }
+// 4.5 Buscar nome do Cedente/Tomador (Mantido)
+$cedenteNome = 'N/D'; 
+if ($cedente_id && $cedente_id > 0) { 
+    try { 
+        if ($tipoOperacao === 'emprestimo') {
+            $stmtSacado = $pdo->prepare("SELECT empresa FROM sacados WHERE id = :id"); 
+        } else {
+            $stmtSacado = $pdo->prepare("SELECT empresa FROM cedentes WHERE id = :id"); 
+        }
+        $stmtSacado->bindParam(':id', $cedente_id, PDO::PARAM_INT); 
+        $stmtSacado->execute(); 
+        $resultSacado = $stmtSacado->fetch(PDO::FETCH_ASSOC); 
+        if ($resultSacado) { 
+            $cedenteNome = $resultSacado['empresa']; 
+        } else { 
+            $cedenteNome = 'ID '.$cedente_id.' não encontrado'; 
+        } 
+    } catch (PDOException $e) { 
+        error_log("Erro PDF Cliente Cedente: " . $e->getMessage()); 
+        $cedenteNome = 'Erro BD'; 
+    } 
+} else { 
+    $cedenteNome = 'Não informado'; 
+}
 
 // 4.6 Buscar nomes dos Sacados
 $sacadosNomes = [];
@@ -182,29 +231,51 @@ if ($error) {
     die("Erro ao gerar dados para o Recibo: " . htmlspecialchars($error));
 }
 
+// Lógica para quando é Empréstimo
+if ($tipoOperacao === 'emprestimo' && $valorEmprestimo > 0) {
+    $totalLiquidoPago = $valorEmprestimo;
+}
+
 // 9. Gerar o PDF para o Cliente
 $pdf = new PDF_Cliente('P','mm','A4');
+if ($tipoOperacao === 'emprestimo') {
+    $pdf->tituloPdf = 'Simulação de Empréstimo';
+    $pdf->isEmprestimo = true;
+}
 $pdf->AliasNbPages(); $pdf->SetAutoPageBreak(true, 20); $pdf->AddPage(); $pdf->SetFont('Arial','',10); $pdf->SetLeftMargin(15); $pdf->SetRightMargin(15);
 
 // --- CONTEÚDO DO PDF ---
 $pdf->SectionTitle('Parâmetros da Operação');
-$pdf->ParameterLine('Cedente', $cedenteNome);
+$pdf->ParameterLine($tipoOperacao === 'emprestimo' ? 'Tomador de Empréstimo (Sacado)' : 'Cedente', $cedenteNome);
 $pdf->ParameterLine('Data da Operação', pdfFormatDate($dataOperacaoStr));
 // *** CORREÇÃO: Chama a função pdfFormatPercent que agora existe ***
-$pdf->ParameterLine('Taxa de Desconto Nominal', pdfFormatPercent($taxaMensal) . ' ao mês');
-// REMOVIDO: IOF Incorre/Cobrar
+$pdf->ParameterLine($tipoOperacao === 'emprestimo' ? 'Taxa de Juros' : 'Taxa de Desconto Nominal', pdfFormatPercent($taxaMensal) . ' ao mês');
+
+if ($tipoOperacao === 'emprestimo') {
+    $pdf->ParameterLine('Possui Garantia?', $temGarantia ? 'Sim' : 'Não');
+    if ($temGarantia && !empty($descricaoGarantia)) {
+        $pdf->ParameterLine('Desc. da Garantia', $descricaoGarantia);
+    }
+}
 $pdf->Ln(5);
 
 if (!empty($notas)) { $pdf->SectionTitle('Anotações'); $pdf->MultiCell(0, 5, pdfEncodeText($notas)); $pdf->Ln(5); }
 
-$pdf->SectionTitle('Detalhamento dos Títulos');
-$header_cliente = ['Vl Original', 'Vencimento', 'Sacado (Devedor)', 'Dias', 'Vl Líquido Recebido'];
+$pdf->SectionTitle($tipoOperacao === 'emprestimo' ? 'Parcelas do Empréstimo' : 'Detalhamento dos Títulos');
+if ($tipoOperacao === 'emprestimo') {
+    $header_cliente = ['Vl Original', 'Vencimento', 'Sacado (Devedor)', 'Dias'];
+} else {
+    $header_cliente = ['Vl Original', 'Vencimento', 'Sacado (Devedor)', 'Dias', 'Vl Líquido Recebido'];
+}
 $pdf->BasicTable($header_cliente, $calculatedTitles);
 
 $pdf->SectionTitle('Resultados Totais da Operação');
 $pdf->ParameterLine('Média Ponderada de Dias', round($mediaPonderadaDiasNumerico) . ' dias');
 $pdf->ParameterLine('Total Valor Original', pdfFormatCurrency($totalOriginal));
-$pdf->ParameterLine('Total Líquido Pago ao Cliente', pdfFormatCurrency($totalLiquidoPago));
+if ($tipoOperacao !== 'emprestimo') {
+    $pdf->ParameterLine('Total Desconto/Juros', pdfFormatCurrency($totalOriginal - $totalLiquidoPago));
+}
+$pdf->ParameterLine($tipoOperacao === 'emprestimo' ? 'Valor Total do Empréstimo' : 'Total Líquido Pago ao Cliente', pdfFormatCurrency($totalLiquidoPago));
 // REMOVIDO: Lucro, Margem, Retorno
 $pdf->Ln(5);
 

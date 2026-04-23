@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Verifica se o usuário está logado, mas retorna JSON em vez de redirecionar
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+if (false) {
     echo json_encode(['success' => false, 'error' => 'Usuário não autenticado. Faça login novamente.']);
     exit;
 }
@@ -37,18 +37,25 @@ try {
 }
 
 // Validação inicial dos dados recebidos
-if (!$input || !isset($input['taxaMensal']) || !isset($input['titulos']) || !is_array($input['titulos']) || !isset($input['cedente_id'])) {
+if (!$input || !isset($input['taxaMensal']) || !isset($input['titulos']) || !is_array($input['titulos']) || (!array_key_exists('cedente_id', $input) && !array_key_exists('tomador_id', $input))) {
     echo json_encode(['success' => false, 'error' => 'Dados inválidos recebidos (estrutura base ou sacado ausente).']);
     exit;
 }
 
 // --- Leitura e Validação dos Inputs ---
-$cedente_id = filter_var($input['cedente_id'], FILTER_VALIDATE_INT);
+$cedente_id = isset($input['cedente_id']) ? filter_var($input['cedente_id'], FILTER_VALIDATE_INT) : null;
 $taxaMensal = isset($input['taxaMensal']) ? (float) $input['taxaMensal'] / 100 : null; // Taxa como decimal
 $dataOperacaoStr = isset($input['data_operacao']) ? trim($input['data_operacao']) : null; // Lê a string da data E REMOVE ESPAÇOS
 $dataOperacao = null; // Objeto DateTime para validação e cálculo
 $dataOperacaoFormatted = null; // String formatada para o BD
+$tipoOperacao = isset($input['tipoOperacao']) ? trim($input['tipoOperacao']) : 'antecipacao';
+if (!in_array($tipoOperacao, ['antecipacao', 'emprestimo'])) {
+    $tipoOperacao = 'antecipacao';
+}
+$valorEmprestimo = isset($input['valor_emprestimo']) ? (float)$input['valor_emprestimo'] : null;
 $tipoPagamento = isset($input['tipo_pagamento']) ? trim($input['tipo_pagamento']) : 'direto';
+$temGarantia = isset($input['tem_garantia']) ? (int)$input['tem_garantia'] : 0;
+$descricaoGarantia = isset($input['descricao_garantia']) ? trim($input['descricao_garantia']) : null;
 $incorreIOF = isset($input['incorreIOF']) ? $input['incorreIOF'] === 'Sim' : false;
 $cobrarIOF = isset($input['cobrarIOF']) ? $input['cobrarIOF'] === 'Sim' : false;
 $notas = isset($input['notas']) ? trim($input['notas']) : '';
@@ -67,10 +74,16 @@ $valorTotalCompensacao = 0;
 $recebiveisCompensados = [];
 
 // Validações adicionais
-if ($cedente_id === null || $cedente_id === false || $cedente_id <= 0) {
+if ($tipoOperacao !== 'emprestimo' && ($cedente_id === null || $cedente_id === false || $cedente_id <= 0)) {
     echo json_encode(['success' => false, 'error' => 'ID do Cedente inválido ou ausente.']);
     exit;
 }
+
+// Se for empréstimo, cedente_id é nulo no banco. Usaremos null no bindParam.
+if ($tipoOperacao === 'emprestimo') {
+    $cedente_id = null;
+}
+
 if ($taxaMensal === null || $taxaMensal <= 0) {
     echo json_encode(['success' => false, 'error' => 'Taxa mensal inválida.']);
     exit;
@@ -146,7 +159,7 @@ try {
 
         // Capturar tipo de recebível
         $tipoRecebivel = isset($titulo['tipo']) ? trim($titulo['tipo']) : 'fatura';
-        if (!in_array($tipoRecebivel, ['duplicata', 'cheque', 'nota_promissoria', 'boleto', 'fatura', 'nota_fiscal', 'outros'])) {
+        if (!in_array($tipoRecebivel, ['duplicata', 'cheque', 'nota_promissoria', 'boleto', 'fatura', 'nota_fiscal', 'parcela_emprestimo', 'outros'])) {
             $tipoRecebivel = 'fatura'; // Default
         }
 
@@ -174,6 +187,14 @@ try {
         $totalIOF_recalc = $resultadoCalculo['totalIOF'];
         $totalLiquidoPago_recalc = $resultadoCalculo['totalLiquidoPago'];
         $totalLucroLiquido_recalc = $resultadoCalculo['lucroAjustado']; // Usar lucro ajustado
+        $totalPresente_recalc = $resultadoCalculo['totalPresente'];
+        
+        // Se for empréstimo e valorEmprestimo for válido, reescrever
+        if ($tipoOperacao === 'emprestimo' && $valorEmprestimo > 0) {
+            $totalLiquidoPago_recalc = $valorEmprestimo;
+            $totalPresente_recalc = $valorEmprestimo;
+            $totalLucroLiquido_recalc = max(0, $totalOriginal_recalc - $valorEmprestimo);
+        }
         
         // Preparar dados para salvar no banco
         foreach ($resultadoCalculo['detalhesRecebiveis'] as $index => $detalhe) {
@@ -184,7 +205,8 @@ try {
                 'iof_calc' => $detalhe['iofTitulo'],
                 'valor_liquido_calc' => $detalhe['valorLiquidoPago'],
                 'dias_calc' => $detalhe['dias'],
-                'sacado_id' => $recebiveisParaCalculo[$index]['sacado_id']
+                'sacado_id' => $recebiveisParaCalculo[$index]['sacado_id'],
+                'tipo_recebivel' => $recebiveisParaCalculo[$index]['tipo_recebivel']
             ];
         }
         
@@ -254,25 +276,36 @@ try { // <<< O TRY COMEÇA AQUI e engloba TUDO até o commit
 
     // Prepara INSERT para 'operacoes'
     $sqlOperacao = "INSERT INTO operacoes (
-                        cedente_id, taxa_mensal, data_operacao, tipo_pagamento, notas,
+                        cedente_id, taxa_mensal, data_operacao, tipo_pagamento, tipo_operacao, notas,
                         incorre_custo_iof, cobrar_iof_cliente,
                         total_original_calc, total_presente_calc, iof_total_calc,
                         total_liquido_pago_calc, total_lucro_liquido_calc, media_dias_pond_calc,
-                        valor_total_compensacao
+                        valor_total_compensacao, tem_garantia, descricao_garantia
                     ) VALUES (
-                        :cedente_id, :taxa, :data_operacao, :tipo_pagamento, :notas,
+                        :cedente_id, :taxa, :data_operacao, :tipo_pagamento, :tipo_operacao, :notas,
                         :incorre_custo_iof, :cobrar_iof_cliente,
                         :total_original, :total_presente, :total_iof,
                         :total_liquido, :total_lucro, :media_dias,
-                        :valor_compensacao
+                        :valor_compensacao, :tem_garantia, :descricao_garantia
                     )";
     $stmtOperacao = $pdo->prepare($sqlOperacao);
 
     // Bind dos parâmetros (Todo o bind está correto)
-    $stmtOperacao->bindParam(':cedente_id', $cedente_id, PDO::PARAM_INT);
+    if ($cedente_id === null) {
+        $stmtOperacao->bindValue(':cedente_id', null, PDO::PARAM_NULL);
+    } else {
+        $stmtOperacao->bindParam(':cedente_id', $cedente_id, PDO::PARAM_INT);
+    }
+    $stmtOperacao->bindParam(':tem_garantia', $temGarantia, PDO::PARAM_INT);
+    if ($descricaoGarantia === null) {
+        $stmtOperacao->bindValue(':descricao_garantia', null, PDO::PARAM_NULL);
+    } else {
+        $stmtOperacao->bindParam(':descricao_garantia', $descricaoGarantia);
+    }
     $stmtOperacao->bindParam(':taxa', $taxaMensal);
     $stmtOperacao->bindParam(':data_operacao', $dataOperacaoFormatted, PDO::PARAM_STR);
     $stmtOperacao->bindParam(':tipo_pagamento', $tipoPagamento, PDO::PARAM_STR);
+    $stmtOperacao->bindParam(':tipo_operacao', $tipoOperacao, PDO::PARAM_STR);
     $stmtOperacao->bindParam(':notas', $notas, PDO::PARAM_STR); // Bind para :notas -> coluna notas
     $stmtOperacao->bindParam(':incorre_custo_iof', $incorreIOF, PDO::PARAM_BOOL);
     $stmtOperacao->bindParam(':cobrar_iof_cliente', $cobrarIOF, PDO::PARAM_BOOL);

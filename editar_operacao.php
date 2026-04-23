@@ -146,10 +146,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="form-control-plaintext"><?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'N/A'); ?></div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <div class="mb-3">
                                     <label class="form-label"><strong>Data da Operação:</strong></label>
                                     <div class="form-control-plaintext"><?php echo htmlspecialchars(date('d/m/Y', strtotime($operacao['data_operacao']))); ?></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Tipo de Operação:</strong></label>
+                                    <div class="form-control-plaintext">
+                                        <?php 
+                                        if (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') {
+                                            echo '<span class="badge bg-warning text-dark"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
+                                        } else {
+                                            echo '<span class="badge bg-success text-white"><i class="bi bi-arrow-return-left"></i> Antecipação</span>';
+                                        }
+                                        ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>

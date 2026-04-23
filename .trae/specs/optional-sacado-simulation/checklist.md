@@ -1,0 +1,3 @@
+- [x] O botão "Gerar Parcelas" não exige mais a seleção de um Tomador de Empréstimo para simular as parcelas.
+- [x] O botão "Registrar Operação" bloqueia o registro de um Empréstimo se um Tomador não for selecionado.
+- [x] Ao selecionar um Tomador após um erro, a classe `is-invalid` e a mensagem de erro desaparecem.

@@ -126,9 +126,9 @@ $error_message = null;
 try {
     $sql_op = "SELECT
                    o.*,
-                   s.empresa AS cedente_nome,
+                   COALESCE(s.empresa, (SELECT sac.empresa FROM recebiveis r2 JOIN sacados sac ON r2.sacado_id = sac.id WHERE r2.operacao_id = o.id LIMIT 1)) AS cedente_nome,
                    s.empresa AS sacado_empresa,
-                   s.id AS cedente_id
+                   o.cedente_id
                FROM
                    operacoes o
                LEFT JOIN
@@ -442,7 +442,7 @@ if ($operacao && !isset($error_message)) {
                 <div class="card-body">
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item">
-                            <strong>Cedente:</strong>
+                            <strong><?php echo ($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo' ? 'Tomador de Empréstimo (Sacado):' : 'Cedente:'; ?></strong>
                             <?php if ($operacao['cedente_id']): ?>
                                 <a href="form_cedente.php?id=<?php echo $operacao['cedente_id']; ?>" title="Ver/Editar Cedente">
                                     <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'Desconhecido'); ?>
@@ -463,6 +463,28 @@ if ($operacao && !isset($error_message)) {
                             <strong>Taxa Mensal Aplicada:</strong>
                              <?php echo htmlspecialchars(number_format(($operacao['taxa_mensal'] ?? 0) * 100, 2, ',', '.') . '%'); ?>
                         </li>
+                        <li class="list-group-item">
+                            <strong>Tipo de Operação:</strong>
+                            <?php 
+                            if (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') {
+                                echo '<span class="badge bg-warning text-dark"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
+                            } else {
+                                echo '<span class="badge bg-success text-white"><i class="bi bi-arrow-return-left"></i> Antecipação</span>';
+                            }
+                            ?>
+                        </li>
+                        <?php if (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo'): ?>
+                        <li class="list-group-item">
+                            <strong>Possui Garantia?</strong>
+                            <?php echo (!empty($operacao['tem_garantia'])) ? 'Sim' : 'Não'; ?>
+                        </li>
+                        <?php if (!empty($operacao['tem_garantia']) && !empty($operacao['descricao_garantia'])): ?>
+                        <li class="list-group-item">
+                            <strong>Descrição da Garantia:</strong>
+                            <?php echo nl2br(htmlspecialchars($operacao['descricao_garantia'])); ?>
+                        </li>
+                        <?php endif; ?>
+                        <?php endif; ?>
                         <li class="list-group-item">
                             <strong>Tipo de Pagamento:</strong>
                             <?php 

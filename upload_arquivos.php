@@ -173,9 +173,8 @@ try {
             }
 
             // Verifica tipo MIME (dupla verificação)
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $detectedType = finfo_file($finfo, $tmpName);
-            finfo_close($finfo);
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $detectedType = $finfo->file($tmpName);
 
             if (!in_array($detectedType, $allowed_types)) {
                 $errors[] = "Tipo MIME do arquivo '{$originalName}' não permitido: {$detectedType}";

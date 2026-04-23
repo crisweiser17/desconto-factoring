@@ -22,27 +22,107 @@ function pdfFormatDate($dateStr) { if(empty($dateStr)) return ''; try { return (
 
 // 3. Definição da Classe PDF personalizada
 class PDF extends FPDF { /* ... (código da classe PDF mantido) ... */
-    function Header() { $this->SetFont('Arial','B',14); $this->Cell(0,10,utf8_decode('Resumo da Operação de Desconto'),0,1,'C'); $this->Ln(5); }
-    function Footer() { $this->SetY(-15); $this->SetFont('Arial','I',8); $this->Cell(0,10,utf8_decode('Página ').$this->PageNo().'/{nb}',0,0,'C'); }
-    function SectionTitle($label) { $this->SetFont('Arial','B',11); $this->SetFillColor(230,230,230); $this->Cell(0,7,utf8_decode($label),0,1,'L',true); $this->Ln(4); $this->SetFont('Arial','',10); }
-    function ParameterLine($key, $value) { $this->SetFont('Arial','B',10); $this->Cell(60, 6, utf8_decode($key.': '), 0, 0, 'L'); $this->SetFont('Arial','',10); $this->MultiCell(0, 6, utf8_decode($value), 0, 'L'); $this->Ln(1); }
-    function BasicTable($header, $data) { $this->SetFillColor(230,230,230); $this->SetFont('Arial','B',8); $widths = [30, 22, 35, 12, 30, 25, 30]; for($i=0;$i<count($header);$i++) $this->Cell($widths[$i],7,utf8_decode($header[$i]),1,0,'C',true); $this->Ln(); $this->SetFont('Arial','',8); $this->SetFillColor(255); foreach($data as $row){$this->Cell($widths[0],6,pdfFormatCurrency($row['original']),'LR',0,'R');$this->Cell($widths[1],6,pdfFormatDate($row['vencimento']),'LR',0,'C');$this->Cell($widths[2],6,utf8_decode(substr($row['sacado'] ?? 'N/D', 0, 15)),'LR',0,'L');$this->Cell($widths[3],6,$row['dias'],'LR',0,'C');$this->Cell($widths[4],6,pdfFormatCurrency($row['presente']),'LR',0,'R');$this->Cell($widths[5],6,pdfFormatCurrency($row['iof']),'LR',0,'R');$this->Cell($widths[6],6,pdfFormatCurrency($row['liquido']),'LR',0,'R');$this->Ln();} $this->Cell(array_sum($widths),0,'','T'); $this->Ln(5); }
+    public $tituloPdf = 'Resumo da Operação de Desconto';
+    public $isEmprestimo = false;
+
+    function Header() { $this->SetFont('Arial','B',14); $this->Cell(0,10,pdfEncodeText($this->tituloPdf),0,1,'C'); $this->Ln(5); }
+    function Footer() { $this->SetY(-15); $this->SetFont('Arial','I',8); $this->Cell(0,10,pdfEncodeText('Página ').$this->PageNo().'/{nb}',0,0,'C'); }
+    function SectionTitle($label) { $this->SetFont('Arial','B',11); $this->SetFillColor(230,230,230); $this->Cell(0,7,pdfEncodeText($label),0,1,'L',true); $this->Ln(4); $this->SetFont('Arial','',10); }
+    function ParameterLine($key, $value) { $this->SetFont('Arial','B',10); $this->Cell(60, 6, pdfEncodeText($key.': '), 0, 0, 'L'); $this->SetFont('Arial','',10); $this->MultiCell(0, 6, pdfEncodeText($value), 0, 'L'); $this->Ln(1); }
+    function BasicTable($header, $data) { 
+        $this->SetFillColor(230,230,230); 
+        $this->SetFont('Arial','B',8); 
+        if ($this->isEmprestimo) {
+            $widths = [30, 25, 45, 15, 30, 0, 45]; // Ajuste colunas (ignora IOF e muda Vl Liquido se quiser, mas aqui vou manter as posicoes ou esconder o IOF)
+            // Na verdade, vou desenhar menos colunas:
+            $widths = [35, 30, 55, 20, 50]; // Original, Vencimento, Sacado, Dias, Vl Presente/Líquido
+        } else {
+            $widths = [30, 22, 35, 12, 30, 25, 30]; 
+        }
+
+        for($i=0;$i<count($header);$i++) {
+            $this->Cell($widths[$i],7,pdfEncodeText($header[$i]),1,0,'C',true); 
+        }
+        $this->Ln(); 
+        $this->SetFont('Arial','',8); 
+        $this->SetFillColor(255); 
+        
+        foreach($data as $row) {
+            $this->Cell($widths[0],6,pdfFormatCurrency($row['original']),'LR',0,'R');
+            $this->Cell($widths[1],6,pdfFormatDate($row['vencimento']),'LR',0,'C');
+            if ($this->isEmprestimo) {
+                $this->Cell($widths[2],6,pdfEncodeText(substr($row['sacado'] ?? 'N/D', 0, 25)),'LR',0,'L');
+                $this->Cell($widths[3],6,$row['dias'],'LR',0,'C');
+                $this->Cell($widths[4],6,pdfFormatCurrency($row['presente']),'LR',0,'R');
+            } else {
+                $this->Cell($widths[2],6,pdfEncodeText(substr($row['sacado'] ?? 'N/D', 0, 15)),'LR',0,'L');
+                $this->Cell($widths[3],6,$row['dias'],'LR',0,'C');
+                $this->Cell($widths[4],6,pdfFormatCurrency($row['presente']),'LR',0,'R');
+                $this->Cell($widths[5],6,pdfFormatCurrency($row['iof']),'LR',0,'R');
+                $this->Cell($widths[6],6,pdfFormatCurrency($row['liquido']),'LR',0,'R');
+            }
+            $this->Ln();
+        } 
+        $this->Cell(array_sum($widths),0,'','T'); 
+        $this->Ln(5); 
+    }
 }
 
-// 4. Receber Dados POST (incluindo data_operacao)
+function pdfEncodeText($text) {
+    if (empty($text)) return '';
+    return mb_convert_encoding($text, 'ISO-8859-1', 'UTF-8');
+}
+
+// 4. Receber Dados POST
 $cedente_id = isset($_POST['cedente_id']) ? filter_input(INPUT_POST, 'cedente_id', FILTER_VALIDATE_INT) : null;
+$tomador_id = isset($_POST['tomador_id']) ? filter_input(INPUT_POST, 'tomador_id', FILTER_VALIDATE_INT) : null;
+$tipoOperacao = isset($_POST['tipoOperacao']) ? trim($_POST['tipoOperacao']) : 'antecipacao';
+$valorEmprestimo = isset($_POST['valor_emprestimo']) ? (float)$_POST['valor_emprestimo'] : null;
+
 $taxaMensal = isset($_POST['taxaMensal']) ? (float) $_POST['taxaMensal'] / 100 : 0;
 $dataOperacaoStr = isset($_POST['data_operacao']) ? $_POST['data_operacao'] : date('Y-m-d');
 $incorreIOF = isset($_POST['incorreIOF']) ? $_POST['incorreIOF'] === 'Sim' : false;
 $cobrarIOF = isset($_POST['cobrarIOF']) ? $_POST['cobrarIOF'] === 'Sim' : false;
+$temGarantia = isset($_POST['tem_garantia']) ? (int)$_POST['tem_garantia'] : 0;
+$descricaoGarantia = isset($_POST['descricao_garantia']) ? trim($_POST['descricao_garantia']) : '';
+
+// Se for empréstimo, ignora IOF e troca cedente_id pelo tomador_id
+if ($tipoOperacao === 'emprestimo') {
+    $incorreIOF = false;
+    $cobrarIOF = false;
+    $cedente_id = $tomador_id;
+}
+
 $notas = isset($_POST['notas']) ? trim($_POST['notas']) : '';
 $valoresOriginais = isset($_POST['titulo_valor']) && is_array($_POST['titulo_valor']) ? $_POST['titulo_valor'] : [];
 $datasVencimento = isset($_POST['titulo_data']) && is_array($_POST['titulo_data']) ? $_POST['titulo_data'] : [];
 $sacadosIds = isset($_POST['titulo_sacado']) && is_array($_POST['titulo_sacado']) ? $_POST['titulo_sacado'] : [];
 $chartImageData = isset($_POST['chartImageData']) ? $_POST['chartImageData'] : null;
 
-// 4.5 Buscar nome do Cedente (mantido)
-$cedenteNome = 'N/D'; if ($cedente_id && $cedente_id > 0) { try { $stmtSacado = $pdo->prepare("SELECT empresa FROM cedentes WHERE id = :id"); $stmtSacado->bindParam(':id', $cedente_id, PDO::PARAM_INT); $stmtSacado->execute(); $resultSacado = $stmtSacado->fetch(PDO::FETCH_ASSOC); if ($resultSacado) { $cedenteNome = $resultSacado['empresa']; } else { $cedenteNome = 'ID '.$cedente_id.' não encontrado'; } } catch (PDOException $e) { error_log("Erro PDF Cedente: " . $e->getMessage()); $cedenteNome = 'Erro BD'; } } else { $cedenteNome = 'Não informado'; }
+// 4.5 Buscar nome do Cedente/Tomador
+$cedenteNome = 'N/D';
+if ($cedente_id && $cedente_id > 0) {
+    try {
+        if ($tipoOperacao === 'emprestimo') {
+            $stmtSacado = $pdo->prepare("SELECT empresa FROM sacados WHERE id = :id"); 
+        } else {
+            $stmtSacado = $pdo->prepare("SELECT empresa FROM cedentes WHERE id = :id"); 
+        }
+        $stmtSacado->bindParam(':id', $cedente_id, PDO::PARAM_INT);
+        $stmtSacado->execute();
+        $resultSacado = $stmtSacado->fetch(PDO::FETCH_ASSOC);
+        if ($resultSacado) {
+            $cedenteNome = $resultSacado['empresa'];
+        } else {
+            $cedenteNome = 'ID '.$cedente_id.' não encontrado';
+        }
+    } catch (PDOException $e) {
+        error_log("Erro PDF Cedente: " . $e->getMessage());
+        $cedenteNome = 'Erro BD';
+    }
+} else {
+    $cedenteNome = 'Não informado';
+}
 
 // 4.6 Buscar nomes dos Sacados
 $sacadosNomes = [];
@@ -171,6 +251,14 @@ if (!$error) {
         // Calcula totais derivados se não houve erro
         if (!$error) {
             if ($totalWeightForDays > 0) { $mediaPonderadaDiasNumerico = $weightedDaysNumerator / $totalWeightForDays; }
+
+            // Se for empréstimo, o valor líquido deve ser cravado no valorEmprestimo
+            if ($tipoOperacao === 'emprestimo' && $valorEmprestimo > 0) {
+                $totalLiquidoPago = $valorEmprestimo;
+                $totalPresente = $valorEmprestimo;
+                $totalLucroLiquido = max(0, $totalOriginal - $valorEmprestimo);
+            }
+
             $totalLucroPercentual = ($totalOriginal > 0) ? ($totalLucroLiquido / $totalOriginal) : 0;
             if ($totalLiquidoPago > 0 && $mediaPonderadaDiasNumerico > 0) {
                 $taxaPeriodo = $totalLucroLiquido / $totalLiquidoPago; $base = 1 + $taxaPeriodo;
@@ -195,47 +283,64 @@ if ($mostrarErroTexto) { header("Content-Type: text/plain; charset=utf-8"); die(
 
 // 9. Gerar o PDF
 $pdf = new PDF('P','mm','A4'); /* ... (Config PDF) ... */
+if ($tipoOperacao === 'emprestimo') {
+    $pdf->tituloPdf = 'Análise Completa de Empréstimo';
+    $pdf->isEmprestimo = true;
+}
 $pdf->AliasNbPages(); $pdf->SetAutoPageBreak(true, 20); $pdf->AddPage(); $pdf->SetFont('Arial','',10); $pdf->SetLeftMargin(15); $pdf->SetRightMargin(15);
 
 // Adicionar Conteúdo
 $pdf->SectionTitle('Parâmetros da Operação');
-$pdf->ParameterLine('Cedente', $cedenteNome);
+$pdf->ParameterLine($tipoOperacao === 'emprestimo' ? 'Tomador de Empréstimo (Sacado)' : 'Cedente', $cedenteNome);
 $pdf->ParameterLine('Data da Operação', pdfFormatDate($dataOperacaoStr)); // Exibe data op
-$pdf->ParameterLine('Taxa de Desconto Nominal', pdfFormatPercent($taxaMensal) . ' ao mês');
-$pdf->ParameterLine('Você Incorre Custo IOF', $incorreIOF ? 'Sim' : 'Não');
-// Mostra "Cobrar IOF" mesmo que input estivesse escondido, para clareza no PDF
-$pdf->ParameterLine('Cobrar IOF do Cliente', $cobrarIOF ? 'Sim' : 'Não');
+$pdf->ParameterLine($tipoOperacao === 'emprestimo' ? 'Taxa de Juros' : 'Taxa de Desconto Nominal', pdfFormatPercent($taxaMensal) . ' ao mês');
+if ($tipoOperacao !== 'emprestimo') {
+    $pdf->ParameterLine('Você Incorre Custo IOF', $incorreIOF ? 'Sim' : 'Não');
+    // Mostra "Cobrar IOF" mesmo que input estivesse escondido, para clareza no PDF
+    $pdf->ParameterLine('Cobrar IOF do Cliente', $cobrarIOF ? 'Sim' : 'Não');
+} else {
+    $pdf->ParameterLine('Possui Garantia?', $temGarantia ? 'Sim' : 'Não');
+    if ($temGarantia && !empty($descricaoGarantia)) {
+        $pdf->ParameterLine('Desc. da Garantia', $descricaoGarantia);
+    }
+}
 $pdf->Ln(5);
 
 // Notas (mantido)
-if (!empty($notas)) { $pdf->SectionTitle('Anotações'); $pdf->MultiCell(0, 5, utf8_decode($notas)); $pdf->Ln(5); }
+if (!empty($notas)) { $pdf->SectionTitle('Anotações'); $pdf->MultiCell(0, 5, pdfEncodeText($notas)); $pdf->Ln(5); }
 
 // Detalhamento Títulos
-$pdf->SectionTitle('Detalhamento dos Títulos');
-$header = ['Vl Original', 'Vencimento', 'Sacado', 'Dias', 'Vl Presente', 'IOF Calc.', 'Vl Líquido Pgo.']; // Inclui coluna Sacado
+$pdf->SectionTitle($tipoOperacao === 'emprestimo' ? 'Parcelas do Empréstimo' : 'Detalhamento dos Títulos');
+if ($tipoOperacao === 'emprestimo') {
+    $header = ['Vl Original', 'Vencimento', 'Sacado', 'Dias', 'Vl Presente'];
+} else {
+    $header = ['Vl Original', 'Vencimento', 'Sacado', 'Dias', 'Vl Presente', 'IOF Calc.', 'Vl Líquido Pgo.']; // Inclui coluna Sacado
+}
 $pdf->BasicTable($header, $calculatedTitles); // Usa $calculatedTitles com valores corrigidos
 
 // Resultados Totais (Usa totais corrigidos)
 $pdf->SectionTitle('Resultados Totais da Operação');
 $pdf->ParameterLine('Média Ponderada de Dias', round($mediaPonderadaDiasNumerico) . ' dias');
 $pdf->ParameterLine('Total Valor Original', pdfFormatCurrency($totalOriginal));
-$pdf->ParameterLine('Total Valor Presente', pdfFormatCurrency($totalPresente));
-$pdf->ParameterLine('Total IOF Calculado', pdfFormatCurrency($totalIOF)); // IOF Teórico Total
-$pdf->ParameterLine('Total Líquido Pago ao Cliente', pdfFormatCurrency($totalLiquidoPago)); // Líquido Real
+if ($tipoOperacao !== 'emprestimo') {
+    $pdf->ParameterLine('Total Valor Presente', pdfFormatCurrency($totalPresente));
+    $pdf->ParameterLine('Total IOF Calculado', pdfFormatCurrency($totalIOF)); // IOF Teórico Total
+}
+$pdf->ParameterLine($tipoOperacao === 'emprestimo' ? 'Valor Total do Empréstimo' : 'Total Líquido Pago ao Cliente', pdfFormatCurrency($totalLiquidoPago)); // Líquido Real
 // Lucro, Margem, Retorno (com valores corrigidos)
-$pdf->SetFont('Arial','B',10); $pdf->Cell(60, 6, utf8_decode('Total Lucro Líquido: '), 0, 0, 'L'); $pdf->SetFont('Arial','',10); $pdf->Cell(0, 6, pdfFormatCurrency($totalLucroLiquido), 0, 1, 'L');
-$pdf->SetFont('Arial','B',10); $pdf->Cell(60, 6, utf8_decode('Margem Total (% / Original): '), 0, 0, 'L'); $pdf->SetFont('Arial','',10); $pdf->Cell(0, 6, pdfFormatPercent($totalLucroPercentual), 0, 1, 'L');
-$pdf->SetFont('Arial','B',10); $pdf->Cell(60, 6, utf8_decode('Retorno Mensal (% / Líq. Pago): '), 0, 0, 'L'); $pdf->SetFont('Arial','',10); $pdf->Cell(0, 6, ($retornoMensalDecimal == -1 ? 'N/A' : pdfFormatPercent($retornoMensalDecimal)), 0, 1, 'L');
+$pdf->SetFont('Arial','B',10); $pdf->Cell(60, 6, pdfEncodeText('Total Lucro Líquido: '), 0, 0, 'L'); $pdf->SetFont('Arial','',10); $pdf->Cell(0, 6, pdfFormatCurrency($totalLucroLiquido), 0, 1, 'L');
+$pdf->SetFont('Arial','B',10); $pdf->Cell(60, 6, pdfEncodeText('Margem Total (% / Original): '), 0, 0, 'L'); $pdf->SetFont('Arial','',10); $pdf->Cell(0, 6, pdfFormatPercent($totalLucroPercentual), 0, 1, 'L');
+$pdf->SetFont('Arial','B',10); $pdf->Cell(60, 6, pdfEncodeText('Retorno Mensal (% / Líq. Pago): '), 0, 0, 'L'); $pdf->SetFont('Arial','',10); $pdf->Cell(0, 6, ($retornoMensalDecimal == -1 ? 'N/A' : pdfFormatPercent($retornoMensalDecimal)), 0, 1, 'L');
 $pdf->Ln(5);
 
 // Mensagem de erro no PDF, se houver (mantido)
 if ($error) { /* ... exibe erro no PDF ... */
-    $pdf->Ln(5); $pdf->SetFont('Arial','B',10); $pdf->SetTextColor(255,0,0); $pdf->Cell(0, 6, utf8_decode('ATENÇÃO: Erro nos Cálculos!'), 0, 1, 'L'); $pdf->SetFont('Arial','I',9); $pdf->MultiCell(0, 5, utf8_decode($error)); $pdf->SetTextColor(0);
+    $pdf->Ln(5); $pdf->SetFont('Arial','B',10); $pdf->SetTextColor(255,0,0); $pdf->Cell(0, 6, pdfEncodeText('ATENÇÃO: Erro nos Cálculos!'), 0, 1, 'L'); $pdf->SetFont('Arial','I',9); $pdf->MultiCell(0, 5, pdfEncodeText($error)); $pdf->SetTextColor(0);
 }
 
 // Inserir Imagem do Gráfico (mantido)
-if ($chartImagePath && file_exists($chartImagePath)) { try { /* ... lógica de inserir imagem ... */ $maxWidth=180;$maxHeight=180;list($imgWidth,$imgHeight)=@getimagesize($chartImagePath);$newWidth=0;$newHeight=0;if($imgWidth&&$imgHeight){$ratio=$imgWidth/$imgHeight;$newWidth=$maxWidth;$newHeight=$newWidth/$ratio;if($newHeight>$maxHeight){$newHeight=$maxHeight;$newWidth=$newHeight*$ratio;}}else{throw new Exception("Dimensões inválidas.");}$altTotalNec=11+$newHeight+5;$yAtual=$pdf->GetY();$mInfDef=20;$espRest=$pdf->GetPageHeight()-$yAtual-$mInfDef;if($espRest<$altTotalNec){$pdf->AddPage('P','A4');}$pdf->SectionTitle('Gráfico - Fluxo de Caixa dos Vencimentos');$xPos=(210-$newWidth)/2;$yPos=$pdf->GetY();$pdf->Image($chartImagePath,$xPos,$yPos,$newWidth,$newHeight,'PNG');} catch (Exception $imgE){$yAErr=$pdf->GetY();$mIErr=20;$eRErr=$pdf->GetPageHeight()-$yAErr-$mIErr;if($eRErr<15){$pdf->AddPage('P','A4');}$pdf->Ln(5);$pdf->SetFont('Arial','I',9);$pdf->SetTextColor(255,0,0);$pdf->MultiCell(0,5,utf8_decode('Erro ao inserir gráfico: '.$imgE->getMessage()));$pdf->SetTextColor(0);} }
-elseif ($chartImageData && $error) { /* ... exibe erro do gráfico se cálculo falhou ... */ $yAErr=$pdf->GetY();$mIErr=20;$eRErr=$pdf->GetPageHeight()-$yAErr-$mIErr;if($eRErr<20){$pdf->AddPage('P','A4');}$pdf->SectionTitle('Gráfico - Fluxo de Caixa');$pdf->Ln(5);$pdf->SetFont('Arial','I',9);$pdf->SetTextColor(255,0,0);$pdf->MultiCell(0,5,utf8_decode('Gráfico não incluído devido a erro no cálculo: '.htmlspecialchars(str_replace('Erro: ','',$error))));$pdf->SetTextColor(0);}
+if ($chartImagePath && file_exists($chartImagePath)) { try { /* ... lógica de inserir imagem ... */ $maxWidth=180;$maxHeight=180;list($imgWidth,$imgHeight)=@getimagesize($chartImagePath);$newWidth=0;$newHeight=0;if($imgWidth&&$imgHeight){$ratio=$imgWidth/$imgHeight;$newWidth=$maxWidth;$newHeight=$newWidth/$ratio;if($newHeight>$maxHeight){$newHeight=$maxHeight;$newWidth=$newHeight*$ratio;}}else{throw new Exception("Dimensões inválidas.");}$altTotalNec=11+$newHeight+5;$yAtual=$pdf->GetY();$mInfDef=20;$espRest=$pdf->GetPageHeight()-$yAtual-$mInfDef;if($espRest<$altTotalNec){$pdf->AddPage('P','A4');}$pdf->SectionTitle('Gráfico - Fluxo de Caixa dos Vencimentos');$xPos=(210-$newWidth)/2;$yPos=$pdf->GetY();$pdf->Image($chartImagePath,$xPos,$yPos,$newWidth,$newHeight,'PNG');} catch (Exception $imgE){$yAErr=$pdf->GetY();$mIErr=20;$eRErr=$pdf->GetPageHeight()-$yAErr-$mIErr;if($eRErr<15){$pdf->AddPage('P','A4');}$pdf->Ln(5);$pdf->SetFont('Arial','I',9);$pdf->SetTextColor(255,0,0);$pdf->MultiCell(0,5,pdfEncodeText('Erro ao inserir gráfico: '.$imgE->getMessage()));$pdf->SetTextColor(0);} }
+elseif ($chartImageData && $error) { /* ... exibe erro do gráfico se cálculo falhou ... */ $yAErr=$pdf->GetY();$mIErr=20;$eRErr=$pdf->GetPageHeight()-$yAErr-$mIErr;if($eRErr<20){$pdf->AddPage('P','A4');}$pdf->SectionTitle('Gráfico - Fluxo de Caixa');$pdf->Ln(5);$pdf->SetFont('Arial','I',9);$pdf->SetTextColor(255,0,0);$pdf->MultiCell(0,5,pdfEncodeText('Gráfico não incluído devido a erro no cálculo: '.htmlspecialchars(str_replace('Erro: ','',$error))));$pdf->SetTextColor(0);}
 
 
 // 10. Output PDF (mantido)

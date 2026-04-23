@@ -131,6 +131,7 @@ CREATE TABLE `operacoes` (
   `data_operacao` datetime DEFAULT NULL,
   `data_base_calculo` date DEFAULT NULL,
   `tipo_pagamento` varchar(50) DEFAULT 'direto',
+  `tipo_operacao` enum('antecipacao','emprestimo') NOT NULL DEFAULT 'antecipacao',
   `total_original_calc` decimal(15,2) DEFAULT NULL,
   `total_presente_calc` decimal(15,2) DEFAULT NULL,
   `iof_total_calc` decimal(15,2) DEFAULT NULL,

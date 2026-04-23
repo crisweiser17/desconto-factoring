@@ -1,0 +1,3 @@
+- [x] Arquivo `upload_arquivos.php` não emite aviso sobre `finfo_close` depreciado
+- [x] Endpoint de upload envia JSON com status de sucesso quando arquivo é enviado
+- [x] Verificação MIME continua a funcionar validando apenas extensões permitidas

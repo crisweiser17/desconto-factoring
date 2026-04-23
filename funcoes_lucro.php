@@ -26,6 +26,7 @@ function getConnection() {
 function calcularLucroOperacao($recebiveis, $incorreCustoIOF, $cobrarIOFCliente, $taxaMensal, $dataOperacao) {
     $resultado = [
         'totalOriginal' => 0,
+        'totalPresente' => 0,
         'totalIOF' => 0,
         'totalLiquidoPago' => 0,
         'totalLucroLiquido' => 0,
@@ -67,6 +68,7 @@ function calcularLucroOperacao($recebiveis, $incorreCustoIOF, $cobrarIOFCliente,
         
         // Acumular totais
         $resultado['totalOriginal'] += $valorOriginal;
+        $resultado['totalPresente'] += $valorPresente;
         $resultado['totalIOF'] += $iofTitulo;
         $resultado['totalLiquidoPago'] += $valorLiquidoPago;
         $resultado['totalLucroLiquido'] += $lucroLiquido;

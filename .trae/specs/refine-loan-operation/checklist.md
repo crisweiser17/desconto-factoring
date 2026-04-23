@@ -1,0 +1,10 @@
+- [x] O ENUM `tipo_recebivel` na tabela `recebiveis` inclui `'parcela_emprestimo'`.
+- [x] A label da "Taxa de Desconto (% a.m.)" muda para "Taxa de Juros (% a.m.)" em modo Empréstimo.
+- [x] A seção "Títulos a Descontar" muda para "Parcelas do Empréstimo".
+- [x] O select "Cedente" é substituído por um select "Tomador de Empréstimo (Sacado)".
+- [x] A coluna "Valor Líquido Pago (R$)" da tabela de recebíveis é escondida em modo Empréstimo.
+- [x] A "Data do 1º Vencimento" inicia com o valor padrão de Hoje + 30 dias.
+- [x] As parcelas geradas são marcadas automaticamente com o Sacado selecionado no cabeçalho e com o tipo `parcela_emprestimo`.
+- [x] O `registrar_operacao.php` permite salvar a operação de empréstimo sem `cedente_id`.
+- [x] O `listar_operacoes.php` exibe corretamente o nome do Tomador de Empréstimo (Sacado) na coluna Cliente quando `cedente_id` é nulo.
+- [x] O `detalhes_operacao.php` exibe corretamente o Cliente (Sacado) da operação.
