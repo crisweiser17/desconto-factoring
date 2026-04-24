@@ -1,0 +1,6 @@
+- [x] A API do Dashboard (`api_dashboard_financeiro.php`) retorna dados corretos de Capital Adiantado, Amortizado e Lucro, divididos por Antecipação vs Empréstimo.
+- [x] O novo arquivo `dashboard_financeiro.php` exibe corretamente os totais em uma visão geral (Cards).
+- [x] O Dashboard apresenta uma seção comparativa mostrando os resultados do negócio lado a lado para Antecipação e Empréstimo.
+- [x] As tabelas de "Top 5" são exibidas sem misturar o risco de Tomadores (Empréstimo) com Sacados de Antecipação.
+- [x] O Menu lateral (`menu.php`) foi atualizado e aponta apenas para o Novo Dashboard Financeiro.
+- [x] Todos os relatórios legados e seus respectivos scripts auxiliares (`relatorio.php`, `relatorio_cedentes.php`, `relatorio_sacados.php`, `relatorio_sacados_corrigido.php`, `relatorio_contas_a_pagar.php`, `fechamento.php`, `api_fechamento.php`, `funcoes_lucro.php`) foram apagados.

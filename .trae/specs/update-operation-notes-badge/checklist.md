@@ -1,0 +1,4 @@
+- [ ] Script de exclusão `excluir_anotacao.php` recebe o ID corretamente, apaga e retorna status OK/Success.
+- [ ] O botão de exclusão (lixeira) está presente ao lado de cada anotação.
+- [ ] Ao clicar no botão, é pedida uma confirmação ao usuário ("Tem certeza?").
+- [ ] Após confirmar, a anotação desaparece (página atualizada e dado deletado do banco).

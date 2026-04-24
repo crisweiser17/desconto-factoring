@@ -74,10 +74,18 @@ function formatCurrency($value) { return 'R$ ' . number_format($value ?? 0, 2, '
 function formatPercent($value) { return number_format(($value ?? 0) * 100, 2, ',', '.') . ' %'; }
 
 // Modificado: getMonthLabels pode gerar mais meses do que 12 se o range de vencimentos for maior
+function formatMonthYearLabel(DateTime $dateObj) {
+    if (class_exists('IntlDateFormatter')) {
+        return (new IntlDateFormatter('pt_BR', IntlDateFormatter::FULL, IntlDateFormatter::FULL, null, IntlDateFormatter::GREGORIAN, 'MMM/yy'))->format($dateObj);
+    }
+    $mesesPt = ['01'=>'jan','02'=>'fev','03'=>'mar','04'=>'abr','05'=>'mai','06'=>'jun','07'=>'jul','08'=>'ago','09'=>'set','10'=>'out','11'=>'nov','12'=>'dez'];
+    return $mesesPt[$dateObj->format('m')] . './' . $dateObj->format('y');
+}
+
 function getMonthLabelsRange(DateTime $startDate, DateTime $endDate) {
     $labels = [];
     $currentDate = clone $startDate;
-    $currentDate->setDate($currentDate->format('Y'), $currentDate->format('m'), 1); // Garante que começa no primeiro dia do mês da operação
+    $currentDate->setDate((int)$currentDate->format('Y'), (int)$currentDate->format('m'), 1); // Garante que começa no primeiro dia do mês da operação
 
     $interval = new DateInterval('P1M');
     // Adiciona 1 mês à data final para garantir que o último mês do período seja incluído
@@ -85,13 +93,8 @@ function getMonthLabelsRange(DateTime $startDate, DateTime $endDate) {
     $endDateForPeriod->modify('+1 month');
     $period = new DatePeriod($currentDate, $interval, $endDateForPeriod);
 
-    $formatter = null;
-    if (class_exists('IntlDateFormatter')) {
-        $formatter = new IntlDateFormatter('pt_BR', IntlDateFormatter::FULL, IntlDateFormatter::FULL, null, IntlDateFormatter::GREGORIAN, 'MMM/yy');
-    }
-
     foreach ($period as $dt) {
-        $labels[] = $formatter ? $formatter->format($dt) : $dt->format('M/y');
+        $labels[] = formatMonthYearLabel($dt);
     }
     return $labels;
 }
@@ -183,7 +186,7 @@ if (!$error) {
     try {
         // Inicializa o mês da operação no fullChartData
         $monthKeyOperacao = $dataOperacao->format('Y-m');
-        $displayLabelOperacao = (new IntlDateFormatter('pt_BR', IntlDateFormatter::FULL, IntlDateFormatter::FULL, null, IntlDateFormatter::GREGORIAN, 'MMM/yy'))->format($dataOperacao);
+        $displayLabelOperacao = formatMonthYearLabel($dataOperacao);
         $fullChartData[$monthKeyOperacao] = [
             'capital_emprestado' => 0, // Será preenchido com totalLiquidoPago ao final do loop
             'capital_retornado' => 0,
@@ -267,7 +270,7 @@ if (!$error) {
                 
                 // Acumula dados para o gráfico
                 $monthKeyVencimento = $dataVencimentoTitulo->format('Y-m');
-                $displayLabelVencimento = (new IntlDateFormatter('pt_BR', IntlDateFormatter::FULL, IntlDateFormatter::FULL, null, IntlDateFormatter::GREGORIAN, 'MMM/yy'))->format($dataVencimentoTitulo);
+                $displayLabelVencimento = formatMonthYearLabel($dataVencimentoTitulo);
                 
                 if (!isset($fullChartData[$monthKeyVencimento])) {
                     $fullChartData[$monthKeyVencimento] = [
@@ -443,7 +446,7 @@ if ($firstChartMonth && $lastChartMonth) {
         $monthKey = $currentLabelMonth->format('Y-m');
         if (!isset($fullChartData[$monthKey])) {
             // Se um mês no range não tem dados, inicializa com zeros
-            $displayLabel = (new IntlDateFormatter('pt_BR', IntlDateFormatter::FULL, IntlDateFormatter::FULL, null, IntlDateFormatter::GREGORIAN, 'MMM/yy'))->format($currentLabelMonth);
+            $displayLabel = formatMonthYearLabel($currentLabelMonth);
             $fullChartData[$monthKey] = ['capital_emprestado' => 0, 'capital_retornado' => 0, 'lucro' => 0, 'displayLabel' => $displayLabel];
         }
         $currentLabelMonth->modify('+1 month');

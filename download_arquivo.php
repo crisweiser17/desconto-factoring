@@ -67,15 +67,30 @@ try {
         throw new Exception('Arquivo não encontrado ou foi removido.');
     }
 
+    // Tenta reconstruir o caminho relativo atual, caso o caminho absoluto antigo tenha mudado (mudança de servidor/pasta)
+    $upload_dir = __DIR__ . '/uploads/operacoes/';
+    $caminho_reconstruido = $upload_dir . $arquivo['operacao_id'] . '/' . $arquivo['nome_arquivo'];
+    
+    $caminho_final = '';
+
+    if (file_exists($caminho_reconstruido)) {
+        $caminho_final = $caminho_reconstruido;
+    } elseif (file_exists($arquivo['caminho_arquivo'])) {
+        $caminho_final = $arquivo['caminho_arquivo'];
+    }
+
     // Verifica se o arquivo existe fisicamente
-    if (!file_exists($arquivo['caminho_arquivo'])) {
+    if (empty($caminho_final)) {
         throw new Exception('Arquivo físico não encontrado no servidor.');
     }
 
     // Verifica se o arquivo é legível
-    if (!is_readable($arquivo['caminho_arquivo'])) {
+    if (!is_readable($caminho_final)) {
         throw new Exception('Arquivo não pode ser lido. Verifique as permissões.');
     }
+
+    // Atualiza $arquivo para usar o caminho correto no resto do código
+    $arquivo['caminho_arquivo'] = $caminho_final;
 
     // Determina se deve exibir inline ou forçar download
     $inline_types = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'txt'];

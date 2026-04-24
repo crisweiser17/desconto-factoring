@@ -333,6 +333,25 @@ if ($operacao && !isset($error_message)) {
         $operacao = null;
     }
 }
+
+// --- Buscar Anotações da Operação ---
+$anotacoes = [];
+if ($operacao && !isset($error_message)) {
+    try {
+        $sql_anotacoes = "SELECT a.*, u.email as usuario_nome, r.tipo_recebivel as recebivel_tipo, r.data_vencimento as recebivel_vencimento, r.valor_original as recebivel_valor
+                          FROM operacao_anotacoes a
+                          JOIN usuarios u ON a.usuario_id = u.id
+                          LEFT JOIN recebiveis r ON a.recebivel_id = r.id
+                          WHERE a.operacao_id = :operacao_id
+                          ORDER BY a.data_criacao DESC";
+        $stmt_anotacoes = $pdo->prepare($sql_anotacoes);
+        $stmt_anotacoes->bindParam(':operacao_id', $operacao_id, PDO::PARAM_INT);
+        $stmt_anotacoes->execute();
+        $anotacoes = $stmt_anotacoes->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        $error_message_anotacoes = "Erro ao buscar anotações: " . htmlspecialchars($e->getMessage());
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -342,6 +361,8 @@ if ($operacao && !isset($error_message)) {
     <title>Detalhes da Operação #<?php echo $operacao_id; ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <style>
         .card-header { background-color: #e9ecef; }
@@ -397,6 +418,20 @@ if ($operacao && !isset($error_message)) {
             visibility: visible;
             opacity: 1;
         }
+        /* Estilos do Viewer.js para 90% da tela */
+        .viewer-90-percent,
+        .viewer-container.viewer-90-percent {
+            width: 90% !important;
+            height: 90% !important;
+            top: 5% !important;
+            left: 5% !important;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background-color: transparent !important;
+        }
+        .viewer-backdrop {
+            background-color: rgba(0, 0, 0, 0.85) !important;
+        }
     </style>
 </head>
 <body>
@@ -419,19 +454,22 @@ if ($operacao && !isset($error_message)) {
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-3">
                  <h1 class="mb-0">Detalhes da Operação #<?php echo htmlspecialchars($operacao['id']); ?></h1>
                  <div class="d-flex flex-wrap gap-2">
-                    <button id="editarOperacaoBtn" class="btn btn-warning btn-sm"><i class="bi bi-pencil-fill"></i> Editar Operação</button>
-                    <button id="gerarAnaliseInternaBtn" class="btn btn-primary btn-sm"><i class="bi bi-bar-chart-fill"></i> Gerar Análise Interna</button>
-
-                    <a href="gerar_recibo_cliente.php?id=<?php echo htmlspecialchars($operacao['id']); ?>"
-                       class="btn btn-outline-secondary btn-sm"
-                       target="_blank"
-                       title="Gerar Recibo do Cliente">
-                        <i class="bi bi-file-earmark-person"></i> Gerar Recibo Cliente
-                    </a>
-
-                    <button id="notificarSacadosBtn" class="btn btn-info btn-sm" data-operacao-id="<?php echo htmlspecialchars($operacao['id']); ?>"><i class="bi bi-envelope-fill"></i> Notificar Sacados</button>
-
-                    <a href="listar_operacoes.php" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Voltar para Lista</a>
+                    <!-- Ações Principais -->
+                    <div class="btn-group">
+                        <button id="editarOperacaoBtn" class="btn btn-warning btn-sm"><i class="bi bi-pencil-fill"></i> Editar Operação</button>
+                        <button id="gerarAnaliseInternaBtn" class="btn btn-primary btn-sm"><i class="bi bi-bar-chart-fill"></i> Gerar Análise Interna</button>
+                        <button id="notificarSacadosBtn" class="btn btn-info btn-sm text-white" data-operacao-id="<?php echo htmlspecialchars($operacao['id']); ?>"><i class="bi bi-envelope-fill"></i> Notificar Sacados</button>
+                    </div>
+                    <!-- Ações Secundárias -->
+                    <div class="btn-group">
+                        <a href="gerar_recibo_cliente.php?id=<?php echo htmlspecialchars($operacao['id']); ?>"
+                           class="btn btn-outline-secondary btn-sm"
+                           target="_blank"
+                           title="Gerar Recibo do Cliente">
+                            <i class="bi bi-file-earmark-person"></i> Gerar Recibo
+                        </a>
+                        <a href="listar_operacoes.php" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Voltar para Lista</a>
+                    </div>
                  </div>
             </div>
 
@@ -440,94 +478,91 @@ if ($operacao && !isset($error_message)) {
                     <h5 class="mb-0">Dados da Operação</h5>
                 </div>
                 <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item">
-                            <strong><?php echo ($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo' ? 'Tomador de Empréstimo (Sacado):' : 'Cedente:'; ?></strong>
-                            <?php if ($operacao['cedente_id']): ?>
-                                <a href="form_cedente.php?id=<?php echo $operacao['cedente_id']; ?>" title="Ver/Editar Cedente">
-                                    <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'Desconhecido'); ?>
-                                </a>
-                            <?php else: ?>
-                                <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'N/A'); ?>
-                            <?php endif; ?>
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Data Base de Cálculo:</strong>
-                            <?php echo htmlspecialchars(isset($operacao['data_operacao']) ? date('d/m/Y', strtotime($operacao['data_operacao'])) : '-'); ?>
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Data de Registro da Operação:</strong>
-                            <?php echo htmlspecialchars(isset($operacao['data_operacao']) ? date('d/m/Y H:i', strtotime($operacao['data_operacao'])) : '-'); ?>
-                        </li>
-                         <li class="list-group-item">
-                            <strong>Taxa Mensal Aplicada:</strong>
-                             <?php echo htmlspecialchars(number_format(($operacao['taxa_mensal'] ?? 0) * 100, 2, ',', '.') . '%'); ?>
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Tipo de Operação:</strong>
-                            <?php 
-                            if (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') {
-                                echo '<span class="badge bg-warning text-dark"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
-                            } else {
-                                echo '<span class="badge bg-success text-white"><i class="bi bi-arrow-return-left"></i> Antecipação</span>';
-                            }
-                            ?>
-                        </li>
-                        <?php if (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo'): ?>
-                        <li class="list-group-item">
-                            <strong>Possui Garantia?</strong>
-                            <?php echo (!empty($operacao['tem_garantia'])) ? 'Sim' : 'Não'; ?>
-                        </li>
-                        <?php if (!empty($operacao['tem_garantia']) && !empty($operacao['descricao_garantia'])): ?>
-                        <li class="list-group-item">
-                            <strong>Descrição da Garantia:</strong>
-                            <?php echo nl2br(htmlspecialchars($operacao['descricao_garantia'])); ?>
-                        </li>
-                        <?php endif; ?>
-                        <?php endif; ?>
-                        <li class="list-group-item">
-                            <strong>Tipo de Pagamento:</strong>
-                            <?php 
-                                $tipoPagamento = $operacao['tipo_pagamento'] ?? 'direto';
-                                switch($tipoPagamento) {
-                                    case 'direto':
-                                        echo 'Pagamento Direto (Notificação ao Sacado)';
-                                        break;
-                                    case 'escrow':
-                                        echo 'Pagamento via Conta Escrow (Conta Vinculada)';
-                                        break;
-                                    case 'indireto':
-                                        echo 'Pagamento Indireto (via Cedente)';
-                                        break;
-                                    case 'cheque':
-                                        echo 'Cheque(s)';
-                                        break;
-                                    default:
-                                        echo htmlspecialchars($tipoPagamento);
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1"><?php echo ($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo' ? 'Tomador de Empréstimo (Sacado):' : 'Cedente:'; ?></strong>
+                            <div class="fs-6">
+                                <?php if ($operacao['cedente_id']): ?>
+                                    <a href="form_cedente.php?id=<?php echo $operacao['cedente_id']; ?>" title="Ver/Editar Cedente" class="text-decoration-none fw-semibold">
+                                        <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'Desconhecido'); ?>
+                                    </a>
+                                <?php else: ?>
+                                    <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'N/A'); ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Data Base de Cálculo:</strong>
+                            <div class="fs-6"><?php echo htmlspecialchars(isset($operacao['data_operacao']) ? date('d/m/Y', strtotime($operacao['data_operacao'])) : '-'); ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Data de Registro da Operação:</strong>
+                            <div class="fs-6"><?php echo htmlspecialchars(isset($operacao['data_operacao']) ? date('d/m/Y H:i', strtotime($operacao['data_operacao'])) : '-'); ?></div>
+                        </div>
+                         <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Taxa Mensal Aplicada:</strong>
+                             <div class="fs-6"><?php echo htmlspecialchars(number_format(($operacao['taxa_mensal'] ?? 0) * 100, 2, ',', '.') . '%'); ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Tipo de Operação:</strong>
+                            <div>
+                                <?php 
+                                if (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') {
+                                    echo '<span class="badge bg-warning text-dark"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
+                                } else {
+                                    echo '<span class="badge bg-success text-white"><i class="bi bi-arrow-return-left"></i> Antecipação</span>';
                                 }
-                            ?>
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Incorre Custo de IOF:</strong>
-                            <?php echo formatHtmlSimNao($incorreCustoIOF); ?>
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Cobra IOF do Cliente:</strong>
-                            <?php echo formatHtmlSimNao($cobrarIOFCliente); ?>
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Total Original (Recebíveis):</strong>
-                            <?php echo formatHtmlCurrency($totalOriginalCalculado); ?>
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Total IOF (Teórico):</strong>
-                             <?php echo formatHtmlCurrency($operacao['iof_total_calc'] ?? 0); ?>
-                        </li>
+                                ?>
+                            </div>
+                        </div>
+                        <?php if (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo'): ?>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Possui Garantia?</strong>
+                            <div class="fs-6"><?php echo (!empty($operacao['tem_garantia'])) ? 'Sim' : 'Não'; ?></div>
+                        </div>
+                        <?php if (!empty($operacao['tem_garantia']) && !empty($operacao['descricao_garantia'])): ?>
+                        <div class="col-md-12">
+                            <strong class="text-muted d-block mb-1">Descrição da Garantia:</strong>
+                            <div class="p-2 bg-light rounded border"><?php echo nl2br(htmlspecialchars($operacao['descricao_garantia'])); ?></div>
+                        </div>
+                        <?php endif; ?>
+                        <?php endif; ?>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Tipo de Pagamento:</strong>
+                            <div class="fs-6">
+                                <?php 
+                                    $tipoPagamento = $operacao['tipo_pagamento'] ?? 'direto';
+                                    switch($tipoPagamento) {
+                                        case 'direto': echo 'Pagamento Direto (Notificação ao Sacado)'; break;
+                                        case 'escrow': echo 'Pagamento via Conta Escrow (Conta Vinculada)'; break;
+                                        case 'indireto': echo 'Pagamento Indireto (via Cedente)'; break;
+                                        case 'cheque': echo 'Cheque(s)'; break;
+                                        default: echo htmlspecialchars($tipoPagamento);
+                                    }
+                                ?>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Incorre Custo de IOF:</strong>
+                            <div class="fs-6"><?php echo formatHtmlSimNao($incorreCustoIOF); ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Cobra IOF do Cliente:</strong>
+                            <div class="fs-6"><?php echo formatHtmlSimNao($cobrarIOFCliente); ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Total Original (Recebíveis):</strong>
+                            <div class="fs-6"><?php echo formatHtmlCurrency($totalOriginalCalculado); ?></div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Total IOF (Teórico):</strong>
+                             <div class="fs-6"><?php echo formatHtmlCurrency($operacao['iof_total_calc'] ?? 0); ?></div>
+                        </div>
                         <?php if ($operacao['valor_total_compensacao'] > 0): ?>
-                        <li class="list-group-item" style="color: #fd7e14;">
-                            <strong>Abatimento:</strong>
-                             <?php echo formatHtmlCurrency(-$operacao['valor_total_compensacao']); ?>
-                        </li>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Abatimento:</strong>
+                             <div class="fs-6 text-warning fw-bold"><?php echo formatHtmlCurrency(-$operacao['valor_total_compensacao']); ?></div>
+                        </div>
                         <?php 
                         // Calcular custo da antecipação
                         $custo_antecipacao_total = 0;
@@ -547,91 +582,93 @@ if ($operacao && !isset($error_message)) {
                             // Em caso de erro, manter custo como 0
                         }
                         ?>
-                        <li class="list-group-item" style="color: #dc3545;">
-                            <strong>Custo da Antecipação:</strong>
-                             <?php echo formatHtmlCurrency($custo_antecipacao_total); ?>
-                        </li>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Custo da Antecipação:</strong>
+                             <div class="fs-6 text-danger fw-bold"><?php echo formatHtmlCurrency($custo_antecipacao_total); ?></div>
+                        </div>
                         <?php endif; ?>
-                        <li class="list-group-item">
-                            <strong>Total Líquido Pago:</strong>
-                             <?php echo formatHtmlCurrency($totalLiquidoPagoCalculado); ?>
-                        </li>
-                         <li class="list-group-item">
-                            <strong>Lucro Líquido:</strong>
-                             <?php echo formatHtmlCurrency($totalLucroLiquidoCalculado); ?> (<?php echo number_format($percentualLucroLiquido, 2, ',', '.') . '%'; ?>)
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Observações:</strong>
-                            <?php 
-                            $observacoes = $operacao['notas'] ?? '';
-                            
-                            // Buscar informações de compensação se existirem
-                            if ($operacao['valor_total_compensacao'] > 0) {
-                                try {
-                                    $sql_comp = "SELECT c.*, r.valor_original as recebivel_valor_original, 
-                                                       r.data_vencimento as recebivel_data_vencimento,
-                                                       r.id as recebivel_id
-                                                FROM compensacoes c 
-                                                INNER JOIN recebiveis r ON c.recebivel_compensado_id = r.id
-                                                WHERE c.operacao_principal_id = :operacao_id 
-                                                ORDER BY c.data_compensacao ASC";
-                                    $stmt_comp = $pdo->prepare($sql_comp);
-                                    $stmt_comp->bindParam(':operacao_id', $operacao_id, PDO::PARAM_INT);
-                                    $stmt_comp->execute();
-                                    $compensacoes = $stmt_comp->fetchAll(PDO::FETCH_ASSOC);
-                                    
-                                    if (!empty($compensacoes)) {
-                                        $observacoes .= "\n\n=== ENCONTRO DE CONTAS ===\n";
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Total Líquido Pago:</strong>
+                             <div class="fs-5 text-primary fw-bold"><?php echo formatHtmlCurrency($totalLiquidoPagoCalculado); ?></div>
+                        </div>
+                         <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1">Lucro Líquido:</strong>
+                             <div class="fs-5 text-success fw-bold"><?php echo formatHtmlCurrency($totalLucroLiquidoCalculado); ?> <small class="text-muted fs-6">(<?php echo number_format($percentualLucroLiquido, 2, ',', '.') . '%'; ?>)</small></div>
+                        </div>
+                        <div class="col-md-12 mt-4">
+                            <strong class="text-muted d-block mb-2">Observações:</strong>
+                            <div class="p-3 bg-light border rounded">
+                                <?php 
+                                $observacoes = $operacao['notas'] ?? '';
+                                
+                                // Buscar informações de compensação se existirem
+                                if ($operacao['valor_total_compensacao'] > 0) {
+                                    try {
+                                        $sql_comp = "SELECT c.*, r.valor_original as recebivel_valor_original, 
+                                                           r.data_vencimento as recebivel_data_vencimento,
+                                                           r.id as recebivel_id
+                                                    FROM compensacoes c 
+                                                    INNER JOIN recebiveis r ON c.recebivel_compensado_id = r.id
+                                                    WHERE c.operacao_principal_id = :operacao_id 
+                                                    ORDER BY c.data_compensacao ASC";
+                                        $stmt_comp = $pdo->prepare($sql_comp);
+                                        $stmt_comp->bindParam(':operacao_id', $operacao_id, PDO::PARAM_INT);
+                                        $stmt_comp->execute();
+                                        $compensacoes = $stmt_comp->fetchAll(PDO::FETCH_ASSOC);
                                         
-                                        $total_compensado = array_sum(array_column($compensacoes, 'valor_compensado'));
-                                        $total_presente = array_sum(array_column($compensacoes, 'valor_presente_compensacao'));
-                                        $custo_antecipacao = $total_compensado - $total_presente;
-                                        
-                                        foreach ($compensacoes as $comp) {
-                                            // Buscar a operação que contém este recebível para criar o link
-                                            $operacao_recebivel = null;
-                                            try {
-                                                $stmt_op_rec = $pdo->prepare("SELECT operacao_id FROM recebiveis WHERE id = ?");
-                                                $stmt_op_rec->execute([$comp['recebivel_id']]);
-                                                $operacao_recebivel = $stmt_op_rec->fetchColumn();
-                                            } catch (Exception $e) {
-                                                // Em caso de erro, usar apenas o ID sem link
+                                        if (!empty($compensacoes)) {
+                                            $observacoes .= "\n\n=== ENCONTRO DE CONTAS ===\n";
+                                            
+                                            $total_compensado = array_sum(array_column($compensacoes, 'valor_compensado'));
+                                            $total_presente = array_sum(array_column($compensacoes, 'valor_presente_compensacao'));
+                                            $custo_antecipacao = $total_compensado - $total_presente;
+                                            
+                                            foreach ($compensacoes as $comp) {
+                                                // Buscar a operação que contém este recebível para criar o link
+                                                $operacao_recebivel = null;
+                                                try {
+                                                    $stmt_op_rec = $pdo->prepare("SELECT operacao_id FROM recebiveis WHERE id = ?");
+                                                    $stmt_op_rec->execute([$comp['recebivel_id']]);
+                                                    $operacao_recebivel = $stmt_op_rec->fetchColumn();
+                                                } catch (Exception $e) {
+                                                    // Em caso de erro, usar apenas o ID sem link
+                                                }
+                                                
+                                                $saldo_restante = $comp['recebivel_valor_original'] - $comp['valor_compensado'];
+                                                $taxa_formatada = number_format($comp['taxa_antecipacao_aplicada'], 0, ',', '.');
+                                                
+                                                if ($operacao_recebivel) {
+                                                    $observacoes .= "\n• R$ " . number_format($comp['valor_compensado'], 2, ',', '.') .
+                                                                  " antecipados do recebível #{$comp['recebivel_id']} " .
+                                                                  "(venc. " . date('d/m/Y', strtotime($comp['recebivel_data_vencimento'])) . ") " .
+                                                                  "com taxa de {$taxa_formatada}% a.m. " .
+                                                                  "<a href='detalhes_operacao.php?id={$operacao_recebivel}' target='_blank'>Ver Operação</a>\n";
+                                                } else {
+                                                    $observacoes .= "\n• R$ " . number_format($comp['valor_compensado'], 2, ',', '.') .
+                                                                  " antecipados do recebível #{$comp['recebivel_id']} " .
+                                                                  "(venc. " . date('d/m/Y', strtotime($comp['recebivel_data_vencimento'])) . ") " .
+                                                                  "com taxa de {$taxa_formatada}% a.m.\n";
+                                                }
+                                                
+                                                if ($comp['tipo_compensacao'] === 'parcial') {
+                                                    $observacoes .= "  Saldo restante: R$ " . number_format($saldo_restante, 2, ',', '.') . "\n";
+                                                }
                                             }
                                             
-                                            $saldo_restante = $comp['recebivel_valor_original'] - $comp['valor_compensado'];
-                                            $taxa_formatada = number_format($comp['taxa_antecipacao_aplicada'], 0, ',', '.');
-                                            
-                                            if ($operacao_recebivel) {
-                                                $observacoes .= "\n• R$ " . number_format($comp['valor_compensado'], 2, ',', '.') .
-                                                              " antecipados do recebível #{$comp['recebivel_id']} " .
-                                                              "(venc. " . date('d/m/Y', strtotime($comp['recebivel_data_vencimento'])) . ") " .
-                                                              "com taxa de {$taxa_formatada}% a.m. " .
-                                                              "<a href='detalhes_operacao.php?id={$operacao_recebivel}' target='_blank'>Ver Operação</a>\n";
-                                            } else {
-                                                $observacoes .= "\n• R$ " . number_format($comp['valor_compensado'], 2, ',', '.') .
-                                                              " antecipados do recebível #{$comp['recebivel_id']} " .
-                                                              "(venc. " . date('d/m/Y', strtotime($comp['recebivel_data_vencimento'])) . ") " .
-                                                              "com taxa de {$taxa_formatada}% a.m.\n";
-                                            }
-                                            
-                                            if ($comp['tipo_compensacao'] === 'parcial') {
-                                                $observacoes .= "  Saldo restante: R$ " . number_format($saldo_restante, 2, ',', '.') . "\n";
-                                            }
+                                            $observacoes .= "\n• Resumo: R$ " . number_format($total_compensado, 2, ',', '.') . " compensados\n";
+                                            $observacoes .= "• Valor presente: R$ " . number_format($total_presente, 2, ',', '.') . " recebidos\n";
+                                            $observacoes .= "• Custo da antecipação (crédito ao cliente): R$ " . number_format($custo_antecipacao, 2, ',', '.') . "\n";
                                         }
-                                        
-                                        $observacoes .= "\n• Resumo: R$ " . number_format($total_compensado, 2, ',', '.') . " compensados\n";
-                                        $observacoes .= "• Valor presente: R$ " . number_format($total_presente, 2, ',', '.') . " recebidos\n";
-                                        $observacoes .= "• Custo da antecipação (crédito ao cliente): R$ " . number_format($custo_antecipacao, 2, ',', '.') . "\n";
+                                    } catch (Exception $e) {
+                                        $observacoes .= "\n\n[Erro ao carregar detalhes da compensação: " . $e->getMessage() . "]";
                                     }
-                                } catch (Exception $e) {
-                                    $observacoes .= "\n\n[Erro ao carregar detalhes da compensação: " . $e->getMessage() . "]";
                                 }
-                            }
-                            
-                            echo nl2br($observacoes ?: 'Nenhuma');
-                            ?>
-                        </li>
-                    </ul>
+                                
+                                echo nl2br($observacoes ?: 'Nenhuma observação registrada.');
+                                ?>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -750,7 +787,7 @@ if ($operacao && !isset($error_message)) {
                         </tbody>
                          <tfoot class="table-group-divider">
                             <tr>
-                                <td colspan="3" class="text-end"><strong>Totais:</strong></td>
+                                <td colspan="4" class="text-end pe-3"><strong>Totais:</strong></td>
                                 <td class="text-end"><strong><?php echo formatHtmlCurrency($totalOriginalCalculado); ?></strong></td>
                                 <td class="text-center"></td>
                                 <td class="text-end"><strong><?php echo formatHtmlCurrency($totalLiquidoPagoCalculado); ?></strong></td>
@@ -822,6 +859,107 @@ if ($operacao && !isset($error_message)) {
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                             <button type="button" class="btn btn-primary" id="uploadBtn" disabled>
                                 <i class="bi bi-cloud-upload"></i> Enviar Arquivos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção de Anotações -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Anotações</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#novaAnotacaoModal">
+                        <i class="bi bi-plus-circle"></i> Nova Anotação
+                    </button>
+                </div>
+                <div class="card-body">
+                    <?php if (isset($error_message_anotacoes)): ?>
+                        <div class="alert alert-danger"><?php echo $error_message_anotacoes; ?></div>
+                    <?php elseif (empty($anotacoes)): ?>
+                        <div class="text-center text-muted">
+                            <i class="bi bi-journal-x" style="font-size: 3rem;"></i>
+                            <p class="mt-2">Nenhuma anotação registrada para esta operação.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="timeline">
+                            <?php foreach ($anotacoes as $anotacao): ?>
+                                <div class="card mb-3 shadow-sm border-0 bg-light">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <div>
+                                                <strong><i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($anotacao['usuario_nome']); ?></strong>
+                                                <small class="text-muted ms-2">
+                                                    <i class="bi bi-clock"></i> <?php echo date('d/m/Y H:i', strtotime($anotacao['data_criacao'])); ?>
+                                                </small>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <?php if ($anotacao['recebivel_id']): ?>
+                                                    <span class="badge bg-info text-dark" title="Vinculado ao Recebível #<?php echo $anotacao['recebivel_id']; ?>">
+                                                        <?php echo htmlspecialchars(ucfirst($anotacao['recebivel_tipo'] ?? 'Recebível')); ?> #<?php echo $anotacao['recebivel_id']; ?>
+                                                        <?php if (!empty($anotacao['recebivel_vencimento'])): ?>
+                                                            | Venc: <?php echo formatHtmlDate($anotacao['recebivel_vencimento']); ?>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($anotacao['recebivel_valor'])): ?>
+                                                            | <?php echo formatHtmlCurrency($anotacao['recebivel_valor']); ?>
+                                                        <?php endif; ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-secondary">Geral</span>
+                                                <?php endif; ?>
+                                                <button type="button" class="btn btn-sm btn-outline-danger border-0 ms-2" onclick="apagarAnotacao(<?php echo $anotacao['id']; ?>)" title="Excluir Anotação">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="anotacao-content">
+                                            <!-- The content is HTML generated by Quill, so we output it directly -->
+                                            <?php echo $anotacao['anotacao']; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Modal para Nova Anotação -->
+            <div class="modal fade" id="novaAnotacaoModal" tabindex="-1" aria-labelledby="novaAnotacaoModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="novaAnotacaoModalLabel">Nova Anotação</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="formNovaAnotacao">
+                                <input type="hidden" id="anotacaoOperacaoId" value="<?php echo htmlspecialchars($operacao_id); ?>">
+                                
+                                <div class="mb-3">
+                                    <label for="anotacaoRecebivelId" class="form-label">Associar a</label>
+                                    <select class="form-select" id="anotacaoRecebivelId">
+                                        <option value="">Geral (Operação)</option>
+                                        <?php foreach ($recebiveis_para_exibir as $r): ?>
+                                            <option value="<?php echo $r['id']; ?>">
+                                                Recebível #<?php echo $r['id']; ?> (<?php echo htmlspecialchars(ucfirst($r['tipo_recebivel'] ?? 'N/A')); ?>) - Venc: <?php echo formatHtmlDate($r['data_vencimento']); ?> - <?php echo formatHtmlCurrency($r['valor_original']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Anotação</label>
+                                    <!-- Quill Editor Container -->
+                                    <div id="quillEditor" style="height: 200px;"></div>
+                                </div>
+                            </form>
+                            <div id="anotacaoError" class="alert alert-danger" style="display: none;"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" id="btnSalvarAnotacao">
+                                <i class="bi bi-save"></i> Salvar
                             </button>
                         </div>
                     </div>
@@ -1451,34 +1589,53 @@ if ($operacao && !isset($error_message)) {
                 const card = document.createElement('div');
                 card.className = 'card h-100';
 
-                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(arquivo.extensao.toLowerCase());
+                // Definir a miniatura com base no tipo de arquivo
+                let miniaturaHtml = '';
+                if (arquivo.is_image) {
+                    miniaturaHtml = `<div style="width: 60px; height: 60px; overflow: hidden; border-radius: 4px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa;">
+                                        <img src="${arquivo.download_url}" alt="Miniatura" style="max-width: 100%; max-height: 100%; object-fit: cover; cursor: pointer;" onclick="verImagem('${arquivo.download_url}', '${arquivo.nome_original}')">
+                                     </div>`;
+                } else if (arquivo.is_pdf) {
+                    miniaturaHtml = `<i class="bi bi-file-earmark-pdf-fill" style="font-size: 3rem; color: #dc3545;"></i>`; // Ícone PDF vermelho
+                } else {
+                    miniaturaHtml = `<i class="bi ${arquivo.icone}" style="font-size: 3rem; color: #6c757d;"></i>`;
+                }
                 
+                let verBotaoHtml = '';
+                if (arquivo.pode_visualizar) {
+                    if (arquivo.is_image) {
+                        verBotaoHtml = `<button type="button" onclick="verImagem('${arquivo.download_url}', '${arquivo.nome_original}')" class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-eye"></i> Ver
+                                        </button>`;
+                    } else {
+                        verBotaoHtml = `<a href="${arquivo.download_url}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-eye"></i> Ver
+                                        </a>`;
+                    }
+                }
+
                 card.innerHTML = `
                     <div class="card-body">
                         <div class="d-flex align-items-start">
                             <div class="me-3">
-                                <i class="bi ${arquivo.icone}" style="font-size: 2rem; color: #6c757d;"></i>
+                                ${miniaturaHtml}
                             </div>
-                            <div class="flex-grow-1">
-                                <h6 class="card-title mb-1" title="${arquivo.nome_original}">${arquivo.nome_original.length > 25 ? arquivo.nome_original.substring(0, 25) + '...' : arquivo.nome_original}</h6>
-                                <p class="card-text">
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <h6 class="card-title mb-1 text-truncate" title="${arquivo.nome_original}">${arquivo.nome_original}</h6>
+                                <p class="card-text mb-1">
                                     <small class="text-muted">
                                         ${arquivo.tamanho_formatado}<br>
                                         ${arquivo.data_upload_formatada}<br>
                                         ${arquivo.usuario_upload || 'Sistema'}
                                     </small>
                                 </p>
-                                ${arquivo.descricao ? `<p class="card-text"><small>${arquivo.descricao}</small></p>` : ''}
+                                ${arquivo.descricao ? `<p class="card-text text-truncate"><small title="${arquivo.descricao}">${arquivo.descricao}</small></p>` : ''}
                             </div>
                         </div>
                     </div>
                     <div class="card-footer bg-transparent">
                         <div class="btn-group w-100" role="group">
-                            ${arquivo.pode_visualizar ?
-                                `<a href="${arquivo.download_url}" target="_blank" class="btn btn-outline-primary btn-sm">
-                                    <i class="bi bi-eye"></i> Ver
-                                </a>` : ''
-                            }
+                            ${verBotaoHtml}
                             <a href="${arquivo.download_url}&download=1" class="btn btn-outline-secondary btn-sm">
                                 <i class="bi bi-download"></i> Download
                             </a>
@@ -1493,6 +1650,37 @@ if ($operacao && !isset($error_message)) {
                 arquivosListaDiv.appendChild(col);
             });
         }
+
+        // Função para visualizar imagem com Viewer.js
+        window.verImagem = function(url, nome) {
+            const img = new Image();
+            img.src = url;
+            img.alt = nome;
+            const viewer = new Viewer(img, {
+                hidden: function () {
+                    viewer.destroy();
+                },
+                toolbar: {
+                    zoomIn: 1,
+                    zoomOut: 1,
+                    oneToOne: 1,
+                    reset: 1,
+                    prev: 0,
+                    play: 0,
+                    next: 0,
+                    rotateLeft: 1,
+                    rotateRight: 1,
+                    flipHorizontal: 1,
+                    flipVertical: 1,
+                },
+                navbar: false,
+                title: true,
+                button: true,
+                backdrop: true,
+                className: 'viewer-90-percent' // Classe opcional para estilização customizada se precisar
+            });
+            viewer.show();
+        };
 
         // Função para excluir arquivo
         window.excluirArquivo = async function(arquivoId, nomeArquivo) {
@@ -1537,6 +1725,115 @@ if ($operacao && !isset($error_message)) {
         }
     });
     </script>
+    <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
+    
+    <script>
+    // Inicialização do Quill Editor e lógica de anotações
+    document.addEventListener('DOMContentLoaded', function() {
+        const quill = new Quill('#quillEditor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'header': 1 }, { 'header': 2 }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'script': 'sub'}, { 'script': 'super' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    [{ 'direction': 'rtl' }],
+                    [{ 'size': ['small', false, 'large', 'huge'] }],
+                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'font': [] }],
+                    [{ 'align': [] }],
+                    ['clean'],
+                    ['link', 'image']
+                ]
+            }
+        });
+
+        const btnSalvarAnotacao = document.getElementById('btnSalvarAnotacao');
+        const errorDiv = document.getElementById('anotacaoError');
+        let anotacaoModal;
+        if (document.getElementById('novaAnotacaoModal')) {
+            anotacaoModal = new bootstrap.Modal(document.getElementById('novaAnotacaoModal'));
+        }
+
+        if (btnSalvarAnotacao) {
+            btnSalvarAnotacao.addEventListener('click', function() {
+                const operacaoId = document.getElementById('anotacaoOperacaoId').value;
+                const recebivelId = document.getElementById('anotacaoRecebivelId').value;
+                const anotacaoHtml = quill.root.innerHTML;
+                const anotacaoText = quill.getText().trim();
+
+                if (anotacaoText.length === 0) {
+                    errorDiv.textContent = "A anotação não pode estar vazia.";
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                errorDiv.style.display = 'none';
+                
+                const originalHtml = this.innerHTML;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...';
+                this.disabled = true;
+
+                const formData = new FormData();
+                formData.append('operacao_id', operacaoId);
+                if (recebivelId) formData.append('recebivel_id', recebivelId);
+                formData.append('anotacao', anotacaoHtml);
+
+                fetch('ajax_salvar_anotacao.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload the page to show the new annotation
+                        window.location.reload();
+                    } else {
+                        errorDiv.textContent = data.message || 'Erro ao salvar a anotação.';
+                        errorDiv.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    errorDiv.textContent = 'Erro na requisição: ' + error.message;
+                    errorDiv.style.display = 'block';
+                })
+                .finally(() => {
+                    this.innerHTML = originalHtml;
+                    this.disabled = false;
+                });
+            });
+        }
+    });
+
+    // Função para excluir anotação
+    function apagarAnotacao(id) {
+        if (confirm("Tem certeza que deseja excluir esta anotação?")) {
+            const formData = new FormData();
+            formData.append('id', id);
+
+            fetch('excluir_anotacao.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.error || 'Erro ao excluir a anotação.');
+                }
+            })
+            .catch(error => {
+                alert('Erro na requisição: ' + error.message);
+            });
+        }
+    }
+    </script>
 </body>
 </html>

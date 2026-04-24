@@ -90,21 +90,24 @@ try {
     // Formata dados para resposta
     $arquivos_formatados = [];
     foreach ($arquivos as $arquivo) {
+        $extensao = strtolower($arquivo['extensao']);
         $arquivos_formatados[] = [
             'id' => $arquivo['id'],
             'nome_original' => $arquivo['nome_original'],
             'nome_arquivo' => $arquivo['nome_arquivo'],
             'tipo_arquivo' => $arquivo['tipo_arquivo'],
-            'extensao' => $arquivo['extensao'],
+            'extensao' => $extensao,
             'tamanho_bytes' => $arquivo['tamanho_bytes'],
             'tamanho_formatado' => formatFileSize($arquivo['tamanho_bytes']),
             'data_upload' => $arquivo['data_upload'],
             'data_upload_formatada' => date('d/m/Y H:i', strtotime($arquivo['data_upload'])),
             'usuario_upload' => $arquivo['usuario_upload'],
             'descricao' => $arquivo['descricao'],
-            'icone' => getFileIcon($arquivo['extensao']),
+            'icone' => getFileIcon($extensao),
             'download_url' => "download_arquivo.php?id=" . $arquivo['id'],
-            'pode_visualizar' => in_array(strtolower($arquivo['extensao']), ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'txt'])
+            'pode_visualizar' => in_array($extensao, ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt']),
+            'is_image' => in_array($extensao, ['jpg', 'jpeg', 'png', 'gif', 'webp']),
+            'is_pdf' => $extensao === 'pdf'
         ];
     }
 

@@ -39,6 +39,23 @@ if ($filtro_data_fim && DateTime::createFromFormat('Y-m-d', $filtro_data_fim)) {
     $filtro_data_fim = '';
 }
 
+// Filtro Rápido
+$quick_filter = isset($_GET['quick_filter']) ? $_GET['quick_filter'] : 'todos';
+
+if ($quick_filter === 'inadimplentes') {
+    $whereClauses[] = "r.status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND r.data_vencimento < CURDATE()";
+} elseif ($quick_filter === 'recebidos') {
+    $whereClauses[] = "r.status IN ('Recebido', 'Compensado', 'Totalmente Compensado')";
+} elseif ($quick_filter === 'a_receber') {
+    $whereClauses[] = "r.status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND r.data_vencimento >= CURDATE()";
+} elseif ($quick_filter === 'vencendo_7_dias') {
+    $whereClauses[] = "r.status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND r.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)";
+} elseif ($quick_filter === 'vencendo_hoje') {
+    $whereClauses[] = "r.status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND r.data_vencimento = CURDATE()";
+} elseif ($quick_filter === 'problemas') {
+    $whereClauses[] = "r.status = 'Problema'";
+}
+
 // Filtro de Busca - Inclui busca pelo nome do cedente e sacado
 if (!empty($search)) {
      $whereClauses[] = "(CAST(r.id AS CHAR) LIKE :search_rid OR CAST(r.operacao_id AS CHAR) LIKE :search_oid OR CAST(r.valor_original AS CHAR) LIKE :search_valor OR s.empresa LIKE :search_cedente OR sac.empresa LIKE :search_sacado)";

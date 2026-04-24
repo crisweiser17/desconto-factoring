@@ -1,0 +1,2 @@
+- [x] O menu da página "Fechamento Mensal" não é mais branco, voltando a ficar no tom escuro igual ao do restante do sistema.
+- [x] O layout e os gráficos dos cards, despesas, etc., da página "Fechamento Mensal" estão normais e visíveis.

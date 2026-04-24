@@ -1,0 +1,4 @@
+- [ ] O Top 5 de Tomadores de Empréstimo exibe os clientes corretamente (agrupando por `sacado_id` e juntando na tabela `sacados`).
+- [ ] Um novo gráfico de "Recebimentos Projetados" exibe as barras empilhadas para os próximos meses, prevendo a entrada de caixa futuro.
+- [ ] A Taxa de Inadimplência (%) é calculada e exibida como um subtítulo (ou badge) abaixo do valor de Inadimplência.
+- [ ] Um novo Gráfico de Aging (Controle de Inadimplência) está funcional e exibindo as faixas corretas de atraso (ex: 1-15, 16-30, >30 dias).

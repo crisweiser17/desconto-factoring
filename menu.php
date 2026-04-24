@@ -1,6 +1,15 @@
 <?php
 // menu.php
 
+// Read config to get app_name and app_version
+$menuConfigFilePath = __DIR__ . '/config.json';
+$menuAppConfig = [];
+if (file_exists($menuConfigFilePath)) {
+    $menuAppConfig = json_decode(file_get_contents($menuConfigFilePath), true) ?: [];
+}
+$menuAppName = $menuAppConfig['app_name'] ?? 'Factoring';
+$menuAppVersion = $menuAppConfig['app_version'] ?? '5.2 de abril de 2026';
+
 // Detecta qual página está sendo exibida
 $currentPage = basename($_SERVER['PHP_SELF']);
 
@@ -51,16 +60,12 @@ $menuItems = [
         'label' => 'Relatórios',
         'icon' => 'bi-graph-up',
         'pages' => [
-            'relatorio.php',
-            'relatorio_cedentes.php',
-            'relatorio_sacados.php',
-            'relatorio_contas_a_pagar.php' // Relatório de contas a pagar movido para cá
+            'dashboard_financeiro.php',
+            'fechamento.php'
         ],
         'items' => [
-            'relatorio.php' => '<i class="bi bi-graph-up"></i> Relatório Geral',
-            'relatorio_cedentes.php' => '<i class="bi bi-pie-chart"></i> Relatório por Cedente',
-            'relatorio_sacados.php' => '<i class="bi bi-building"></i> Relatório por Sacado',
-            'relatorio_contas_a_pagar.php' => '<i class="bi bi-file-earmark-text"></i> Contas a Pagar'
+            'dashboard_financeiro.php' => '<i class="bi bi-graph-up"></i> Relatório Geral Financeiro',
+            'fechamento.php' => '<i class="bi bi-wallet2"></i> Fechamento Mensal'
         ]
     ],
     // Estrutura para o dropdown de Configurações
@@ -82,8 +87,8 @@ $menuItems = [
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
   <div class="container">
     <a class="navbar-brand" href="index.php">
-        <i class="bi bi-calculator-fill me-2"></i>Factoring 5.1
-        <small class="text-secondary ms-2" style="font-size: 0.7em;">03.2026</small>
+        <i class="bi bi-calculator-fill me-2"></i><?php echo htmlspecialchars($menuAppName); ?>
+        <small class="text-secondary ms-2" style="font-size: 0.7em;"><?php echo htmlspecialchars($menuAppVersion); ?></small>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>

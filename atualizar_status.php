@@ -52,11 +52,19 @@ if (!function_exists('formatHtmlStatus')) {
     }
 }
 if (!function_exists('getTableRowClass')) {
-     function getTableRowClass($status) {
+     function getTableRowClass($status, $data_vencimento = null) {
+        if ($data_vencimento && !in_array($status, ['Recebido', 'Compensado', 'Totalmente Compensado'])) {
+            $hoje = date('Y-m-d');
+            if ($data_vencimento < $hoje) {
+                return 'table-danger fw-bold';
+            }
+        }
         switch ($status) {
             case 'Recebido': return 'table-light text-muted opacity-75';
             case 'Problema': return 'table-danger fw-bold';
-            case 'Parcialmente Compensado': return 'table-warning';
+            case 'Compensado': return 'table-warning text-muted opacity-75';
+            case 'Totalmente Compensado': return 'table-warning text-muted opacity-75';
+            case 'Parcialmente Compensado': return 'table-primary';
             case 'Em Aberto': default: return '';
         }
     }
@@ -106,15 +114,14 @@ try {
     $success = $stmt->execute();
 
     if ($success && $stmt->rowCount() > 0) {
-        // Buscar a data de recebimento atualizada para mostrar no status
-        $data_recebimento = null;
-        if ($new_status === 'Recebido') {
-            $stmt_data = $pdo->prepare("SELECT data_recebimento FROM recebiveis WHERE id = :id");
-            $stmt_data->bindParam(':id', $recebivel_id, PDO::PARAM_INT);
-            $stmt_data->execute();
-            $result = $stmt_data->fetch(PDO::FETCH_ASSOC);
-            $data_recebimento = $result['data_recebimento'] ?? null;
-        }
+        // Buscar a data de recebimento atualizada, operacao_id e data_vencimento para mostrar no status/ações e atualizar cor da linha
+        $stmt_data = $pdo->prepare("SELECT data_recebimento, operacao_id, data_vencimento FROM recebiveis WHERE id = :id");
+        $stmt_data->bindParam(':id', $recebivel_id, PDO::PARAM_INT);
+        $stmt_data->execute();
+        $result = $stmt_data->fetch(PDO::FETCH_ASSOC);
+        $data_recebimento = $result['data_recebimento'] ?? null;
+        $operacao_id = $result['operacao_id'] ?? null;
+        $data_vencimento = $result['data_vencimento'] ?? null;
         
         // Sucesso
         $newStatusHtml = formatHtmlStatus($new_status, $data_recebimento);
@@ -139,8 +146,11 @@ try {
             <button class="btn btn-secondary action-btn update-status-btn" data-id="<?php echo $recebivel_id; ?>" data-status="Em Aberto" title="Reverter para Em Aberto"><i class="bi bi-arrow-counterclockwise"></i></button>
             <?php
         }
+        ?>
+        <a href="detalhes_operacao.php?id=<?php echo htmlspecialchars($operacao_id); ?>" class="btn btn-primary action-btn" title="Visualizar Operação"><i class="bi bi-eye"></i></a>
+        <?php
         $newActionsHtml = ob_get_clean();
-        $newRowClass = getTableRowClass($new_status);
+        $newRowClass = getTableRowClass($new_status, $data_vencimento);
 
         $response = [
             'success' => true,

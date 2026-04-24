@@ -2,9 +2,73 @@
 // exportar_ics.php
 require_once 'db_connection.php'; // Conexão $pdo
 
-// Busca apenas recebíveis 'Em Aberto'
+// --- Aplicar os mesmos filtros da listagem ---
+// Filtros existentes
+$filtro_status = isset($_GET['status']) && is_array($_GET['status']) ? $_GET['status'] : [];
+$filtro_data_inicio = isset($_GET['data_inicio']) ? $_GET['data_inicio'] : '';
+$filtro_data_fim = isset($_GET['data_fim']) ? $_GET['data_fim'] : '';
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+$params = [];
+$whereClauses = [];
+
+// Por padrão, para o ICS (calendário), se não houver filtro de status, podemos querer apenas os não recebidos
+// mas se o usuário filtrou explicitamente, respeitamos os filtros.
+if (!empty($filtro_status)) {
+    $placeholders = [];
+    for ($i = 0; $i < count($filtro_status); $i++) {
+        $placeholders[] = ":status_$i";
+        $params[":status_$i"] = $filtro_status[$i];
+    }
+    $whereClauses[] = "status IN (" . implode(',', $placeholders) . ")";
+}
+
+if ($filtro_data_inicio && DateTime::createFromFormat('Y-m-d', $filtro_data_inicio)) {
+    $whereClauses[] = "data_vencimento >= :data_inicio";
+    $params[':data_inicio'] = $filtro_data_inicio;
+}
+
+if ($filtro_data_fim && DateTime::createFromFormat('Y-m-d', $filtro_data_fim)) {
+    $whereClauses[] = "data_vencimento <= :data_fim";
+    $params[':data_fim'] = $filtro_data_fim;
+}
+
+// Filtro Rápido
+$quick_filter = isset($_GET['quick_filter']) ? $_GET['quick_filter'] : 'todos';
+
+if ($quick_filter === 'inadimplentes') {
+    $whereClauses[] = "status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND data_vencimento < CURDATE()";
+} elseif ($quick_filter === 'recebidos') {
+    $whereClauses[] = "status IN ('Recebido', 'Compensado', 'Totalmente Compensado')";
+} elseif ($quick_filter === 'a_receber') {
+    $whereClauses[] = "status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND data_vencimento >= CURDATE()";
+} elseif ($quick_filter === 'vencendo_7_dias') {
+    $whereClauses[] = "status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)";
+} elseif ($quick_filter === 'vencendo_hoje') {
+    $whereClauses[] = "status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND data_vencimento = CURDATE()";
+} elseif ($quick_filter === 'problemas') {
+    $whereClauses[] = "status = 'Problema'";
+}
+
+$whereSql = !empty($whereClauses) ? "WHERE " . implode(" AND ", $whereClauses) : "WHERE status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado')";
+
 try {
-    $stmt = $pdo->query("SELECT * FROM recebiveis WHERE status = 'Em Aberto' ORDER BY data_vencimento ASC");
+    $sql = "SELECT * FROM recebiveis $whereSql ORDER BY data_vencimento ASC";
+    $stmt = $pdo->prepare($sql);
+    
+    if (!empty($filtro_status)) {
+        for ($i = 0; $i < count($filtro_status); $i++) {
+            $stmt->bindParam(":status_$i", $params[":status_$i"], PDO::PARAM_STR);
+        }
+    }
+    if ($filtro_data_inicio) {
+        $stmt->bindParam(':data_inicio', $params[':data_inicio'], PDO::PARAM_STR);
+    }
+    if ($filtro_data_fim) {
+        $stmt->bindParam(':data_fim', $params[':data_fim'], PDO::PARAM_STR);
+    }
+    
+    $stmt->execute();
     $recebiveis_abertos = $stmt->fetchAll();
 } catch (PDOException $e) {
     header("Content-Type: text/plain; charset=utf-8");

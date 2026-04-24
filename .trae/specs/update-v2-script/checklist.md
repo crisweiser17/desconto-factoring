@@ -1,0 +1,5 @@
+- [x] Script `update_v2.php` conecta-se ao banco de dados corretamente
+- [x] O script é idempotente (pode ser executado múltiplas vezes sem quebrar o banco)
+- [x] Coluna `tipo_operacao` está presente em `operacoes` após execução
+- [x] Colunas `tem_garantia` e `descricao_garantia` estão presentes em `operacoes` após execução
+- [x] Coluna `tipo_recebivel` na tabela `recebiveis` aceita o valor `parcela_emprestimo`

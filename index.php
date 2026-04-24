@@ -142,11 +142,33 @@ try {
           </fieldset>
 
           <fieldset class="border p-3 rounded mb-4" id="emprestimoParamsSection" style="display: none; background-color: #f8f9fa;">
-              <legend class="float-none w-auto px-3 h6 text-primary"><i class="bi bi-cash-coin"></i> Calculadora de Empréstimo</legend>
+              <legend class="float-none w-auto px-3 h6 text-primary"><i class="bi bi-cash-coin"></i> Calculadora Flexível de Empréstimo</legend>
+              
+              <!-- Seletor de Modo de Cálculo -->
+              <div class="row g-3 mb-3">
+                  <div class="col-md-12">
+                      <label class="form-label fw-bold">O que você deseja descobrir?</label>
+                      <div class="btn-group w-100" role="group" aria-label="Modo de Cálculo">
+                          <input type="radio" class="btn-check" name="modoCalculo" id="modoDescobrirParcela" value="parcela" autocomplete="off" checked>
+                          <label class="btn btn-outline-secondary" for="modoDescobrirParcela">Descobrir Parcela</label>
+
+                          <input type="radio" class="btn-check" name="modoCalculo" id="modoDescobrirTaxa" value="taxa" autocomplete="off">
+                          <label class="btn btn-outline-secondary" for="modoDescobrirTaxa">Descobrir Taxa de Juros</label>
+
+                          <input type="radio" class="btn-check" name="modoCalculo" id="modoDescobrirEmprestimo" value="emprestimo" autocomplete="off">
+                          <label class="btn btn-outline-secondary" for="modoDescobrirEmprestimo">Descobrir Valor do Empréstimo</label>
+                      </div>
+                  </div>
+              </div>
+
               <div class="row g-3 align-items-end">
-                  <div class="col-md-3">
+                  <div class="col-md-3" id="containerValorEmprestimo">
                       <label for="valorEmprestimo" class="form-label">Valor do Empréstimo (R$)</label>
                       <input type="number" class="form-control" id="valorEmprestimo" name="valor_emprestimo" step="0.01" min="0.01" placeholder="10000.00">
+                  </div>
+                  <div class="col-md-3" id="containerValorParcela" style="display: none;">
+                      <label for="valorParcela" class="form-label text-primary fw-bold">Valor da Parcela (R$)</label>
+                      <input type="number" class="form-control border-primary" id="valorParcela" name="valor_parcela" step="0.01" min="0.01" placeholder="1000.00">
                   </div>
                   <div class="col-md-3">
                       <label for="frequenciaParcelas" class="form-label">Frequência</label>
@@ -180,7 +202,47 @@ try {
               </div>
               <div class="row g-3 mt-1">
                   <div class="col-md-12 text-end">
+                      <button type="button" class="btn btn-outline-danger btn-sm me-2" id="btnLimparRascunho"><i class="bi bi-trash"></i> Limpar / Nova Simulação</button>
                       <button type="button" class="btn btn-primary" id="btnGerarParcelas"><i class="bi bi-gear-fill"></i> Gerar Parcelas</button>
+                  </div>
+              </div>
+
+              <!-- Card de Resumo do Empréstimo -->
+              <div class="row g-3 mt-3" id="resumoEmprestimoSection" style="display: none;">
+                  <div class="col-12">
+                      <div class="card border-primary">
+                          <div class="card-header bg-primary text-white fw-bold">
+                              <i class="bi bi-file-earmark-bar-graph"></i> Resumo da Simulação (Empréstimo)
+                          </div>
+                          <div class="card-body">
+                              <div class="row text-center">
+                                  <div class="col-md-2 col-6 mb-2">
+                                      <small class="text-muted d-block">Empréstimo</small>
+                                      <span class="fs-5 fw-bold" id="resumoPv">--</span>
+                                  </div>
+                                  <div class="col-md-2 col-6 mb-2">
+                                      <small class="text-muted d-block">Parcela</small>
+                                      <span class="fs-5 fw-bold text-primary" id="resumoPmt">--</span>
+                                  </div>
+                                  <div class="col-md-2 col-6 mb-2">
+                                      <small class="text-muted d-block">Prazo</small>
+                                      <span class="fs-5 fw-bold" id="resumoPrazo">--</span>
+                                  </div>
+                                  <div class="col-md-2 col-6 mb-2">
+                                      <small class="text-muted d-block">Taxa a.m.</small>
+                                      <span class="fs-5 fw-bold text-danger" id="resumoTaxa">--</span>
+                                  </div>
+                                  <div class="col-md-2 col-6 mb-2">
+                                      <small class="text-muted d-block">Total a Pagar</small>
+                                      <span class="fs-5 fw-bold" id="resumoTotal">--</span>
+                                  </div>
+                                  <div class="col-md-2 col-6 mb-2">
+                                      <small class="text-muted d-block">Lucro</small>
+                                      <span class="fs-5 fw-bold text-success" id="resumoLucro">--</span>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
                   </div>
               </div>
           </fieldset>
@@ -511,6 +573,7 @@ try {
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="financeMath.js"></script>
   <script>
       // --- Funções para formatar moeda em JavaScript (MOVIDA PARA CIMA) ---
       function formatCurrencyJS(value) {
@@ -521,6 +584,9 @@ try {
       }
 
       // --- DOM Elements ---
+      const tipoAntecipacaoRadio = document.getElementById('tipoAntecipacao');
+      const tipoEmprestimoRadio = document.getElementById('tipoEmprestimo');
+      const emprestimoParamsSection = document.getElementById('emprestimoParamsSection');
       const form = document.getElementById('calculationForm');
       const cedenteSelect = document.getElementById('cedente');
       const tipoPagamentoSelect = document.getElementById('tipoPagamento');
@@ -584,11 +650,204 @@ try {
       let recebiveisDisponiveis = [];
       let compensacaoAtiva = null;
 
+      // --- Elementos do Modo Flexível ---
+      const radiosModoCalculo = document.querySelectorAll('input[name="modoCalculo"]');
+      const containerValorEmprestimo = document.getElementById('containerValorEmprestimo');
+      const valorEmprestimoInput = document.getElementById('valorEmprestimo');
+      const containerValorParcela = document.getElementById('containerValorParcela');
+      const valorParcelaInput = document.getElementById('valorParcela');
+      const quantidadeParcelasInput = document.getElementById('quantidadeParcelas');
+      const frequenciaParcelasSelect = document.getElementById('frequenciaParcelas');
+
+      // Card de Resumo do Empréstimo
+      const resumoEmprestimoSection = document.getElementById('resumoEmprestimoSection');
+      if (!resumoEmprestimoSection) {
+          // Criaremos dinamicamente se não existir, mas o ideal é injetar no HTML
+      }
+
+      function updateModoFlexivel() {
+          const modo = document.querySelector('input[name="modoCalculo"]:checked').value;
+          
+          // Reset styles
+          valorEmprestimoInput.readOnly = false;
+          valorEmprestimoInput.classList.remove('bg-light', 'text-success', 'fw-bold');
+          valorParcelaInput.readOnly = false;
+          valorParcelaInput.classList.remove('bg-light', 'text-success', 'fw-bold');
+          taxaMensalInput.readOnly = false;
+          taxaMensalInput.classList.remove('bg-light', 'text-success', 'fw-bold');
+          taxaDecrementBtn.disabled = false;
+          taxaIncrementBtn.disabled = false;
+          document.getElementById('btnAbrirModalTaxa').disabled = false;
+
+          if (modo === 'parcela') {
+              containerValorEmprestimo.style.display = 'block';
+              containerValorParcela.style.display = 'none';
+          } else if (modo === 'taxa') {
+              containerValorEmprestimo.style.display = 'block';
+              containerValorParcela.style.display = 'block';
+              
+              taxaMensalInput.readOnly = true;
+              taxaMensalInput.classList.add('bg-light', 'text-success', 'fw-bold');
+              taxaMensalInput.placeholder = "Calculada auto.";
+              taxaDecrementBtn.disabled = true;
+              taxaIncrementBtn.disabled = true;
+              document.getElementById('btnAbrirModalTaxa').disabled = true;
+          } else if (modo === 'emprestimo') {
+              containerValorEmprestimo.style.display = 'block';
+              containerValorParcela.style.display = 'block';
+              
+              valorEmprestimoInput.readOnly = true;
+              valorEmprestimoInput.classList.add('bg-light', 'text-success', 'fw-bold');
+              valorEmprestimoInput.placeholder = "Calculado auto.";
+          }
+          
+          calcularValoresFlexiveis();
+          salvarRascunho();
+      }
+
+      radiosModoCalculo.forEach(r => r.addEventListener('change', updateModoFlexivel));
+
+      function calcularValoresFlexiveis() {
+          const modo = document.querySelector('input[name="modoCalculo"]:checked').value;
+          const pv = parseFloat(valorEmprestimoInput.value) || 0;
+          const pmt = parseFloat(valorParcelaInput.value) || 0;
+          const nper = parseInt(quantidadeParcelasInput.value) || 1;
+          let taxa = parseFloat(taxaMensalInput.value) / 100 || 0;
+          const freq = frequenciaParcelasSelect.value;
+          
+          // Ajustar taxa para a frequência selecionada (taxaMensal está em a.m.)
+          let i = taxa;
+          if (freq === 'quinzenal') i = Math.pow(1 + taxa, 15/30) - 1;
+          else if (freq === 'semanal') i = Math.pow(1 + taxa, 7/30) - 1;
+
+          if (modo === 'parcela' && pv > 0 && nper > 0) {
+              const calcPmt = calculatePMT(i, nper, pv);
+              valorParcelaInput.value = calcPmt.toFixed(2);
+          } else if (modo === 'taxa' && pv > 0 && pmt > 0 && nper > 0) {
+              const calcI = calculateRATE(nper, pmt, pv, 0.05);
+              if (calcI !== null) {
+                  // Reverter i para taxa mensal
+                  let taxaMensalCalc = calcI;
+                  if (freq === 'quinzenal') taxaMensalCalc = Math.pow(1 + calcI, 30/15) - 1;
+                  else if (freq === 'semanal') taxaMensalCalc = Math.pow(1 + calcI, 30/7) - 1;
+                  
+                  taxaMensalInput.value = (taxaMensalCalc * 100).toFixed(4);
+              } else {
+                  taxaMensalInput.value = ''; // Não convergiu
+              }
+          } else if (modo === 'emprestimo' && pmt > 0 && nper > 0) {
+              const calcPv = calculatePV(i, nper, pmt);
+              valorEmprestimoInput.value = calcPv.toFixed(2);
+          }
+          
+          atualizarCardResumoEmprestimo();
+      }
+
+      function atualizarCardResumoEmprestimo() {
+          const pv = parseFloat(valorEmprestimoInput.value) || 0;
+          const pmt = parseFloat(valorParcelaInput.value) || 0;
+          const nper = parseInt(quantidadeParcelasInput.value) || 1;
+          const taxaMensal = parseFloat(taxaMensalInput.value) || 0;
+          const freq = frequenciaParcelasSelect.value;
+          
+          if (pv > 0 && pmt > 0 && nper > 0) {
+              const total = pmt * nper;
+              const lucro = total - pv;
+              
+              document.getElementById('resumoPv').textContent = formatCurrencyJS(pv);
+              document.getElementById('resumoPmt').textContent = formatCurrencyJS(pmt) + (freq==='mensal'?'/m':(freq==='quinzenal'?'/15d':'/sem'));
+              document.getElementById('resumoPrazo').textContent = nper + 'x';
+              document.getElementById('resumoTaxa').textContent = taxaMensal.toFixed(2) + '%';
+              document.getElementById('resumoTotal').textContent = formatCurrencyJS(total);
+              document.getElementById('resumoLucro').textContent = formatCurrencyJS(lucro);
+              
+              resumoEmprestimoSection.style.display = 'block';
+          } else {
+              resumoEmprestimoSection.style.display = 'none';
+          }
+      }
+
+      function salvarRascunho() {
+          const isEmprestimo = tipoEmprestimoRadio.checked;
+          const draft = {
+              tipoOperacao: document.querySelector('input[name="tipoOperacao"]:checked').value,
+          };
+          if (isEmprestimo) {
+              draft.modoCalculo = document.querySelector('input[name="modoCalculo"]:checked').value;
+              draft.valorEmprestimo = valorEmprestimoInput.value;
+              draft.valorParcela = valorParcelaInput.value;
+              draft.quantidadeParcelas = quantidadeParcelasInput.value;
+              draft.frequenciaParcelas = frequenciaParcelasSelect.value;
+              draft.taxaMensal = taxaMensalInput.value;
+              draft.dataPrimeiroVencimento = document.getElementById('dataPrimeiroVencimento').value;
+          }
+          localStorage.setItem('calculadoraFlexivelDraft', JSON.stringify(draft));
+      }
+
+      function carregarRascunho() {
+          const draftStr = localStorage.getItem('calculadoraFlexivelDraft');
+          if (draftStr) {
+              try {
+                  const draft = JSON.parse(draftStr);
+                  if (draft.tipoOperacao) {
+                      document.querySelector(`input[name="tipoOperacao"][value="${draft.tipoOperacao}"]`).checked = true;
+                      toggleModoOperacao();
+                  }
+                  if (draft.tipoOperacao === 'emprestimo') {
+                      if (draft.modoCalculo) {
+                          document.querySelector(`input[name="modoCalculo"][value="${draft.modoCalculo}"]`).checked = true;
+                      }
+                      if (draft.valorEmprestimo) valorEmprestimoInput.value = draft.valorEmprestimo;
+                      if (draft.valorParcela) valorParcelaInput.value = draft.valorParcela;
+                      if (draft.quantidadeParcelas) quantidadeParcelasInput.value = draft.quantidadeParcelas;
+                      if (draft.frequenciaParcelas) frequenciaParcelasSelect.value = draft.frequenciaParcelas;
+                      if (draft.taxaMensal) taxaMensalInput.value = draft.taxaMensal;
+                      if (draft.dataPrimeiroVencimento) document.getElementById('dataPrimeiroVencimento').value = draft.dataPrimeiroVencimento;
+                  }
+              } catch (e) {
+                  console.error("Erro ao carregar rascunho", e);
+              }
+          }
+          if (tipoEmprestimoRadio.checked) {
+              updateModoFlexivel();
+          }
+      }
+
+      document.getElementById('btnLimparRascunho').addEventListener('click', () => {
+          localStorage.removeItem('calculadoraFlexivelDraft');
+          valorEmprestimoInput.value = '';
+          valorParcelaInput.value = '';
+          quantidadeParcelasInput.value = '1';
+          frequenciaParcelasSelect.value = 'mensal';
+          taxaMensalInput.value = '5.00';
+          document.querySelector('input[name="modoCalculo"][value="parcela"]').checked = true;
+          const today = new Date();
+          today.setDate(today.getDate() + 30);
+          document.getElementById('dataPrimeiroVencimento').value = today.toISOString().split('T')[0];
+          
+          titulosBody.innerHTML = ''; // Limpa as parcelas geradas
+          clearResultsAndRegister(); // Limpa os totais da simulação anterior
+          
+          updateModoFlexivel();
+      });
+
+      // Salvar rascunho também ao trocar de aba
+      tipoAntecipacaoRadio.addEventListener('change', salvarRascunho);
+      tipoEmprestimoRadio.addEventListener('change', salvarRascunho);
+
+      // Carregar rascunho ao iniciar
+      document.addEventListener('DOMContentLoaded', () => {
+          carregarRascunho();
+      });
+
+      [valorEmprestimoInput, valorParcelaInput, quantidadeParcelasInput, frequenciaParcelasSelect, taxaMensalInput, document.getElementById('dataPrimeiroVencimento')].forEach(el => {
+          if(el) el.addEventListener('input', () => {
+              calcularValoresFlexiveis();
+              salvarRascunho();
+          });
+      });
+
       // --- Funções do Empréstimo ---
-      const tipoAntecipacaoRadio = document.getElementById('tipoAntecipacao');
-      const tipoEmprestimoRadio = document.getElementById('tipoEmprestimo');
-      const emprestimoParamsSection = document.getElementById('emprestimoParamsSection');
-      // addTituloBtn and titulosTable are already defined above
       
       function toggleModoOperacao() {
           const labelTaxa = document.getElementById('labelTaxa');
@@ -631,6 +890,8 @@ try {
                   today.setDate(today.getDate() + 30);
                   dataPrimeiroVencimento.value = today.toISOString().split('T')[0];
               }
+              
+              updateModoFlexivel(); // Inicializa os campos da calc flexível
 
           } else {
               emprestimoParamsSection.style.display = 'none';
@@ -669,6 +930,8 @@ try {
           const dataInicio = document.getElementById('dataPrimeiroVencimento').value;
           const taxaMensal = parseFloat(taxaMensalInput.value) / 100;
           const tomadorId = document.getElementById('tomador').value;
+          // Novo: Pega a parcela do input caso já calculada e usar como fallback
+          let pmtCalculadaFlex = parseFloat(valorParcelaInput.value) || 0;
 
           if (!pv || isNaN(pv) || pv <= 0) { alert('Informe um valor de empréstimo válido.'); return; }
           if (!qtd || isNaN(qtd) || qtd <= 0) { alert('Informe uma quantidade de parcelas válida.'); return; }
@@ -686,10 +949,14 @@ try {
           }
 
           let pmt = 0;
-          if (i === 0) {
-              pmt = pv / qtd;
+          if (pmtCalculadaFlex > 0) {
+              pmt = pmtCalculadaFlex;
           } else {
-              pmt = pv * (i / (1 - Math.pow(1 + i, -qtd)));
+              if (i === 0) {
+                  pmt = pv / qtd;
+              } else {
+                  pmt = pv * (i / (1 - Math.pow(1 + i, -qtd)));
+              }
           }
 
           // Clear table
@@ -1214,7 +1481,17 @@ try {
       }
 
       // --- Calculate Button Action ---
-      calculateBtn.addEventListener('click', updateCalculations);
+      calculateBtn.addEventListener('click', () => {
+          if (tipoEmprestimoRadio.checked) {
+              const rows = titulosBody.querySelectorAll('tr');
+              // Se for empréstimo e não houver parcelas geradas, gera primeiro
+              if (rows.length === 0 || rows[0].querySelector('input[name="titulo_valor[]"]').value === '') {
+                  document.getElementById('btnGerarParcelas').click();
+                  return; // btnGerarParcelas já chama updateCalculations no final
+              }
+          }
+          updateCalculations();
+      });
 
       // --- Function to Update Calculations via AJAX ---
       async function updateCalculations() {

@@ -104,11 +104,20 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label for="empresa" class="form-label">Razão Social <span class="text-danger">*</span></label>
+                            <label for="empresa" class="form-label">Nome / Razão Social <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="empresa" name="empresa" value="<?php echo htmlspecialchars($sacado['empresa'] ?? ''); ?>" required>
                         </div>
-                        <div class="col-md-6">
-                            <label for="documento_principal" class="form-label">CNPJ <span class="text-danger">*</span></label>
+                        <div class="col-md-3">
+                            <label for="tipo_pessoa" class="form-label">Tipo de Pessoa <span class="text-danger">*</span></label>
+                            <select class="form-select" id="tipo_pessoa" name="tipo_pessoa" required>
+                                <option value="JURIDICA" <?php echo ($sacado['tipo_pessoa'] ?? 'JURIDICA') == 'JURIDICA' ? 'selected' : ''; ?>>Pessoa Jurídica</option>
+                                <option value="FISICA" <?php echo ($sacado['tipo_pessoa'] ?? '') == 'FISICA' ? 'selected' : ''; ?>>Pessoa Física</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="documento_principal" class="form-label">
+                                <span id="documento_label">CNPJ</span> <span class="text-danger">*</span>
+                            </label>
                             <input type="text" class="form-control" id="documento_principal" name="documento_principal" value="<?php echo htmlspecialchars($sacado['documento_principal'] ?? ''); ?>" required>
                             <div class="invalid-feedback" id="documento_principal-feedback"></div>
                         </div>
@@ -178,7 +187,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
             </div>
 
             <!-- Sócios -->
-            <div class="card mb-4">
+            <div class="card mb-4" id="socios_card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-people"></i> Sócios da Empresa</h5>
                     <button type="button" class="btn btn-success btn-sm" id="btn-adicionar-socio">
@@ -228,9 +237,6 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                     </a>
                 </div>
             </div>
-
-            <!-- Campo hidden para tipo_pessoa -->
-            <input type="hidden" name="tipo_pessoa" value="JURIDICA">
         </form>
 
     </div>
@@ -249,7 +255,41 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
         $(document).ready(function(){
             let socioIndex = <?php echo count($socios); ?>;
 
-            // Máscaras
+            // Função para atualizar máscara do documento principal
+            function updateDocumentoMask() {
+                const tipoPessoa = $('#tipo_pessoa').val();
+                const documentoInput = $('#documento_principal');
+                const documentoLabel = $('#documento_label');
+                
+                // Remove máscara anterior
+                documentoInput.inputmask('remove');
+                
+                if (tipoPessoa === 'FISICA') {
+                    documentoLabel.text('CPF');
+                    documentoInput.attr('placeholder', '000.000.000-00');
+                    documentoInput.inputmask("999.999.999-99", {
+                        clearIncomplete: true,
+                        placeholder: "_"
+                    });
+                    
+                    // Esconder e desabilitar card de sócios
+                    $('#socios_card').hide();
+                    $('#socios_card').find('input, button').prop('disabled', true);
+                } else {
+                    documentoLabel.text('CNPJ');
+                    documentoInput.attr('placeholder', '00.000.000/0000-00');
+                    documentoInput.inputmask("99.999.999/9999-99", {
+                        clearIncomplete: true,
+                        placeholder: "_"
+                    });
+                    
+                    // Mostrar e habilitar card de sócios
+                    $('#socios_card').show();
+                    $('#socios_card').find('input, button').prop('disabled', false);
+                }
+            }
+
+            // Máscaras iniciais
             $('#telefone').inputmask({
                 mask: ["(99) 9999-9999", "(99) 99999-9999"],
                 greedy: false,
@@ -257,10 +297,8 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 placeholder: "_"
             });
 
-            $('#documento_principal').inputmask("99.999.999/9999-99", {
-                clearIncomplete: true,
-                placeholder: "_"
-            });
+            // Aplicar máscara inicial do documento
+            updateDocumentoMask();
 
             $('#cep').inputmask("99999-999", {
                 clearIncomplete: true,
@@ -274,6 +312,9 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                     placeholder: "_"
                 });
             });
+
+            // Event listener para mudança de tipo de pessoa
+            $('#tipo_pessoa').on('change', updateDocumentoMask);
 
             // Validação em tempo real do e-mail
             $('#email').on('blur', function() {
@@ -289,12 +330,16 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 }
             });
 
-            // Validação em tempo real do CNPJ
+            // Validação em tempo real do CNPJ/CPF
             $('#documento_principal').on('blur', function() {
-                const cnpj = $(this).val().replace(/\D/g, '');
-                if (cnpj && cnpj.length !== 14) {
+                const tipoPessoa = $('#tipo_pessoa').val();
+                const documento = $(this).val().replace(/\D/g, '');
+                const expectedLength = tipoPessoa === 'FISICA' ? 11 : 14;
+                const documentoTipo = tipoPessoa === 'FISICA' ? 'CPF' : 'CNPJ';
+
+                if (documento && documento.length !== expectedLength) {
                     $(this).addClass('is-invalid');
-                    $('#documento_principal-feedback').text('CNPJ deve ter 14 dígitos');
+                    $('#documento_principal-feedback').text(`${documentoTipo} deve ter ${expectedLength} dígitos`);
                 } else {
                     $(this).removeClass('is-invalid');
                     $('#documento_principal-feedback').text('');
@@ -398,12 +443,16 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
             // Validação do formulário
             $('#form-sacado').on('submit', function(e) {
                 let isValid = true;
+                const tipoPessoa = $('#tipo_pessoa').val();
 
-                // Validar CNPJ
-                const cnpj = $('#documento_principal').val().replace(/\D/g, '');
-                if (cnpj.length !== 14) {
+                // Validar documento principal
+                const documento = $('#documento_principal').val().replace(/\D/g, '');
+                const expectedLength = tipoPessoa === 'FISICA' ? 11 : 14;
+                const documentoTipo = tipoPessoa === 'FISICA' ? 'CPF' : 'CNPJ';
+                
+                if (documento.length !== expectedLength) {
                     $('#documento_principal').addClass('is-invalid');
-                    $('#documento_principal-feedback').text('CNPJ deve ter 14 dígitos');
+                    $('#documento_principal-feedback').text(`${documentoTipo} deve ter ${expectedLength} dígitos`);
                     isValid = false;
                 } else {
                     $('#documento_principal').removeClass('is-invalid');

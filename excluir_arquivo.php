@@ -65,10 +65,21 @@ try {
         $usuario = $_SESSION['username'] ?? 'sistema';
         $stmt_delete->execute([$usuario, $arquivo_id]);
 
+        // Tenta reconstruir o caminho relativo atual
+        $upload_dir = __DIR__ . '/uploads/operacoes/';
+        $caminho_reconstruido = $upload_dir . $arquivo['operacao_id'] . '/' . $arquivo['nome_arquivo'];
+        
+        $caminho_final = '';
+        if (file_exists($caminho_reconstruido)) {
+            $caminho_final = $caminho_reconstruido;
+        } elseif (file_exists($arquivo['caminho_arquivo'])) {
+            $caminho_final = $arquivo['caminho_arquivo'];
+        }
+
         // Tenta remover arquivo físico (opcional - pode manter para auditoria)
         $arquivo_removido = false;
-        if (file_exists($arquivo['caminho_arquivo'])) {
-            if (unlink($arquivo['caminho_arquivo'])) {
+        if (!empty($caminho_final) && file_exists($caminho_final)) {
+            if (unlink($caminho_final)) {
                 $arquivo_removido = true;
             }
         } else {

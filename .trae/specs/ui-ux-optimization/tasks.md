@@ -1,0 +1,13 @@
+# Tasks
+- [x] Task 1: Optimize `detalhes_operacao.php`
+  - [x] SubTask 1.1: Convert the `list-group` in "Dados da Operação" to a 2-column grid (using Bootstrap grid system `row` and `col-md-6` or `<dl class="row">`).
+  - [x] SubTask 1.2: Improve the Action Buttons styling (grouping primary and secondary actions).
+  - [x] SubTask 1.3: Ensure monetary values are properly aligned in the "Recebíveis da Operação" table.
+- [x] Task 2: Optimize `listar_operacoes.php`
+  - [x] SubTask 2.1: Update status badges to use `rounded-pill` and refined colors.
+  - [x] SubTask 2.2: Ensure consistent column alignment (right for currencies, center for dates).
+  - [x] SubTask 2.3: Enhance the empty state presentation.
+- [x] Task 3: Optimize `listar_recebiveis.php`
+  - [x] SubTask 3.1: Make the filter section more compact.
+  - [x] SubTask 3.2: Update status badges to match the modern `rounded-pill` style.
+  - [x] SubTask 3.3: Ensure consistent column alignment and improve action button spacing.

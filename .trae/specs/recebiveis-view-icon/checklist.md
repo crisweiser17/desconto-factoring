@@ -1,0 +1,3 @@
+- [x] O ícone de visualização (olho azul ou similar) está presente à direita das ações na listagem inicial de recebíveis (`listar_recebiveis.php`).
+- [x] O ícone direciona para `detalhes_operacao.php?id=[operacao_id]` corretamente.
+- [x] Ao clicar no ícone de confirmar ou problema de um status, o AJAX altera o recebível sem fazer com que o ícone de visualização suma da linha.

@@ -11,6 +11,8 @@ function readConfig($filePath) {
     if (!file_exists($filePath)) {
         // Criar arquivo padrão se não existir
         $defaultConfig = [
+            "app_name" => "Factoring",
+            "app_version" => "5.2 de abril de 2026",
             "default_taxa_mensal" => 5.00,
             "iof_adicional_rate" => 0.0038,
             "iof_diaria_rate" => 0.000082,
@@ -27,6 +29,8 @@ function readConfig($filePath) {
     $config = json_decode($configContent, true);
     
     // Garantir que os campos de email existam mesmo em configs antigas
+    if (!isset($config['app_name'])) $config['app_name'] = 'Factoring';
+    if (!isset($config['app_version'])) $config['app_version'] = '5.2 de abril de 2026';
     if (!isset($config['resend_api_key'])) $config['resend_api_key'] = '';
     if (!isset($config['resend_from_name'])) $config['resend_from_name'] = 'Notificações';
     if (!isset($config['resend_from_email'])) $config['resend_from_email'] = 'notificacoes@seudominio.com';
@@ -40,6 +44,8 @@ function readConfig($filePath) {
 
 // Lidar com o envio do formulário de configurações gerais
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_config') {
+    $newAppName = $_POST['app_name'] ?? 'Factoring';
+    $newAppVersion = '5.2 de abril de 2026';
     $newDefaultTaxaMensal = isset($_POST['default_taxa_mensal']) ? (float)$_POST['default_taxa_mensal'] : null;
     $newIofAdicionalRate = isset($_POST['iof_adicional_rate']) ? (float)$_POST['iof_adicional_rate'] : null;
     $newIofDiariaRate = isset($_POST['iof_diaria_rate']) ? (float)$_POST['iof_diaria_rate'] : null;
@@ -55,6 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $newDefaultTaxaMensal >= 0 && $newIofAdicionalRate >= 0 && $newIofDiariaRate >= 0) {
 
         $config = [
+            "app_name" => $newAppName,
+            "app_version" => $newAppVersion,
             "default_taxa_mensal" => $newDefaultTaxaMensal,
             "iof_adicional_rate" => $newIofAdicionalRate,
             "iof_diaria_rate" => $newIofDiariaRate,
@@ -197,6 +205,16 @@ $currentConfig = readConfig($configFilePath);
             <div class="card-body">
                 <form method="POST">
                     <input type="hidden" name="action" value="save_config">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="app_name" class="form-label">Nome do Aplicativo:</label>
+                            <input type="text" class="form-control" id="app_name" name="app_name" value="<?php echo htmlspecialchars($currentConfig['app_name'] ?? 'Factoring'); ?>" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="app_version" class="form-label">Versão do Aplicativo:</label>
+                            <input type="text" class="form-control" id="app_version" name="app_version" value="<?php echo htmlspecialchars($currentConfig['app_version'] ?? '5.2 de abril de 2026'); ?>" readonly>
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label for="default_taxa_mensal" class="form-label">Taxa de Juros Padrão (% a.m.):</label>
                         <div class="input-group">

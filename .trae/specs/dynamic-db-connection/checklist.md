@@ -1,0 +1,3 @@
+- [x] O `db_connection.php` identifica corretamente os dois ambientes baseando-se no host/servidor em que roda.
+- [x] O código online usa as credenciais corretas (com a senha on-line) por padrão, evitando acidentes com arquivos copiados do ambiente local.
+- [x] O arquivo PHP passa no linter sem erros de sintaxe (como o Erro 500 do comentário quebrado).

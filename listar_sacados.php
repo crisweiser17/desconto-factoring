@@ -229,7 +229,7 @@ function formatDocumento($documento, $tipo_pessoa) {
                             <th><?php echo getSortLink('email', 'Email', $sort, $dir, $search); ?></th>
                             <th><?php echo getSortLink('telefone', 'Telefone', $sort, $dir, $search); ?></th>
                             <th><?php echo getSortLink('tipo_pessoa', 'Tipo', $sort, $dir, $search); ?></th>
-                            <th><?php echo getSortLink('documento_principal', 'CNPJ', $sort, $dir, $search); ?></th>
+                            <th><?php echo getSortLink('documento_principal', 'CPF/CNPJ', $sort, $dir, $search); ?></th>
                             <th class="text-center" style="width: 120px;">Ações</th>
                         </tr>
                     </thead>

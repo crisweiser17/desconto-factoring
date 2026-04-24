@@ -1,0 +1,7 @@
+- [ ] O banco de dados possui as novas tabelas de suporte a contratos e as alterações em `clientes` e `operacoes`.
+- [ ] O Composer foi inicializado e as dependências (`mpdf`, `mustache`, `parsedown`) estão na pasta `vendor/`.
+- [ ] A arquitetura `app/Modules/Contracts/` foi criada contendo os validadores, renderizadores e services em PHP puro.
+- [ ] Uma operação de EMPRÉSTIMO (cliente PF ou porte irregular) é bloqueada com a mensagem correta (LC 167/2019).
+- [ ] Uma operação de DESCONTO com Sacado = Cedente é bloqueada com a mensagem correta.
+- [ ] O botão "Gerar Contratos" em `detalhes_operacao.php` consegue fazer um POST na API e baixar um PDF (mesmo que com template provisório).
+- [ ] Um registro é salvo na tabela `generated_contracts` com o hash do arquivo e o `operation_id`.

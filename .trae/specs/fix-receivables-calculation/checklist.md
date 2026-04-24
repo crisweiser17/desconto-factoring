@@ -1,0 +1,3 @@
+- [x] O arquivo `funcoes_lucro.php` está de volta no diretório do projeto.
+- [x] O cálculo de "Antecipação de Recebíveis" funciona sem falhas de "require_once" em `calculate.php`.
+- [x] A interface web mostra os totais calculados quando clicamos no botão "Calcular Totais".

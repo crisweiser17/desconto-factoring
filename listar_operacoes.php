@@ -289,12 +289,12 @@ function getSortLink($column, $text, $currentSort, $currentDir, $currentSearch, 
 
 // --- Função Helper para formatar o badge de status da operação (Atualizada) ---
 function formatOperacaoStatusBadge($status_operacao) {
-    $badgeClass = 'bg-secondary';
+    $badgeClass = 'bg-secondary rounded-pill';
     switch ($status_operacao) {
-        case 'Concluída': $badgeClass = 'bg-success'; break;
-        case 'Em Aberto': $badgeClass = 'bg-info text-dark'; break;
-        case 'Parcialmente Compensada': $badgeClass = 'bg-warning text-dark'; break;
-        case 'Com Problema': $badgeClass = 'bg-danger'; break;
+        case 'Concluída': $badgeClass = 'bg-success rounded-pill'; break;
+        case 'Em Aberto': $badgeClass = 'bg-info text-dark rounded-pill'; break;
+        case 'Parcialmente Compensada': $badgeClass = 'bg-warning text-dark rounded-pill'; break;
+        case 'Com Problema': $badgeClass = 'bg-danger rounded-pill'; break;
     }
     return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($status_operacao) . '</span>';
 }
@@ -592,14 +592,30 @@ try {
         <?php if (isset($error_message_count)) echo "<div class='alert alert-danger'>$error_message_count</div>"; ?>
         <?php if (isset($error_message_data)) echo "<div class='alert alert-danger'>$error_message_data</div>"; ?>
 
+        <?php
+        $has_filters = !empty($search) || !empty($filter_cedente) || !empty($filter_status) || !empty($filter_tipo_operacao) || $filter_valor_min > 0 || $filter_valor_max > 0 || !empty($filter_data);
+        ?>
 
-        <?php if (empty($operacoes) && (int)$total_results == 0 && empty($search) && !isset($error_message_count) && !isset($error_message_data)): ?>
-            <p class="alert alert-info">Nenhuma operação registrada ainda.</p>
-        <?php elseif (empty($operacoes) && (int)$total_results > 0): ?>
-             <p class="alert alert-warning">Nenhuma operação encontrada para os filtros/busca selecionados nesta página.</p>
-             <?php // Inclui paginação mesmo se página vazia ?>
-        <?php elseif (empty($operacoes) && (int)$total_results == 0 && !empty($search)): ?>
-             <p class="alert alert-warning">Nenhuma operação encontrada para a busca: "<?php echo htmlspecialchars($search); ?>"</p>
+        <?php if (empty($operacoes) && !isset($error_message_count) && !isset($error_message_data)): ?>
+            <?php if (!$has_filters && (int)$total_results == 0): ?>
+                <div class="card text-center my-5 shadow-sm">
+                    <div class="card-body py-5">
+                        <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+                        <h4 class="mt-3 text-muted">Nenhuma operação registrada</h4>
+                        <p class="text-muted">Ainda não há operações cadastradas no sistema.</p>
+                        <a href="registrar_operacao.php" class="btn btn-primary mt-2"><i class="bi bi-plus-circle"></i> Nova Operação</a>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="card text-center my-5 shadow-sm">
+                    <div class="card-body py-5">
+                        <i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+                        <h4 class="mt-3 text-muted">Nenhum resultado encontrado</h4>
+                        <p class="text-muted">Não encontramos operações para os filtros, busca ou página atual.</p>
+                        <a href="listar_operacoes.php" class="btn btn-outline-primary mt-2"><i class="bi bi-x-circle"></i> Limpar Filtros e Busca</a>
+                    </div>
+                </div>
+            <?php endif; ?>
         <?php elseif (!empty($operacoes)): // Só mostra a tabela se $operacoes não estiver vazio ?>
             <div class="table-responsive">
                 <table class="table table-striped table-bordered table-hover">
@@ -620,7 +636,7 @@ try {
                             <th><?php echo getSortLink('id', 'ID', $sort, $dir, $search, $current_filters); ?></th>
                             <th><?php echo getSortLink('cedente_nome', 'Cliente', $sort, $dir, $search, $current_filters); ?></th>
                             <th class="text-center"><?php echo getSortLink('tipo_operacao', 'Tipo', $sort, $dir, $search, $current_filters); ?></th>
-                            <th><?php echo getSortLink('taxa_mensal', 'Taxa', $sort, $dir, $search, $current_filters); ?></th>
+                            <th class="text-end"><?php echo getSortLink('taxa_mensal', 'Taxa', $sort, $dir, $search, $current_filters); ?></th>
                             <th class="text-end"><?php echo getSortLink('total_original_calc', 'T. Original', $sort, $dir, $search, $current_filters); ?></th>
                             <th class="text-end"><?php echo getSortLink('total_liquido_pago_calc', 'T. Líquido', $sort, $dir, $search, $current_filters); ?></th>
                             <th class="text-end"><?php echo getSortLink('total_lucro_liquido_calc', 'Lucro', $sort, $dir, $search, $current_filters); ?></th>
@@ -628,7 +644,7 @@ try {
                             <th class="text-center"><?php echo getSortLink('status_operacao', 'Status', $sort, $dir, $search, $current_filters); ?></th>
                             <th class="text-center"><?php echo getSortLink('num_recebiveis', '# Rec.', $sort, $dir, $search, $current_filters); ?></th>
                             <th class="text-end"><?php echo getSortLink('saldo_em_aberto', 'Saldo', $sort, $dir, $search, $current_filters); ?></th>
-                            <th><?php echo getSortLink('data_base_calculo', 'Data Base', $sort, $dir, $search, $current_filters); ?></th>
+                            <th class="text-center"><?php echo getSortLink('data_base_calculo', 'Data Base', $sort, $dir, $search, $current_filters); ?></th>
                             <th class="text-center acoes-col">Ações</th>
                         </tr>
                     </thead>
@@ -640,13 +656,13 @@ try {
                                 <td class="text-center">
                                     <?php 
                                     if (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') {
-                                        echo '<span class="badge bg-warning text-dark" title="Empréstimo"><i class="bi bi-cash-coin"></i></span>';
+                                        echo '<span class="badge bg-warning text-dark rounded-pill" title="Empréstimo"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
                                     } else {
-                                        echo '<span class="badge bg-success text-white" title="Antecipação"><i class="bi bi-arrow-return-left"></i></span>';
+                                        echo '<span class="badge bg-success text-white rounded-pill" title="Antecipação"><i class="bi bi-arrow-return-left"></i> Antecipação</span>';
                                     }
                                     ?>
                                 </td>
-                                <td><?php echo htmlspecialchars(number_format(($operacao['taxa_mensal'] ?? 0) * 100, 2, ',', '.') . '%'); ?></td>
+                                <td class="text-end"><?php echo htmlspecialchars(number_format(($operacao['taxa_mensal'] ?? 0) * 100, 2, ',', '.') . '%'); ?></td>
                                 <td class="text-end"><?php echo formatHtmlCurrency($operacao['total_original_calc'] ?? 0); ?></td>
                                 <td class="text-end"><?php echo formatHtmlCurrency($operacao['total_liquido_pago_calc'] ?? 0); ?></td>
                                 <td class="text-end"><?php echo formatHtmlCurrency($operacao['total_lucro_liquido_calc'] ?? 0); ?></td>
@@ -677,7 +693,7 @@ try {
                                         echo formatHtmlCurrency($operacao['saldo_em_aberto'] ?? 0);
                                     ?>
                                 </td>
-                                <td><?php echo htmlspecialchars(isset($operacao['data_base_calculo']) ? date('d/m/Y', strtotime($operacao['data_base_calculo'])) : '-'); ?></td>
+                                <td class="text-center"><?php echo htmlspecialchars(isset($operacao['data_base_calculo']) ? date('d/m/Y', strtotime($operacao['data_base_calculo'])) : '-'); ?></td>
                                 <td class="text-center acoes-col">
                                     <a href="detalhes_operacao.php?id=<?php echo $operacao['id']; ?>" class="btn btn-sm btn-info action-icon" title="Ver Detalhes">
                                         <i class="bi bi-eye-fill"></i>
@@ -695,8 +711,8 @@ try {
                     <?php if (!empty($operacoes)): ?>
                     <tfoot class="table-secondary">
                         <tr>
-                            <th colspan="2" class="text-end"><strong>TOTAIS:</strong></th>
-                            <th class="text-center">
+                            <th colspan="3" class="text-end"><strong>TOTAIS:</strong></th>
+                            <th class="text-end">
                                 <?php
                                 // Calcular média das taxas
                                 $soma_taxas = 0;

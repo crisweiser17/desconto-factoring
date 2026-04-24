@@ -1,0 +1,6 @@
+- [x] As tabelas `despesas` e `distribuicao_lucros` foram criadas no banco de dados.
+- [x] A tela de `fechamento.php` carrega os totais recebidos do mês a partir das operações de recebíveis compensadas/pagas.
+- [x] É possível inserir, listar e excluir Despesas na tela.
+- [x] É possível inserir, listar e excluir Distribuição de Lucros na tela.
+- [x] O arquivo `menu.php` possui a opção `Fechamento Mensal` em Relatórios.
+- [x] Os gráficos de "Composição do Recebimento" e "Lucro vs Despesas" refletem os valores calculados na API corretamente e sem erros.

@@ -1,0 +1,11 @@
+- [x] Tabela `operacao_anotacoes` criada com sucesso no banco de dados, contendo chaves estrangeiras apropriadas.
+- [x] O script `ajax_salvar_anotacao.php` recebe e salva corretamente os dados recebidos via POST, validando o `operacao_id`, `anotacao`, e armazenando a data/hora exata e o usuário (ID) atualizado da sessão.
+- [x] O botão "Nova Anotação" (+) está visível e abre o modal corretamente em `detalhes_operacao.php`.
+- [x] O modal contém um select que permite escolher se a anotação é "Geral (Sem recebível)" ou um recebível específico daquela operação.
+- [x] O modal contém o editor WYSIWYG (Quill.js) totalmente funcional para formatação de texto.
+- [x] Após clicar em "Registrar", os dados são enviados com sucesso e a tela reflete a nova anotação.
+- [x] A listagem de anotações exibe: texto formatado (HTML), autor, data e hora da inserção, e indicação se a nota é de um recebível específico.
+- [x] Testes locais confirmam que não há erros de sintaxe e o layout não quebra ao exibir/criar anotações.
+- [x] O arquivo `excluir_anotacao.php` recebe via POST o `id` da anotação, verifica a sessão e exclui o registro de `operacao_anotacoes`.
+- [x] O botão de excluir (ícone de lixeira) aparece alinhado à direita em cada anotação exibida em `detalhes_operacao.php`.
+- [x] A função JS `apagarAnotacao(id)` exibe um `confirm()` e, ao aceitar, envia os dados via AJAX para `excluir_anotacao.php`, recarregando a página com sucesso.

@@ -1,0 +1,4 @@
+- [x] O formulário de Sacados (Pessoa Física) oculta a seção de Sócios no navegador.
+- [x] O cadastro de Pessoa Física salva corretamente sem erro de validação de quantidade de dígitos (11 para CPF).
+- [x] A tela de Configurações exibe um campo para o nome do aplicativo e um campo somente leitura para a versão.
+- [x] O Menu principal reflete as configurações do Nome e Versão salvas pelo usuário.

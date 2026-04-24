@@ -1,0 +1,3 @@
+- [x] O menu suspenso "Associar a" exibe as opções no formato `Recebível #ID (Tipo) - Venc: DD/MM/AAAA - R$ Valor`
+- [x] O menu reflete corretamente os dados de vencimento e valor_original do banco de dados para os recebíveis da operação
+- [x] O layout e envio de anotações continua funcionando perfeitamente

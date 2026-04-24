@@ -7,7 +7,10 @@ $empresa = trim($_POST['empresa'] ?? '');
 $email = trim($_POST['email'] ?? '');
 $telefone = trim($_POST['telefone'] ?? '');
 $endereco = trim($_POST['endereco'] ?? '');
-$tipoPessoa = 'JURIDICA'; // Sempre pessoa jurídica
+$tipoPessoa = isset($_POST['tipo_pessoa']) ? strtoupper(trim($_POST['tipo_pessoa'])) : 'JURIDICA';
+if (!in_array($tipoPessoa, ['FISICA', 'JURIDICA'])) {
+    $tipoPessoa = 'JURIDICA';
+}
 
 // Novos campos de endereço
 $cep = trim($_POST['cep'] ?? '');
@@ -18,7 +21,7 @@ $bairro = trim($_POST['bairro'] ?? '');
 $cidade = trim($_POST['cidade'] ?? '');
 $estado = trim($_POST['estado'] ?? '');
 
-// Documento principal (CNPJ)
+// Documento principal (CPF/CNPJ)
 $documentoPrincipal = preg_replace('/\D/', '', trim($_POST['documento_principal'] ?? ''));
 
 // Sócios
@@ -28,16 +31,19 @@ $message = '';
 $messageType = 'danger'; // Padrão para erro
 
 // Validação básica
+$nomeDoc = ($tipoPessoa === 'FISICA') ? 'CPF' : 'CNPJ';
 if (empty($empresa) || empty($documentoPrincipal)) {
-    $message = "Razão Social e CNPJ são campos obrigatórios.";
+    $nomeEmpresaDoc = ($tipoPessoa === 'FISICA') ? 'Nome' : 'Razão Social';
+    $message = "$nomeEmpresaDoc e $nomeDoc são campos obrigatórios.";
     ob_clean();
     header("Location: listar_sacados.php?status=error&msg=" . urlencode($message));
     exit;
 }
 
-// Validação do CNPJ
-if (strlen($documentoPrincipal) !== 14) {
-    $message = "CNPJ deve ter 14 dígitos.";
+// Validação do Documento Principal
+$tamanhoDoc = ($tipoPessoa === 'FISICA') ? 11 : 14;
+if (strlen($documentoPrincipal) !== $tamanhoDoc) {
+    $message = "$nomeDoc deve ter $tamanhoDoc dígitos.";
     ob_clean();
     header("Location: listar_sacados.php?status=error&msg=" . urlencode($message));
     exit;
@@ -177,7 +183,8 @@ try {
     $pdo->rollBack();
     
     if ($e->getCode() == '23000') { // Código de erro para violação de UNIQUE
-        $message = "Erro: O CNPJ informado já está cadastrado para outro sacado.";
+        $nomeDoc = ($tipoPessoa === 'FISICA') ? 'CPF' : 'CNPJ';
+        $message = "Erro: O $nomeDoc informado já está cadastrado para outro sacado.";
     } else {
         $message = "Erro no banco de dados ao salvar sacado: " . $e->getMessage();
     }

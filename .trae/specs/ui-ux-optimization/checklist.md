@@ -1,0 +1,7 @@
+- [x] `detalhes_operacao.php` displays "Dados da Operação" in a 2-column layout.
+- [x] Action buttons in `detalhes_operacao.php` are visually grouped and styled appropriately.
+- [x] Status badges across `detalhes_operacao.php`, `listar_operacoes.php`, and `listar_recebiveis.php` use a modern `rounded-pill` style with appropriate colors.
+- [x] Currency columns in all relevant tables are right-aligned.
+- [x] Date columns in all relevant tables are center-aligned.
+- [x] Filter sections in list views are compact and usable.
+- [x] Empty states in list views are visually appealing.

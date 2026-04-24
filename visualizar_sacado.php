@@ -136,11 +136,11 @@ function formatCEP($cep) {
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <div class="info-label">Razão Social</div>
+                        <div class="info-label"><?php echo (isset($sacado['tipo_pessoa']) && $sacado['tipo_pessoa'] == 'FISICA') ? 'Nome' : 'Razão Social'; ?></div>
                         <div class="info-value"><?php echo htmlspecialchars($sacado['empresa'] ?? '-'); ?></div>
                     </div>
                     <div class="col-md-6">
-                        <div class="info-label">CNPJ</div>
+                        <div class="info-label"><?php echo (isset($sacado['tipo_pessoa']) && $sacado['tipo_pessoa'] == 'FISICA') ? 'CPF' : 'CNPJ'; ?></div>
                         <div class="info-value"><?php echo formatDocumento($sacado['documento_principal'] ?? '', $sacado['tipo_pessoa'] ?? ''); ?></div>
                     </div>
                     <div class="col-md-6">

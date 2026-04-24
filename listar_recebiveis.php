@@ -114,6 +114,23 @@ if ($filtro_data_fim && DateTime::createFromFormat('Y-m-d', $filtro_data_fim)) {
     $filtro_data_fim = '';
 }
 
+// Filtro Rápido
+$quick_filter = isset($_GET['quick_filter']) ? $_GET['quick_filter'] : 'todos';
+
+if ($quick_filter === 'inadimplentes') {
+    $whereClauses[] = "r.status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND r.data_vencimento < CURDATE()";
+} elseif ($quick_filter === 'recebidos') {
+    $whereClauses[] = "r.status IN ('Recebido', 'Compensado', 'Totalmente Compensado')";
+} elseif ($quick_filter === 'a_receber') {
+    $whereClauses[] = "r.status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND r.data_vencimento >= CURDATE()";
+} elseif ($quick_filter === 'vencendo_7_dias') {
+    $whereClauses[] = "r.status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND r.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)";
+} elseif ($quick_filter === 'vencendo_hoje') {
+    $whereClauses[] = "r.status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') AND r.data_vencimento = CURDATE()";
+} elseif ($quick_filter === 'problemas') {
+    $whereClauses[] = "r.status = 'Problema'";
+}
+
 // Filtro de Busca - Inclui busca pelo nome do cedente e sacado
 if (!empty($search)) {
      $whereClauses[] = "(CAST(r.id AS CHAR) LIKE :search_rid OR CAST(r.operacao_id AS CHAR) LIKE :search_oid OR CAST(r.valor_original AS CHAR) LIKE :search_valor OR s.empresa LIKE :search_cedente OR sac.empresa LIKE :search_sacado)";
@@ -247,22 +264,21 @@ function formatHtmlStatus($recebivel, $data_recebimento = null) {
     $status = $recebivel['status_real'] ?? $recebivel['status'] ?? 'Em Aberto';
     $percentual = $recebivel['percentual_compensado'] ?? 0;
     
-    $badgeClass = 'bg-secondary'; $tooltip = '';
+    $badgeClass = 'bg-secondary rounded-pill'; $tooltip = '';
     switch ($status) {
-        case 'Em Aberto': $badgeClass = 'bg-info text-dark'; $tooltip = 'Aguardando ação ou recebimento'; break;
+        case 'Em Aberto': $badgeClass = 'bg-info text-dark rounded-pill'; $tooltip = 'Aguardando ação ou recebimento'; break;
         case 'Recebido': 
-            $badgeClass = 'bg-success'; 
+            $badgeClass = 'bg-success rounded-pill'; 
             $tooltip = 'Recebimento confirmado';
-            // Se tiver data de recebimento, incluir no tooltip
             if (!empty($data_recebimento)) {
                 $dataFormatada = formatHtmlDate($data_recebimento);
                 $tooltip .= ' em ' . $dataFormatada;
             }
             break;
-        case 'Problema': $badgeClass = 'bg-danger'; $tooltip = 'Problema no recebimento'; break;
+        case 'Problema': $badgeClass = 'bg-danger rounded-pill'; $tooltip = 'Problema no recebimento'; break;
         case 'Compensado':
-        case 'Totalmente Compensado': $badgeClass = 'bg-info'; $tooltip = 'Valor totalmente compensado em encontro de contas'; break;
-        case 'Parcialmente Compensado': $badgeClass = 'bg-primary'; $tooltip = "Valor parcialmente compensado ({$percentual}%)"; break;
+        case 'Totalmente Compensado': $badgeClass = 'bg-primary rounded-pill'; $tooltip = 'Valor totalmente compensado em encontro de contas'; break;
+        case 'Parcialmente Compensado': $badgeClass = 'bg-warning text-dark rounded-pill'; $tooltip = "Valor parcialmente compensado ({$percentual}%)"; break;
     }
     
     $statusText = $status;
@@ -282,7 +298,13 @@ function formatHtmlStatus($recebivel, $data_recebimento = null) {
     return '<span class="badge ' . $badgeClass . '" title="' . htmlspecialchars($tooltip) . '">' . htmlspecialchars($statusText) . '</span>';
 }
 
-function getTableRowClass($status) {
+function getTableRowClass($status, $data_vencimento = null) {
+    if ($data_vencimento && !in_array($status, ['Recebido', 'Compensado', 'Totalmente Compensado'])) {
+        $hoje = date('Y-m-d');
+        if ($data_vencimento < $hoje) {
+            return 'table-danger fw-bold';
+        }
+    }
     switch ($status) {
         case 'Recebido': return 'table-light text-muted opacity-75';
         case 'Problema': return 'table-danger fw-bold';
@@ -306,6 +328,7 @@ function getRecebivelSortLink($column, $text, $currentSort, $currentDir, $curren
 
 // Monta array com filtros atuais para usar nos links (excluindo page)
 $current_filters_for_links = [
+    'quick_filter' => $quick_filter,
     'status' => $filtro_status,
     'tipo_pagamento' => $filtro_tipo_pagamento,
     'tipo_operacao' => $filtro_tipo_operacao,
@@ -328,8 +351,21 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         th, td { vertical-align: middle; }
-        .action-btn { margin: 0 2px; padding: 0.15rem 0.4rem; font-size: 0.8em; }
-        tr.table-light.text-muted.opacity-75 td { /* Estilos para recebido */ }
+        /* Layout final otimizado */
+        .table { table-layout: auto; }
+        .table th { white-space: nowrap; font-size: 0.9em; padding: 0.5rem; }
+        .table td { font-size: 0.85em; line-height: 1.2; padding: 0.4rem; }
+        @media (max-width: 768px) {
+            .table th, .table td { font-size: 0.75em; padding: 0.3rem; }
+        }
+        .action-btn {
+            margin: 0 1px;
+            padding: 0.15rem 0.3rem;
+            font-size: 0.8em;
+            display: inline-block;
+            white-space: nowrap;
+        }
+        .acoes-col { width: 140px; min-width: 140px; }
         th a { text-decoration: none; color: inherit; }
         th a:hover { color: #0056b3; }
         .pagination .page-link { color: #007bff; }
@@ -382,12 +418,14 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
         .table-responsive {
             overflow-x: auto;
         }
+        .valor-col { white-space: nowrap; }
         .acoes-col {
             position: sticky;
             right: 0;
             background-color: #fff;
             z-index: 1;
             box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+            white-space: nowrap;
         }
         thead .acoes-col {
             background-color: #f8f9fa; /* igual ao .table-light */
@@ -414,9 +452,23 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
     <?php require_once 'menu.php'; ?>
 
     <div class="container-fluid px-3 px-md-4 mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-            <h1>Lista de Recebíveis</h1>
-             <div>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h1 class="mb-0">Lista de Recebíveis</h1>
+            
+            <form method="GET" action="listar_recebiveis.php" class="d-flex flex-grow-1" style="max-width: 300px;">
+                <input type="hidden" name="sort" value="<?php echo htmlspecialchars($sort); ?>">
+                <input type="hidden" name="dir" value="<?php echo htmlspecialchars($dir); ?>">
+                <?php if ($quick_filter !== 'todos'): ?>
+                    <input type="hidden" name="quick_filter" value="<?php echo htmlspecialchars($quick_filter); ?>">
+                <?php endif; ?>
+                <input class="form-control form-control-sm me-2" type="search" name="search" placeholder="Buscar ID/Valor/Nome..." aria-label="Buscar" value="<?php echo htmlspecialchars($search); ?>">
+                <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+                <?php if (!empty($search)): ?>
+                    <a href="?sort=<?php echo htmlspecialchars($sort); ?>&dir=<?php echo htmlspecialchars($dir); ?>" class="btn btn-sm btn-outline-danger ms-2" title="Limpar Busca"><i class="bi bi-x-lg"></i></a>
+                <?php endif; ?>
+            </form>
+
+            <div>
                 <a href="exportar_ics.php?<?php echo http_build_query($current_filters_for_links);?>" class="btn btn-sm btn-outline-primary me-2" target="_blank" title="Exportar Lembretes (.ics) dos resultados filtrados">
                     <i class="bi bi-calendar-plus"></i> .ics
                 </a>
@@ -427,6 +479,18 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
         </div>
 
         <!-- Formulário de Filtros -->
+        
+        <!-- Filtros Rápidos -->
+        <div class="mb-3 d-flex flex-wrap gap-2">
+            <a href="listar_recebiveis.php?quick_filter=todos" class="btn btn-sm <?php echo $quick_filter === 'todos' ? 'btn-primary' : 'btn-outline-primary'; ?>">Todos</a>
+            <a href="listar_recebiveis.php?quick_filter=inadimplentes" class="btn btn-sm <?php echo $quick_filter === 'inadimplentes' ? 'btn-danger' : 'btn-outline-danger'; ?>">Inadimplentes</a>
+            <a href="listar_recebiveis.php?quick_filter=a_receber" class="btn btn-sm <?php echo $quick_filter === 'a_receber' ? 'btn-secondary' : 'btn-outline-secondary'; ?>">A Receber</a>
+            <a href="listar_recebiveis.php?quick_filter=recebidos" class="btn btn-sm <?php echo $quick_filter === 'recebidos' ? 'btn-success' : 'btn-outline-success'; ?>">Recebidos</a>
+            <a href="listar_recebiveis.php?quick_filter=vencendo_7_dias" class="btn btn-sm <?php echo $quick_filter === 'vencendo_7_dias' ? 'btn-info' : 'btn-outline-info'; ?>">Vencendo em 7 dias</a>
+            <a href="listar_recebiveis.php?quick_filter=vencendo_hoje" class="btn btn-sm <?php echo $quick_filter === 'vencendo_hoje' ? 'btn-warning' : 'btn-outline-warning'; ?>">Vencendo Hoje</a>
+            <a href="listar_recebiveis.php?quick_filter=problemas" class="btn btn-sm <?php echo $quick_filter === 'problemas' ? 'btn-dark' : 'btn-outline-dark'; ?>">Problemas</a>
+        </div>
+
         <div class="card mb-4">
             <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse" aria-expanded="false" aria-controls="filtrosCollapse">
                 <h5 class="mb-0">
@@ -440,24 +504,22 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                         <!-- Preservar parâmetros de ordenação -->
                         <input type="hidden" name="sort" value="<?php echo htmlspecialchars($sort); ?>">
                         <input type="hidden" name="dir" value="<?php echo htmlspecialchars($dir); ?>">
+                        <input type="hidden" name="search" value="<?php echo htmlspecialchars($search); ?>">
+                        <?php if ($quick_filter !== 'todos'): ?>
+                            <input type="hidden" name="quick_filter" value="<?php echo htmlspecialchars($quick_filter); ?>">
+                        <?php endif; ?>
                         
-                        <div class="row g-3">
-                            <!-- Filtro de Busca -->
-                            <div class="col-md-3">
-                                <label for="search" class="form-label">Buscar ID/Op./Valor/Cedente/Sacado</label>
-                                <input type="search" name="search" id="search" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Digite para buscar...">
-                            </div>
-                            
-                            <!-- Filtro por Status (Múltipla Seleção) -->
-                            <div class="col-md-3">
-                                <label class="form-label">Status (múltipla seleção)</label>
-                                <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
+                        <div class="row g-2 align-items-end">
+                            <!-- Filtro por Status -->
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">Status</label>
+                                <div class="border rounded p-1 bg-white" style="max-height: 85px; overflow-y: auto; font-size: 0.8em;">
                                     <?php
                                     $status_options = ['Em Aberto', 'Recebido', 'Problema', 'Parcialmente Compensado', 'Totalmente Compensado'];
                                     foreach ($status_options as $status_option):
                                         $checked = in_array($status_option, $filtro_status) ? 'checked' : '';
                                     ?>
-                                        <div class="form-check">
+                                        <div class="form-check mb-0">
                                             <input class="form-check-input" type="checkbox" name="status[]"
                                                    value="<?php echo htmlspecialchars($status_option); ?>"
                                                    id="status_<?php echo str_replace([' ', 'ç'], ['_', 'c'], strtolower($status_option)); ?>" <?php echo $checked; ?>>
@@ -469,16 +531,16 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                                 </div>
                             </div>
                             
-                            <!-- Filtro por Tipo de Pagamento (Múltipla Seleção) -->
-                            <div class="col-md-3">
-                                <label class="form-label">Tipo de Pagamento</label>
-                                <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
+                            <!-- Filtro por Tipo de Pagamento -->
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">Pagamento</label>
+                                <div class="border rounded p-1 bg-white" style="max-height: 85px; overflow-y: auto; font-size: 0.8em;">
                                     <?php
                                     $tipo_pagamento_options = ['direto', 'escrow', 'indireto'];
                                     foreach ($tipo_pagamento_options as $tipo_option):
                                         $checked = in_array($tipo_option, $filtro_tipo_pagamento) ? 'checked' : '';
                                     ?>
-                                        <div class="form-check">
+                                        <div class="form-check mb-0">
                                             <input class="form-check-input" type="checkbox" name="tipo_pagamento[]"
                                                    value="<?php echo htmlspecialchars($tipo_option); ?>"
                                                    id="tipo_<?php echo htmlspecialchars($tipo_option); ?>" <?php echo $checked; ?>>
@@ -490,16 +552,16 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                                 </div>
                             </div>
                             
-                            <!-- Filtro por Tipo de Operação (Múltipla Seleção) -->
-                            <div class="col-md-3">
-                                <label class="form-label">Tipo de Operação</label>
-                                <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
+                            <!-- Filtro por Tipo de Operação -->
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">Operação</label>
+                                <div class="border rounded p-1 bg-white" style="max-height: 85px; overflow-y: auto; font-size: 0.8em;">
                                     <?php
                                     $tipo_operacao_options = ['antecipacao', 'emprestimo'];
                                     foreach ($tipo_operacao_options as $tipo_option):
                                         $checked = in_array($tipo_option, $filtro_tipo_operacao) ? 'checked' : '';
                                     ?>
-                                        <div class="form-check">
+                                        <div class="form-check mb-0">
                                             <input class="form-check-input" type="checkbox" name="tipo_operacao[]"
                                                    value="<?php echo htmlspecialchars($tipo_option); ?>"
                                                    id="tipo_op_<?php echo htmlspecialchars($tipo_option); ?>" <?php echo $checked; ?>>
@@ -512,20 +574,20 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                             </div>
                             
                             <!-- Filtro por Data de Vencimento -->
-                            <div class="col-md-3">
-                                <label for="data_inicio" class="form-label">Vencimento De</label>
-                                <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="<?php echo htmlspecialchars($filtro_data_inicio); ?>">
+                            <div class="col-md-2">
+                                <label for="data_inicio" class="form-label small mb-1">Vencimento De</label>
+                                <input type="date" name="data_inicio" id="data_inicio" class="form-control form-control-sm" value="<?php echo htmlspecialchars($filtro_data_inicio); ?>">
                             </div>
                             
-                            <div class="col-md-3">
-                                <label for="data_fim" class="form-label">Vencimento Até</label>
-                                <input type="date" name="data_fim" id="data_fim" class="form-control" value="<?php echo htmlspecialchars($filtro_data_fim); ?>">
+                            <div class="col-md-2">
+                                <label for="data_fim" class="form-label small mb-1">Vencimento Até</label>
+                                <input type="date" name="data_fim" id="data_fim" class="form-control form-control-sm" value="<?php echo htmlspecialchars($filtro_data_fim); ?>">
                             </div>
                             
                             <!-- Items por página -->
-                            <div class="col-md-3">
-                                <label for="per_page" class="form-label">Itens por página</label>
-                                <select name="per_page" id="per_page" class="form-select">
+                            <div class="col-md-2">
+                                <label for="per_page" class="form-label small mb-1">Itens/Página</label>
+                                <select name="per_page" id="per_page" class="form-select form-select-sm">
                                     <?php foreach ($items_per_page_options as $option): ?>
                                         <option value="<?php echo $option; ?>" <?php echo ($items_per_page == $option) ? 'selected' : ''; ?>><?php echo $option; ?></option>
                                     <?php endforeach; ?>
@@ -534,14 +596,14 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                         </div>
                         
                         <div class="row mt-3">
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary me-2">
-                                    <i class="bi bi-search"></i> Aplicar Filtros
-                                </button>
+                            <div class="col-12 text-end">
                                 <a href="?sort=<?php echo htmlspecialchars($sort); ?>&dir=<?php echo htmlspecialchars($dir); ?>"
-                                   class="btn btn-outline-secondary">
+                                   class="btn btn-sm btn-outline-secondary me-2">
                                     <i class="bi bi-x-circle"></i> Limpar Filtros
                                 </a>
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-search"></i> Aplicar Filtros
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -571,9 +633,9 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                               <th class="text-center"><?php echo getRecebivelSortLink('tipo_operacao', 'Tipo Op.', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center">Tipo Recebível</th>
                               <th class="text-center"><?php echo getRecebivelSortLink('data_vencimento', 'Vencimento', $sort, $dir, $current_filters_for_links); ?></th>
-                              <th class="text-center">Dias p/ Vencimento</th> <th class="text-end"><?php echo getRecebivelSortLink('valor_original', 'Valor Original', $sort, $dir, $current_filters_for_links); ?></th>
+                              <th class="text-center">Dias p/ Vencimento</th> <th class="text-end valor-col"><?php echo getRecebivelSortLink('valor_original', 'Valor Original', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center"><?php echo getRecebivelSortLink('status', 'Status', $sort, $dir, $current_filters_for_links); ?></th>
-                              <th class="text-center acoes-col" style="width: 110px;">Ações</th>
+                              <th class="text-center acoes-col">Ações</th>
                           </tr>
                       </thead>
                     <tbody>
@@ -581,7 +643,7 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                         foreach ($recebiveis as $r):
                         ?>
                             <?php
-                            $rowClass = getTableRowClass($r['status_real']);
+                            $rowClass = getTableRowClass($r['status_real'], $r['data_vencimento']);
 
                             // Usar a nova função que considera apenas datas (sem horário)
                             $dias_p_vencimento = calcularDiasParaVencimento($r['data_vencimento']);
@@ -598,15 +660,15 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                                 <td class="text-center">
                                     <?php 
                                     if (($r['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') {
-                                        echo '<span class="badge bg-warning text-dark"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
+                                        echo '<span class="badge bg-warning text-dark rounded-pill"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
                                     } else {
-                                        echo '<span class="badge bg-success text-white"><i class="bi bi-arrow-return-left"></i> Antecipação</span>';
+                                        echo '<span class="badge bg-success text-white rounded-pill"><i class="bi bi-arrow-return-left"></i> Antecipação</span>';
                                     }
                                     ?>
                                 </td>
                                 <td class="text-center"><?php echo htmlspecialchars($r['tipo_recebivel'] ?? 'N/A'); ?></td>
                                 <td class="text-center"><?php echo formatHtmlDate($r['data_vencimento']); ?></td>
-                                <td class="text-center"><?php echo htmlspecialchars($dias_p_vencimento); ?></td> <td class="text-end">
+                                <td class="text-center"><?php echo htmlspecialchars($dias_p_vencimento); ?></td> <td class="text-end valor-col">
                                     <div><?php echo formatHtmlCurrency($r['valor_original']); ?></div>
                                     <?php if ($r['total_compensado'] > 0): ?>
                                         <small class="text-muted">Saldo: <?php echo formatHtmlCurrency($r['saldo_disponivel']); ?></small>
@@ -626,6 +688,7 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                                         <button class="btn btn-success action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Recebido" title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
                                         <button class="btn btn-danger action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Problema" title="Marcar com Problema"><i class="bi bi-exclamation-triangle-fill"></i></button>
                                     <?php endif; ?>
+                                    <a href="detalhes_operacao.php?id=<?php echo htmlspecialchars($r['operacao_id']); ?>" class="btn btn-primary action-btn" title="Visualizar Operação"><i class="bi bi-eye"></i></a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -633,8 +696,8 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                     <?php if (!empty($recebiveis)): ?>
                     <tfoot class="table-secondary">
                         <tr>
-                            <th colspan="7" class="text-end"><strong>TOTAIS:</strong></th>
-                            <th class="text-end">
+                            <th colspan="10" class="text-end"><strong>TOTAIS:</strong></th>
+                            <th class="text-end valor-col">
                                 <?php
                                 // Calcular total dos valores originais dos recebíveis filtrados
                                 $total_valor_original = 0;

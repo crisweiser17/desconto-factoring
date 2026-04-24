@@ -1,0 +1,7 @@
+- [x] A função de cálculo da Taxa de Juros deduz a taxa corretamente a partir do Empréstimo, Parcela e Prazo.
+- [x] A função de cálculo do Valor do Empréstimo (Principal) funciona corretamente a partir da Parcela, Taxa e Prazo.
+- [x] Os testes unitários da lógica financeira passam sem erros (Mandatory Testing Rule).
+- [x] A interface exibe claramente as três opções de cálculo e se adapta dependendo da escolha do usuário.
+- [x] Os resultados (Lucro, Valor Total, etc.) no Card de Resumo são atualizados instantaneamente conforme o usuário digita.
+- [x] Os dados inseridos sobrevivem a um recarregamento de página (persistência no localStorage).
+- [x] O botão de "Limpar Campos" reseta completamente a simulação.
