@@ -1,0 +1,7 @@
+- [x] O card de resumo destaca visualmente `Parcela` quando o modo é `Descobrir Parcela`
+- [x] O card de resumo destaca visualmente `Taxa a.m.` quando o modo é `Descobrir Taxa de Juros`
+- [x] O card de resumo destaca visualmente `Empréstimo` quando o modo é `Descobrir Valor do Empréstimo`
+- [x] O campo calculado na área superior deixa de competir visualmente com o resumo
+- [x] A estrutura atual de inputs acima + resumo abaixo é preservada
+- [x] O resumo continua atualizando corretamente sem regressão funcional
+- [x] A interface permanece coerente no preview e sem erro de sintaxe

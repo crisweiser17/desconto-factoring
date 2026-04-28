@@ -61,7 +61,7 @@ try {
     <style>
         /* Estilos CSS (mantidos como no seu arquivo) */
         input#taxaMensal::-webkit-outer-spin-button, input#taxaMensal::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        input#taxaMensal[type=number] { -moz-appearance: textfield; }
+        input#taxaMensal[type=number] { appearance: textfield; -moz-appearance: textfield; }
         input#taxaMensal { text-align: center; }
         .chart-wrapper { position: relative; max-height: 350px; margin-top: 20px; margin-bottom: 30px; }
         .chart-wrapper canvas { max-width: 100%; max-height: 100%; }
@@ -76,6 +76,15 @@ try {
         .dias-restantes-cell { text-align: center; vertical-align: middle; font-style: italic; color: #6c757d; font-size: 0.9em;}
         /* NOVA CLASSE CSS PARA A NOVA COLUNA */
         .valor-pago-cell { text-align: right; vertical-align: middle; }
+        .calc-output-compact .form-label { font-size: 0.85rem; color: #6c757d; }
+        .calc-output-compact .form-control,
+        .calc-output-compact .btn { font-size: 0.9rem; padding-top: 0.375rem; padding-bottom: 0.375rem; }
+        .calc-output-hidden-note { border: 1px dashed #ced4da; border-radius: 0.75rem; background: #f8f9fa; color: #6c757d; padding: 0.7rem 0.9rem; }
+        .resumo-modo-badge { letter-spacing: 0.02em; }
+        .resumo-item-card { height: 100%; border: 1px solid #dee2e6; border-radius: 0.9rem; padding: 0.85rem 0.6rem; background: #fff; transition: all 0.2s ease; }
+        .resumo-item-card.is-active { border-color: #0d6efd; background: linear-gradient(180deg, rgba(13,110,253,0.08), rgba(13,110,253,0.16)); box-shadow: 0 0.4rem 1rem rgba(13,110,253,0.12); }
+        .resumo-item-card.is-active small { color: #0d6efd !important; font-weight: 700; }
+        .resumo-item-card.is-active .fs-5 { color: #0a58ca; }
     </style>
 </head>
 <body>
@@ -130,14 +139,23 @@ try {
                           <?php endif; ?>
                       </select>
                   </div>
-                  <div class="col-md-4"><label for="taxaMensal" class="form-label" id="labelTaxa">Taxa de Desconto (% a.m.)</label><div class="input-group"><button class="btn btn-outline-secondary" type="button" id="taxaDecrementBtn">-</button><input type="number" class="form-control" id="taxaMensal" name="taxaMensal" step="0.25" min="0" value="<?php echo htmlspecialchars($defaultTaxaMensal); ?>" required><button class="btn btn-outline-secondary" type="button" id="taxaIncrementBtn">+</button><button class="btn btn-outline-primary" type="button" id="btnAbrirModalTaxa" title="Descobrir taxa a partir de um valor líquido alvo" data-bs-toggle="modal" data-bs-target="#descobrirTaxaModal"><i class="bi bi-calculator"></i></button></div></div>
-                  <div class="col-md-3"><label for="data_operacao" class="form-label">Data Base de Cálculo:</label><?php $dataOperacaoDefault = date('Y-m-d'); ?><input type="date" class="form-control" id="data_operacao" name="data_operacao" value="<?php echo $dataOperacaoDefault; ?>" required></div>
+                  <div class="col-md-4" id="containerTaxaPrincipal">
+                      <div id="taxaFieldContainer"><label for="taxaMensal" class="form-label" id="labelTaxa">Taxa de Desconto (% a.m.)</label><div class="input-group"><button class="btn btn-outline-secondary" type="button" id="taxaDecrementBtn">-</button><input type="number" class="form-control" id="taxaMensal" name="taxaMensal" step="0.25" min="0" value="<?php echo htmlspecialchars($defaultTaxaMensal); ?>" required><button class="btn btn-outline-secondary" type="button" id="taxaIncrementBtn">+</button><button class="btn btn-outline-primary" type="button" id="btnAbrirModalTaxa" title="Descobrir taxa a partir de um valor líquido alvo" data-bs-toggle="modal" data-bs-target="#descobrirTaxaModal"><i class="bi bi-calculator"></i></button></div></div>
+                  </div>
+                  <div class="col-md-2" id="containerDataOperacaoPrincipal">
+                      <div id="dataOperacaoFieldContainer"><label for="data_operacao" class="form-label">Data Base de Cálculo:</label><?php $dataOperacaoDefault = date('Y-m-d'); ?><input type="date" class="form-control" id="data_operacao" name="data_operacao" value="<?php echo $dataOperacaoDefault; ?>" required></div>
+                  </div>
+                  <div class="col-md-3 d-none" id="containerTemGarantiaPrincipal">
+                      <div id="temGarantiaFieldContainer"><label for="temGarantia" class="form-label">Possui Garantia?</label><select id="temGarantia" name="tem_garantia" class="form-select"><option value="Nao" selected>Não</option><option value="Sim">Sim</option></select></div>
+                  </div>
               </div>
               <div class="row g-3 mt-1 align-items-end">
                   <div class="col-md-3" id="containerTipoPagamento"><label for="tipoPagamento" class="form-label">Tipo de Pagamento</label><select id="tipoPagamento" name="tipoPagamento" class="form-select" required><option value="direto">Pagamento Direto (Devedor Notificado)</option><option value="escrow">Pagamento via Conta Escrow</option><option value="indireto">Pagamento Indireto (Repasse via Cedente)</option></select></div>
                   <div class="col-md-3" id="containerIncorreIOF"><label for="incorreIOF" class="form-label">Você Incorre Custo IOF?</label><select id="incorreIOF" name="incorreIOF" class="form-select"><option value="Sim">Sim</option><option value="Nao" selected>Não</option></select></div>
                   <div class="col-md-3 cobrar-iof-wrapper d-none" id="containerCobrarIOF"><label for="cobrarIOF" class="form-label">Cobrar IOF do Cliente?</label><select id="cobrarIOF" name="cobrarIOF" class="form-select"><option value="Sim">Sim (Taxa Extra)</option><option value="Nao">Não</option></select></div>
-                  <div class="col-md-3"><label for="notas" class="form-label">Anotações da Operação</label><textarea class="form-control" id="notas" name="notas" rows="1" placeholder="Detalhes..."></textarea></div>
+              </div>
+              <div class="row g-3 mt-1">
+                  <div class="col-12"><label for="notas" class="form-label">Anotações da Operação</label><textarea class="form-control" id="notas" name="notas" rows="3" placeholder="Detalhes..."></textarea></div>
               </div>
           </fieldset>
 
@@ -161,41 +179,46 @@ try {
                   </div>
               </div>
 
+              <div class="row g-3 mb-3 align-items-end">
+                  <div class="col-lg-4 col-md-6" id="containerTaxaEmprestimo"></div>
+                  <div class="col-lg-4 col-md-3" id="containerDataOperacaoEmprestimo"></div>
+                  <div class="col-lg-4 col-md-3" id="containerTemGarantia"></div>
+              </div>
+              <div class="row mb-3">
+                  <div class="col-12">
+                      <div class="calc-output-hidden-note d-none" id="campoCalculadoHint"></div>
+                  </div>
+              </div>
+
               <div class="row g-3 align-items-end">
-                  <div class="col-md-3" id="containerValorEmprestimo">
+                  <div class="col-lg col-md-6" id="containerValorEmprestimo">
                       <label for="valorEmprestimo" class="form-label">Valor do Empréstimo (R$)</label>
                       <input type="number" class="form-control" id="valorEmprestimo" name="valor_emprestimo" step="0.01" min="0.01" placeholder="10000.00">
                   </div>
-                  <div class="col-md-3" id="containerValorParcela" style="display: none;">
+                  <div class="col-lg col-md-6" id="containerValorParcela" style="display: none;">
                       <label for="valorParcela" class="form-label text-primary fw-bold">Valor da Parcela (R$)</label>
                       <input type="number" class="form-control border-primary" id="valorParcela" name="valor_parcela" step="0.01" min="0.01" placeholder="1000.00">
                   </div>
-                  <div class="col-md-3">
+                  <div class="col-lg col-md-6">
                       <label for="frequenciaParcelas" class="form-label">Frequência</label>
                       <select id="frequenciaParcelas" class="form-select">
                           <option value="mensal" selected>Mensal (30 dias)</option>
                           <option value="quinzenal">Quinzenal (15 dias)</option>
                           <option value="semanal">Semanal (7 dias)</option>
+                          <option value="pagamento_unico">Pagamento Único</option>
                       </select>
                   </div>
-                  <div class="col-md-3">
-                      <label for="quantidadeParcelas" class="form-label">Qtd. de Parcelas</label>
+                  <div class="col-lg col-md-6">
+                      <label for="quantidadeParcelas" class="form-label">Num. de Parcelas</label>
                       <input type="number" class="form-control" id="quantidadeParcelas" min="1" max="120" value="1">
                   </div>
-                  <div class="col-md-3">
+                  <div class="col-lg col-md-6">
                       <label for="dataPrimeiroVencimento" class="form-label">1º Vencimento</label>
                       <input type="date" class="form-control" id="dataPrimeiroVencimento">
                   </div>
               </div>
               <div class="row g-3 mt-2">
-                  <div class="col-md-3">
-                      <label for="temGarantia" class="form-label">Possui Garantia?</label>
-                      <select id="temGarantia" name="tem_garantia" class="form-select">
-                          <option value="Nao" selected>Não</option>
-                          <option value="Sim">Sim</option>
-                      </select>
-                  </div>
-                  <div class="col-md-9" id="containerDescricaoGarantia" style="display: none;">
+                  <div class="col-12" id="containerDescricaoGarantia" style="display: none;">
                       <label for="descricaoGarantia" class="form-label">Descrição da Garantia (anexe fotos/docs após registrar)</label>
                       <input type="text" class="form-control" id="descricaoGarantia" name="descricao_garantia" placeholder="Ex: Veículo placa ABC-1234, Imóvel...">
                   </div>
@@ -212,33 +235,49 @@ try {
                   <div class="col-12">
                       <div class="card border-primary">
                           <div class="card-header bg-primary text-white fw-bold">
-                              <i class="bi bi-file-earmark-bar-graph"></i> Resumo da Simulação (Empréstimo)
+                              <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                  <span><i class="bi bi-file-earmark-bar-graph"></i> Resumo da Simulação</span>
+                                  <span class="badge bg-light text-primary resumo-modo-badge" id="resumoModoBadge">Modo: Descobrir Parcela</span>
+                              </div>
+                              <div class="small text-white-50 mt-1" id="resumoModoDescricao">O resultado principal da simulação aparece destacado conforme o modo selecionado.</div>
                           </div>
                           <div class="card-body">
                               <div class="row text-center">
                                   <div class="col-md-2 col-6 mb-2">
-                                      <small class="text-muted d-block">Empréstimo</small>
-                                      <span class="fs-5 fw-bold" id="resumoPv">--</span>
+                                      <div class="resumo-item-card" id="resumoItemPv">
+                                          <small class="text-muted d-block">Empréstimo</small>
+                                          <span class="fs-5 fw-bold" id="resumoPv">--</span>
+                                      </div>
                                   </div>
                                   <div class="col-md-2 col-6 mb-2">
-                                      <small class="text-muted d-block">Parcela</small>
-                                      <span class="fs-5 fw-bold text-primary" id="resumoPmt">--</span>
+                                      <div class="resumo-item-card" id="resumoItemPmt">
+                                          <small class="text-muted d-block">Parcela</small>
+                                          <span class="fs-5 fw-bold text-primary" id="resumoPmt">--</span>
+                                      </div>
                                   </div>
                                   <div class="col-md-2 col-6 mb-2">
-                                      <small class="text-muted d-block">Prazo</small>
-                                      <span class="fs-5 fw-bold" id="resumoPrazo">--</span>
+                                      <div class="resumo-item-card" id="resumoItemPrazo">
+                                          <small class="text-muted d-block">Prazo</small>
+                                          <span class="fs-5 fw-bold" id="resumoPrazo">--</span>
+                                      </div>
                                   </div>
                                   <div class="col-md-2 col-6 mb-2">
-                                      <small class="text-muted d-block">Taxa a.m.</small>
-                                      <span class="fs-5 fw-bold text-danger" id="resumoTaxa">--</span>
+                                      <div class="resumo-item-card" id="resumoItemTaxa">
+                                          <small class="text-muted d-block">Taxa a.m.</small>
+                                          <span class="fs-5 fw-bold text-danger" id="resumoTaxa">--</span>
+                                      </div>
                                   </div>
                                   <div class="col-md-2 col-6 mb-2">
-                                      <small class="text-muted d-block">Total a Pagar</small>
-                                      <span class="fs-5 fw-bold" id="resumoTotal">--</span>
+                                      <div class="resumo-item-card" id="resumoItemTotal">
+                                          <small class="text-muted d-block">Total a Pagar</small>
+                                          <span class="fs-5 fw-bold" id="resumoTotal">--</span>
+                                      </div>
                                   </div>
                                   <div class="col-md-2 col-6 mb-2">
-                                      <small class="text-muted d-block">Lucro</small>
-                                      <span class="fs-5 fw-bold text-success" id="resumoLucro">--</span>
+                                      <div class="resumo-item-card" id="resumoItemLucro">
+                                          <small class="text-muted d-block">Lucro</small>
+                                          <span class="fs-5 fw-bold text-success" id="resumoLucro">--</span>
+                                      </div>
                                   </div>
                               </div>
                           </div>
@@ -658,11 +697,182 @@ try {
       const valorParcelaInput = document.getElementById('valorParcela');
       const quantidadeParcelasInput = document.getElementById('quantidadeParcelas');
       const frequenciaParcelasSelect = document.getElementById('frequenciaParcelas');
+      const dataPrimeiroVencimentoInput = document.getElementById('dataPrimeiroVencimento');
+      const temGarantiaSelect = document.getElementById('temGarantia');
+      const btnAbrirModalTaxa = document.getElementById('btnAbrirModalTaxa');
+      const containerTemGarantia = document.getElementById('containerTemGarantia');
+      const temGarantiaFieldContainer = document.getElementById('temGarantiaFieldContainer');
+      const containerTemGarantiaPrincipal = document.getElementById('containerTemGarantiaPrincipal');
+      const containerDescricaoGarantia = document.getElementById('containerDescricaoGarantia');
+      const descricaoGarantiaInput = document.getElementById('descricaoGarantia');
+      const taxaFieldContainer = document.getElementById('taxaFieldContainer');
+      const taxaFieldOriginalParent = taxaFieldContainer.parentElement;
+      const containerTaxaPrincipal = document.getElementById('containerTaxaPrincipal');
+      const containerDataOperacaoPrincipal = document.getElementById('containerDataOperacaoPrincipal');
+      const dataOperacaoFieldContainer = document.getElementById('dataOperacaoFieldContainer');
+      const dataOperacaoFieldOriginalParent = dataOperacaoFieldContainer.parentElement;
+      const temGarantiaFieldOriginalParent = temGarantiaFieldContainer.parentElement;
+      const containerTaxaEmprestimo = document.getElementById('containerTaxaEmprestimo');
+      const containerDataOperacaoEmprestimo = document.getElementById('containerDataOperacaoEmprestimo');
+      const campoCalculadoHint = document.getElementById('campoCalculadoHint');
+      const resumoModoBadge = document.getElementById('resumoModoBadge');
+      const resumoModoDescricao = document.getElementById('resumoModoDescricao');
+      const resumoItemPv = document.getElementById('resumoItemPv');
+      const resumoItemPmt = document.getElementById('resumoItemPmt');
+      const resumoItemPrazo = document.getElementById('resumoItemPrazo');
+      const resumoItemTaxa = document.getElementById('resumoItemTaxa');
+      const resumoItemTotal = document.getElementById('resumoItemTotal');
+      const resumoItemLucro = document.getElementById('resumoItemLucro');
 
       // Card de Resumo do Empréstimo
       const resumoEmprestimoSection = document.getElementById('resumoEmprestimoSection');
       if (!resumoEmprestimoSection) {
           // Criaremos dinamicamente se não existir, mas o ideal é injetar no HTML
+      }
+
+      function parseLocalDate(dateStr) {
+          if (!dateStr) return null;
+          const date = new Date(`${dateStr}T00:00:00`);
+          return Number.isNaN(date.getTime()) ? null : date;
+      }
+
+      function diffDays(startDate, endDate) {
+          return Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      }
+
+      function buildEmprestimoSchedule(dataBaseStr, primeiroVencimentoStr, quantidade, frequencia) {
+          const dataBase = parseLocalDate(dataBaseStr);
+          const primeiroVencimento = parseLocalDate(primeiroVencimentoStr);
+          const totalParcelas = frequencia === 'pagamento_unico' ? 1 : quantidade;
+
+          if (!dataBase || !primeiroVencimento || !totalParcelas || totalParcelas <= 0) {
+              return { days: [], dates: [] };
+          }
+
+          const dates = [];
+          const days = [];
+          let dataAtual = new Date(primeiroVencimento.getTime());
+
+          for (let step = 0; step < totalParcelas; step++) {
+              dates.push(new Date(dataAtual.getTime()));
+              days.push(diffDays(dataBase, dataAtual));
+
+              if (frequencia === 'mensal') {
+                  dataAtual.setMonth(dataAtual.getMonth() + 1);
+              } else if (frequencia === 'quinzenal') {
+                  dataAtual.setDate(dataAtual.getDate() + 15);
+              } else if (frequencia === 'semanal') {
+                  dataAtual.setDate(dataAtual.getDate() + 7);
+              }
+          }
+
+          return { days, dates };
+      }
+
+      function syncQuantidadeParcelasComFrequencia() {
+          if (frequenciaParcelasSelect.value === 'pagamento_unico') {
+              quantidadeParcelasInput.value = '1';
+              quantidadeParcelasInput.disabled = true;
+              quantidadeParcelasInput.classList.add('bg-light');
+          } else {
+              quantidadeParcelasInput.disabled = false;
+              quantidadeParcelasInput.classList.remove('bg-light');
+              if (!quantidadeParcelasInput.value || parseInt(quantidadeParcelasInput.value, 10) < 1) {
+                  quantidadeParcelasInput.value = '1';
+              }
+          }
+      }
+
+      function posicionarCamposLayoutEmprestimo() {
+          if (tipoEmprestimoRadio.checked) {
+              containerTaxaPrincipal.classList.add('d-none');
+              containerDataOperacaoPrincipal.classList.add('d-none');
+              containerTaxaEmprestimo.appendChild(taxaFieldContainer);
+              containerDataOperacaoEmprestimo.appendChild(dataOperacaoFieldContainer);
+              containerTemGarantia.appendChild(temGarantiaFieldContainer);
+          } else {
+              containerTaxaPrincipal.classList.remove('d-none');
+              containerDataOperacaoPrincipal.classList.remove('d-none');
+              taxaFieldOriginalParent.appendChild(taxaFieldContainer);
+              dataOperacaoFieldOriginalParent.appendChild(dataOperacaoFieldContainer);
+              temGarantiaFieldOriginalParent.appendChild(temGarantiaFieldContainer);
+          }
+      }
+
+      function syncGarantiaVisibility() {
+          const mostrarGarantia = tipoEmprestimoRadio.checked;
+          containerTemGarantia.classList.toggle('d-none', !mostrarGarantia);
+          containerTemGarantiaPrincipal.classList.add('d-none');
+
+          if (!mostrarGarantia) {
+              temGarantiaSelect.value = 'Nao';
+          }
+
+          const possuiGarantia = mostrarGarantia && temGarantiaSelect.value === 'Sim';
+          containerDescricaoGarantia.style.display = possuiGarantia ? 'block' : 'none';
+          descricaoGarantiaInput.required = possuiGarantia;
+
+          if (!possuiGarantia) {
+              descricaoGarantiaInput.value = '';
+          }
+      }
+
+      function resetVisualModoFlexivel() {
+          taxaFieldContainer.classList.remove('calc-output-compact');
+          containerValorEmprestimo.style.display = 'block';
+          campoCalculadoHint.classList.add('d-none');
+          campoCalculadoHint.textContent = '';
+          [resumoItemPv, resumoItemPmt, resumoItemPrazo, resumoItemTaxa, resumoItemTotal, resumoItemLucro].forEach(item => {
+              if (item) item.classList.remove('is-active');
+          });
+      }
+
+      function atualizarResumoPorModo(modo) {
+          const configuracoesModo = {
+              parcela: {
+                  badge: 'Modo: Descobrir Parcela',
+                  descricao: 'A parcela calculada automaticamente fica em destaque no resumo.',
+                  destaque: resumoItemPmt
+              },
+              taxa: {
+                  badge: 'Modo: Descobrir Taxa',
+                  descricao: 'A taxa calculada automaticamente fica em destaque no resumo.',
+                  destaque: resumoItemTaxa
+              },
+              emprestimo: {
+                  badge: 'Modo: Descobrir Empréstimo',
+                  descricao: 'O valor do empréstimo calculado automaticamente fica em destaque no resumo.',
+                  destaque: resumoItemPv
+              }
+          };
+
+          const config = configuracoesModo[modo] || configuracoesModo.parcela;
+          resumoModoBadge.textContent = config.badge;
+          resumoModoDescricao.textContent = config.descricao;
+
+          [resumoItemPv, resumoItemPmt, resumoItemPrazo, resumoItemTaxa, resumoItemTotal, resumoItemLucro].forEach(item => {
+              if (item) item.classList.toggle('is-active', item === config.destaque);
+          });
+      }
+
+      function atualizarCampoCalculadoSuperior(modo) {
+          taxaFieldContainer.classList.remove('calc-output-compact');
+          campoCalculadoHint.classList.add('d-none');
+          campoCalculadoHint.textContent = '';
+          containerTaxaEmprestimo.style.display = 'block';
+          containerValorEmprestimo.style.display = modo === 'emprestimo' ? 'none' : 'block';
+
+          if (modo === 'parcela') {
+              campoCalculadoHint.textContent = 'A parcela calculada automaticamente aparece destacada no resumo abaixo.';
+              campoCalculadoHint.classList.remove('d-none');
+          } else if (modo === 'taxa') {
+              containerTaxaEmprestimo.style.display = 'none';
+              campoCalculadoHint.textContent = 'A taxa calculada automaticamente foi ocultada no topo e destacada no resumo abaixo.';
+              campoCalculadoHint.classList.remove('d-none');
+          } else if (modo === 'emprestimo') {
+              campoCalculadoHint.textContent = 'O campo superior do valor do empréstimo foi ocultado e o resultado calculado aparece destacado no resumo abaixo.';
+              campoCalculadoHint.classList.remove('d-none');
+          }
       }
 
       function updateModoFlexivel() {
@@ -677,7 +887,7 @@ try {
           taxaMensalInput.classList.remove('bg-light', 'text-success', 'fw-bold');
           taxaDecrementBtn.disabled = false;
           taxaIncrementBtn.disabled = false;
-          document.getElementById('btnAbrirModalTaxa').disabled = false;
+          btnAbrirModalTaxa.disabled = false;
 
           if (modo === 'parcela') {
               containerValorEmprestimo.style.display = 'block';
@@ -691,7 +901,7 @@ try {
               taxaMensalInput.placeholder = "Calculada auto.";
               taxaDecrementBtn.disabled = true;
               taxaIncrementBtn.disabled = true;
-              document.getElementById('btnAbrirModalTaxa').disabled = true;
+              btnAbrirModalTaxa.disabled = true;
           } else if (modo === 'emprestimo') {
               containerValorEmprestimo.style.display = 'block';
               containerValorParcela.style.display = 'block';
@@ -700,6 +910,9 @@ try {
               valorEmprestimoInput.classList.add('bg-light', 'text-success', 'fw-bold');
               valorEmprestimoInput.placeholder = "Calculado auto.";
           }
+
+          atualizarResumoPorModo(modo);
+          atualizarCampoCalculadoSuperior(modo);
           
           calcularValoresFlexiveis();
           salvarRascunho();
@@ -711,32 +924,26 @@ try {
           const modo = document.querySelector('input[name="modoCalculo"]:checked').value;
           const pv = parseFloat(valorEmprestimoInput.value) || 0;
           const pmt = parseFloat(valorParcelaInput.value) || 0;
-          const nper = parseInt(quantidadeParcelasInput.value) || 1;
+          const nper = frequenciaParcelasSelect.value === 'pagamento_unico'
+              ? 1
+              : (parseInt(quantidadeParcelasInput.value, 10) || 1);
           let taxa = parseFloat(taxaMensalInput.value) / 100 || 0;
           const freq = frequenciaParcelasSelect.value;
-          
-          // Ajustar taxa para a frequência selecionada (taxaMensal está em a.m.)
-          let i = taxa;
-          if (freq === 'quinzenal') i = Math.pow(1 + taxa, 15/30) - 1;
-          else if (freq === 'semanal') i = Math.pow(1 + taxa, 7/30) - 1;
+          const schedule = buildEmprestimoSchedule(dataOperacaoInput.value, dataPrimeiroVencimentoInput.value, nper, freq);
+          const scheduleValido = schedule.days.length === nper && schedule.days.every(days => days >= 0);
 
-          if (modo === 'parcela' && pv > 0 && nper > 0) {
-              const calcPmt = calculatePMT(i, nper, pv);
+          if (modo === 'parcela' && pv > 0 && nper > 0 && scheduleValido) {
+              const calcPmt = calculatePMTFromDays(taxa, schedule.days, pv);
               valorParcelaInput.value = calcPmt.toFixed(2);
-          } else if (modo === 'taxa' && pv > 0 && pmt > 0 && nper > 0) {
-              const calcI = calculateRATE(nper, pmt, pv, 0.05);
+          } else if (modo === 'taxa' && pv > 0 && pmt > 0 && nper > 0 && scheduleValido) {
+              const calcI = calculateRATEFromDays(schedule.days, pmt, pv, 0.05);
               if (calcI !== null) {
-                  // Reverter i para taxa mensal
-                  let taxaMensalCalc = calcI;
-                  if (freq === 'quinzenal') taxaMensalCalc = Math.pow(1 + calcI, 30/15) - 1;
-                  else if (freq === 'semanal') taxaMensalCalc = Math.pow(1 + calcI, 30/7) - 1;
-                  
-                  taxaMensalInput.value = (taxaMensalCalc * 100).toFixed(4);
+                  taxaMensalInput.value = (calcI * 100).toFixed(4);
               } else {
                   taxaMensalInput.value = ''; // Não convergiu
               }
-          } else if (modo === 'emprestimo' && pmt > 0 && nper > 0) {
-              const calcPv = calculatePV(i, nper, pmt);
+          } else if (modo === 'emprestimo' && pmt > 0 && nper > 0 && scheduleValido) {
+              const calcPv = calculatePVFromDays(taxa, schedule.days, pmt);
               valorEmprestimoInput.value = calcPv.toFixed(2);
           }
           
@@ -746,7 +953,9 @@ try {
       function atualizarCardResumoEmprestimo() {
           const pv = parseFloat(valorEmprestimoInput.value) || 0;
           const pmt = parseFloat(valorParcelaInput.value) || 0;
-          const nper = parseInt(quantidadeParcelasInput.value) || 1;
+          const nper = frequenciaParcelasSelect.value === 'pagamento_unico'
+              ? 1
+              : (parseInt(quantidadeParcelasInput.value, 10) || 1);
           const taxaMensal = parseFloat(taxaMensalInput.value) || 0;
           const freq = frequenciaParcelasSelect.value;
           
@@ -755,7 +964,7 @@ try {
               const lucro = total - pv;
               
               document.getElementById('resumoPv').textContent = formatCurrencyJS(pv);
-              document.getElementById('resumoPmt').textContent = formatCurrencyJS(pmt) + (freq==='mensal'?'/m':(freq==='quinzenal'?'/15d':'/sem'));
+              document.getElementById('resumoPmt').textContent = formatCurrencyJS(pmt) + (freq==='mensal' ? '/m' : (freq==='quinzenal' ? '/15d' : (freq==='semanal' ? '/sem' : '/único')));
               document.getElementById('resumoPrazo').textContent = nper + 'x';
               document.getElementById('resumoTaxa').textContent = taxaMensal.toFixed(2) + '%';
               document.getElementById('resumoTotal').textContent = formatCurrencyJS(total);
@@ -802,7 +1011,8 @@ try {
                       if (draft.quantidadeParcelas) quantidadeParcelasInput.value = draft.quantidadeParcelas;
                       if (draft.frequenciaParcelas) frequenciaParcelasSelect.value = draft.frequenciaParcelas;
                       if (draft.taxaMensal) taxaMensalInput.value = draft.taxaMensal;
-                      if (draft.dataPrimeiroVencimento) document.getElementById('dataPrimeiroVencimento').value = draft.dataPrimeiroVencimento;
+                      if (draft.dataPrimeiroVencimento) dataPrimeiroVencimentoInput.value = draft.dataPrimeiroVencimento;
+                      syncQuantidadeParcelasComFrequencia();
                   }
               } catch (e) {
                   console.error("Erro ao carregar rascunho", e);
@@ -823,7 +1033,8 @@ try {
           document.querySelector('input[name="modoCalculo"][value="parcela"]').checked = true;
           const today = new Date();
           today.setDate(today.getDate() + 30);
-          document.getElementById('dataPrimeiroVencimento').value = today.toISOString().split('T')[0];
+          dataPrimeiroVencimentoInput.value = today.toISOString().split('T')[0];
+          syncQuantidadeParcelasComFrequencia();
           
           titulosBody.innerHTML = ''; // Limpa as parcelas geradas
           clearResultsAndRegister(); // Limpa os totais da simulação anterior
@@ -840,7 +1051,18 @@ try {
           carregarRascunho();
       });
 
-      [valorEmprestimoInput, valorParcelaInput, quantidadeParcelasInput, frequenciaParcelasSelect, taxaMensalInput, document.getElementById('dataPrimeiroVencimento')].forEach(el => {
+      frequenciaParcelasSelect.addEventListener('change', () => {
+          syncQuantidadeParcelasComFrequencia();
+          calcularValoresFlexiveis();
+          salvarRascunho();
+      });
+
+      temGarantiaSelect.addEventListener('change', () => {
+          syncGarantiaVisibility();
+          salvarRascunho();
+      });
+
+      [valorEmprestimoInput, valorParcelaInput, quantidadeParcelasInput, taxaMensalInput, dataPrimeiroVencimentoInput].forEach(el => {
           if(el) el.addEventListener('input', () => {
               calcularValoresFlexiveis();
               salvarRascunho();
@@ -864,6 +1086,8 @@ try {
           if (tipoEmprestimoRadio.checked) {
               emprestimoParamsSection.style.display = 'block';
               addTituloBtn.style.display = 'none';
+              posicionarCamposLayoutEmprestimo();
+              syncGarantiaVisibility();
               
               // Updates text and visibility
               labelTaxa.textContent = 'Taxa de Juros (% a.m.)';
@@ -884,18 +1108,21 @@ try {
               titulosBody.querySelectorAll('.remove-row-btn').forEach(el => el.style.display = 'none');
 
               // Default to 30 days if empty
-              const dataPrimeiroVencimento = document.getElementById('dataPrimeiroVencimento');
-              if(!dataPrimeiroVencimento.value) {
+              if(!dataPrimeiroVencimentoInput.value) {
                   const today = new Date();
                   today.setDate(today.getDate() + 30);
-                  dataPrimeiroVencimento.value = today.toISOString().split('T')[0];
+                  dataPrimeiroVencimentoInput.value = today.toISOString().split('T')[0];
               }
+              syncQuantidadeParcelasComFrequencia();
               
               updateModoFlexivel(); // Inicializa os campos da calc flexível
 
           } else {
               emprestimoParamsSection.style.display = 'none';
               addTituloBtn.style.display = 'inline-block';
+              posicionarCamposLayoutEmprestimo();
+              syncGarantiaVisibility();
+              resetVisualModoFlexivel();
 
               labelTaxa.textContent = 'Taxa de Desconto (% a.m.)';
               legendTitulos.textContent = 'Títulos a Descontar';
@@ -926,8 +1153,8 @@ try {
       document.getElementById('btnGerarParcelas').addEventListener('click', function() {
           const pv = parseFloat(document.getElementById('valorEmprestimo').value);
           const freq = document.getElementById('frequenciaParcelas').value;
-          const qtd = parseInt(document.getElementById('quantidadeParcelas').value);
-          const dataInicio = document.getElementById('dataPrimeiroVencimento').value;
+          const qtd = freq === 'pagamento_unico' ? 1 : parseInt(document.getElementById('quantidadeParcelas').value, 10);
+          const dataInicio = dataPrimeiroVencimentoInput.value;
           const taxaMensal = parseFloat(taxaMensalInput.value) / 100;
           const tomadorId = document.getElementById('tomador').value;
           // Novo: Pega a parcela do input caso já calculada e usar como fallback
@@ -937,32 +1164,23 @@ try {
           if (!qtd || isNaN(qtd) || qtd <= 0) { alert('Informe uma quantidade de parcelas válida.'); return; }
           if (!dataInicio) { alert('Informe a data do 1º vencimento.'); return; }
           if (isNaN(taxaMensal) || taxaMensal < 0) { alert('Informe uma taxa mensal válida.'); return; }
-
-          let i = taxaMensal; // default mensal
-          let diasIntervalo = 30;
-          if (freq === 'quinzenal') {
-              i = Math.pow(1 + taxaMensal, 15/30) - 1;
-              diasIntervalo = 15;
-          } else if (freq === 'semanal') {
-              i = Math.pow(1 + taxaMensal, 7/30) - 1;
-              diasIntervalo = 7;
+          
+          const schedule = buildEmprestimoSchedule(dataOperacaoInput.value, dataInicio, qtd, freq);
+          if (schedule.days.length !== qtd || schedule.days.some(days => days < 0)) {
+              alert('A data do 1º vencimento deve ser igual ou posterior à data base de cálculo.');
+              return;
           }
 
           let pmt = 0;
           if (pmtCalculadaFlex > 0) {
               pmt = pmtCalculadaFlex;
           } else {
-              if (i === 0) {
-                  pmt = pv / qtd;
-              } else {
-                  pmt = pv * (i / (1 - Math.pow(1 + i, -qtd)));
-              }
+              pmt = calculatePMTFromDays(taxaMensal, schedule.days, pv);
           }
 
           // Clear table
           titulosBody.innerHTML = '';
           
-          let dataAtual = new Date(dataInicio + 'T00:00:00');
           for (let step = 0; step < qtd; step++) {
               const nR = tituloTemplateRow.cloneNode(true);
               nR.removeAttribute('id');
@@ -972,7 +1190,7 @@ try {
               nR.querySelector('.valor-original').value = pmt.toFixed(2);
               
               // Set date
-              nR.querySelector('.data-vencimento').value = dataAtual.toISOString().split('T')[0];
+              nR.querySelector('.data-vencimento').value = schedule.dates[step].toISOString().split('T')[0];
               
               // Set tipo_recebivel to parcela_emprestimo
               nR.querySelector('.tipo-recebivel-select').value = 'parcela_emprestimo';
@@ -992,13 +1210,6 @@ try {
               if(rB) rB.style.display = 'none';
 
               titulosBody.appendChild(nR);
-              
-              // Increment date
-              if (freq === 'mensal') {
-                  dataAtual.setMonth(dataAtual.getMonth() + 1);
-              } else {
-                  dataAtual.setDate(dataAtual.getDate() + diasIntervalo);
-              }
           }
           
           // Trigger calculation

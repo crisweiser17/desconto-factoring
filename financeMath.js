@@ -26,6 +26,27 @@ function calculatePV(rate, nper, pmt) {
     return pmt * ((1 - Math.pow(1 + rate, -nper)) / rate);
 }
 
+function calculateDiscountFactorSum(rate, daysArray) {
+    return daysArray.reduce((sum, days) => {
+        return sum + Math.pow(1 + rate, -(days / 30));
+    }, 0);
+}
+
+function calculatePMTFromDays(rate, daysArray, pv) {
+    if (!Array.isArray(daysArray) || daysArray.length === 0) return 0;
+    if (rate === 0) return pv / daysArray.length;
+
+    const factorSum = calculateDiscountFactorSum(rate, daysArray);
+    return factorSum > 0 ? pv / factorSum : 0;
+}
+
+function calculatePVFromDays(rate, daysArray, pmt) {
+    if (!Array.isArray(daysArray) || daysArray.length === 0) return 0;
+    if (rate === 0) return pmt * daysArray.length;
+
+    return pmt * calculateDiscountFactorSum(rate, daysArray);
+}
+
 /**
  * Calcula a Taxa de Juros (RATE) usando o método de Newton-Raphson
  * Resolve a equação: PV * r - PMT * (1 - (1+r)^-n) = 0
@@ -58,7 +79,59 @@ function calculateRATE(nper, pmt, pv, guess = 0.1) {
     return null; // Não convergiu
 }
 
+function calculateRATEFromDays(daysArray, pmt, pv, guess = 0.1) {
+    if (!Array.isArray(daysArray) || daysArray.length === 0) return null;
+
+    const maxIter = 100;
+    const tol = 1e-7;
+    let r = guess;
+
+    for (let i = 0; i < maxIter; i++) {
+        let factorSum = 0;
+        let derivativeSum = 0;
+
+        for (const days of daysArray) {
+            const exponent = days / 30;
+            const base = 1 + r;
+
+            if (base <= 0) return null;
+
+            factorSum += Math.pow(base, -exponent);
+            derivativeSum += -exponent * Math.pow(base, -exponent - 1);
+        }
+
+        const f = pmt * factorSum - pv;
+        const df = pmt * derivativeSum;
+
+        if (Math.abs(df) < tol) {
+            return null;
+        }
+
+        const rNext = r - (f / df);
+
+        if (!Number.isFinite(rNext) || rNext <= -0.999999) {
+            return null;
+        }
+
+        if (Math.abs(rNext - r) < tol) {
+            return rNext;
+        }
+
+        r = rNext;
+    }
+
+    return null;
+}
+
 // Export para uso em testes (Node.js) se module for definido
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { calculatePMT, calculatePV, calculateRATE };
+    module.exports = {
+        calculatePMT,
+        calculatePV,
+        calculateRATE,
+        calculateDiscountFactorSum,
+        calculatePMTFromDays,
+        calculatePVFromDays,
+        calculateRATEFromDays,
+    };
 }

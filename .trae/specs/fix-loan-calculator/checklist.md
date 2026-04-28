@@ -1,0 +1,8 @@
+- [x] Opção "Pagamento Único" adicionada ao select de frequência
+- [x] Label "Qtd. de parcelas" renomeado para "Num. de parcelas"
+- [x] Campo de taxa de juros movido para dentro do fieldset de empréstimo
+- [x] Campo de parcelas desabilitado quando "Pagamento Único" é selecionado
+- [x] Cálculo de juros corrigido para vencimentos > 30 dias
+- [x] Tratamento especial para dias=0 removido de calculate.php
+- [x] Testes realizados com diferentes cenários de vencimento
+- [x] Consistência entre frontend e backend verificada

@@ -209,8 +209,12 @@ if (!$error) {
 
             // Cálculo Valor Presente
             $valorPresenteTitulo = $valorOriginalTitulo;
-            if ($dias > 0 && (1 + $taxaMensal) > 1e-9) { $valorPresenteTitulo = $valorOriginalTitulo / pow(1 + $taxaMensal, $dias / 30.0); }
-            elseif ($dias > 0) { $error = $error ?? 'Taxa inválida.'; $valorPresenteTitulo = 0; }
+            if ((1 + $taxaMensal) > 0) {
+                $valorPresenteTitulo = $valorOriginalTitulo / pow(1 + $taxaMensal, $dias / 30.0);
+            } else {
+                $error = $error ?? 'Taxa inválida.';
+                $valorPresenteTitulo = 0;
+            }
 
             // Acumula totais primeiro (sem IOF ainda)
             $totalOriginal += $valorOriginalTitulo;
