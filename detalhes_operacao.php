@@ -799,6 +799,59 @@ if ($operacao && !isset($error_message)) {
                 </div>
             <?php endif; ?>
 
+            <!-- Seção de Contratos e Assinaturas -->
+            <div class="card mb-4" id="contratosCard">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Contratos e Assinaturas</h5>
+                    <div>
+                        <?php 
+                        $statusRaw = $operacao['status_contrato'] ?? 'pendente';
+                        $statusMap = [
+                            'aguardando_assinatura' => 'Aguardando Assinatura',
+                            'assinado' => 'Assinado',
+                            'pendente' => 'Pendente'
+                        ];
+                        $statusDisplay = $statusMap[$statusRaw] ?? ucfirst($statusRaw);
+                        $badgeClass = ($statusRaw === 'assinado') ? 'bg-success' : 'bg-warning text-dark';
+                        ?>
+                        <span class="badge <?php echo $badgeClass; ?>" id="statusContratoBadge">
+                            Status: <?php echo htmlspecialchars($statusDisplay); ?>
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-primary btn-sm me-2" id="btnGerarContratos">
+                            <i class="bi bi-file-earmark-text"></i> Gerar Contratos
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" id="btnAnexarAssinado">
+                            <i class="bi bi-upload"></i> Anexar Assinado
+                        </button>
+                        <input type="file" id="inputAnexarAssinado" accept=".pdf" style="display: none;">
+                    </div>
+                    
+                    <div id="contratosLoading" class="text-center my-3" style="display: none;">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div> Carregando documentos...
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle" id="tabelaContratos" style="display: none;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Documento</th>
+                                    <th>Data</th>
+                                    <th class="text-end">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="listaContratos">
+                                <!-- Preenchido via AJAX -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="contratosVazio" class="text-muted small">Nenhum contrato gerado ou anexado ainda.</div>
+                </div>
+            </div>
+
             <!-- Seção de Arquivos da Operação -->
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -921,6 +974,222 @@ if ($operacao && !isset($error_message)) {
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Modal para Gerar Contratos -->
+            <div class="modal fade" id="modalGerarContrato" tabindex="-1" aria-labelledby="modalGerarContratoLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalGerarContratoLabel">Gerar Contratos</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="formGerarContrato">
+                                <input type="hidden" name="operacao_id" value="<?php echo htmlspecialchars($operacao_id); ?>">
+                                
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Natureza da Operação</label>
+                                        <select class="form-select" name="natureza" id="modalNatureza" required>
+                                            <option value="">Selecione...</option>
+                                            <option value="EMPRESTIMO" <?php echo ($operacao['natureza'] ?? '') === 'EMPRESTIMO' ? 'selected' : ''; ?>>Empréstimo</option>
+                                            <option value="DESCONTO" <?php echo ($operacao['natureza'] ?? '') === 'DESCONTO' ? 'selected' : ''; ?>>Desconto (Cessão)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Porte do Cliente (Cedente)</label>
+                                        <?php 
+                                            // Buscar porte atual do cedente se possível, para pré-selecionar
+                                            $porteAtual = '';
+                                            if ($operacao['cedente_id']) {
+                                                try {
+                                                    $stmt_ced = $pdo->prepare("SELECT porte FROM cedentes WHERE id = ?");
+                                                    $stmt_ced->execute([$operacao['cedente_id']]);
+                                                    $porteAtual = $stmt_ced->fetchColumn();
+                                                } catch (Exception $e) {}
+                                            }
+                                        ?>
+                                        <select class="form-select" name="porte_cliente" id="modalPorteCliente" required>
+                                            <option value="">Selecione...</option>
+                                            <option value="MEI" <?php echo $porteAtual === 'MEI' ? 'selected' : ''; ?>>MEI</option>
+                                            <option value="ME" <?php echo $porteAtual === 'ME' ? 'selected' : ''; ?>>ME</option>
+                                            <option value="EPP" <?php echo $porteAtual === 'EPP' ? 'selected' : ''; ?>>EPP</option>
+                                        </select>
+                                        <div class="form-text text-muted small"><i class="bi bi-info-circle"></i> Nota: LTDA é a Natureza Jurídica. Escolha o porte correspondente (ME, EPP). LC 167 restringe a MEI, ME e EPP.</div>
+                                    </div>
+                                    <div class="col-md-12" id="garantiaToggleSection" style="display: none;">
+                                        <label class="form-label fw-bold">Possui Garantia?</label>
+                                        <select class="form-select" name="tem_garantia" id="modalTemGarantia">
+                                            <option value="com_veiculo_com_avalista">Com Veículo e Com Avalista</option>
+                                            <option value="sem_veiculo_sem_avalista" selected>Sem Veículo e Sem Avalista</option>
+                                            <option value="com_veiculo_sem_avalista">Com Veículo e Sem Avalista</option>
+                                            <option value="sem_veiculo_com_avalista">Sem Veículo e Com Avalista</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="garantiasContainer" style="display: none;">
+                                    <!-- Secao Avalista -->
+                                    <div id="avalistaContainer" style="display: none;">
+                                        <h6 class="border-bottom pb-2 mb-3">Dados do Avalista</h6>
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Nome Completo</label>
+                                                <input type="text" class="form-control req-avalista" name="avalista_nome">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">CPF</label>
+                                                <input type="text" class="form-control req-avalista cpf-mask" name="avalista_cpf" placeholder="000.000.000-00">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">RG</label>
+                                                <input type="text" class="form-control req-avalista" name="avalista_rg">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Nacionalidade</label>
+                                                <input type="text" class="form-control req-avalista" name="avalista_nacionalidade" value="brasileiro(a)">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Estado Civil</label>
+                                                <select class="form-select req-avalista" name="avalista_estado_civil" id="avalistaEstadoCivil">
+                                                    <option value="Solteiro(a)">Solteiro(a)</option>
+                                                    <option value="Casado(a)">Casado(a)</option>
+                                                    <option value="Divorciado(a)">Divorciado(a)</option>
+                                                    <option value="Viúvo(a)">Viúvo(a)</option>
+                                                    <option value="União Estável">União Estável</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Profissão</label>
+                                                <input type="text" class="form-control req-avalista" name="avalista_profissao">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label">Endereço Completo</label>
+                                                <input type="text" class="form-control req-avalista" name="avalista_endereco">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">E-mail</label>
+                                                <input type="email" class="form-control req-avalista" name="avalista_email">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">WhatsApp</label>
+                                                <input type="text" class="form-control req-avalista phone-mask" name="avalista_whatsapp" placeholder="(00) 00000-0000">
+                                            </div>
+                                        </div>
+
+                                        <div id="conjugeSection" style="display: none;">
+                                            <h6 class="border-bottom pb-2 mb-3">Dados do Cônjuge (Anuente)</h6>
+                                            <div class="row g-3 mb-4">
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Regime de Casamento</label>
+                                                    <select class="form-select req-conjuge" name="avalista_regime_casamento">
+                                                        <option value="">Selecione...</option>
+                                                        <option value="Comunhão Parcial de Bens">Comunhão Parcial de Bens</option>
+                                                        <option value="Comunhão Universal de Bens">Comunhão Universal de Bens</option>
+                                                        <option value="Separação Total de Bens">Separação Total de Bens</option>
+                                                        <option value="Participação Final nos Aquestos">Participação Final nos Aquestos</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Nome do Cônjuge</label>
+                                                    <input type="text" class="form-control req-conjuge" name="avalista_conjuge_nome">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">CPF do Cônjuge</label>
+                                                    <input type="text" class="form-control req-conjuge cpf-mask" name="avalista_conjuge_cpf" placeholder="000.000.000-00">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Secao Veículo -->
+                                    <div id="veiculoContainer" style="display: none;">
+                                        <h6 class="border-bottom pb-2 mb-3">Dados do Veículo (Garantia Mútuo)</h6>
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-3">
+                                                <label class="form-label">Marca</label>
+                                                <input type="text" class="form-control req-veiculo" name="veiculo_marca">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <label class="form-label">Modelo</label>
+                                                <input type="text" class="form-control req-veiculo" name="veiculo_modelo">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Ano Fab.</label>
+                                                <input type="number" class="form-control req-veiculo" name="veiculo_ano_fab">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Ano Mod.</label>
+                                                <input type="number" class="form-control" name="veiculo_ano_mod">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Cor</label>
+                                                <input type="text" class="form-control req-veiculo" name="veiculo_cor">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Placa</label>
+                                                <input type="text" class="form-control req-veiculo" name="veiculo_placa">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <label class="form-label">RENAVAM</label>
+                                                <input type="text" class="form-control req-veiculo" name="veiculo_renavam">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <label class="form-label">Chassi</label>
+                                                <input type="text" class="form-control req-veiculo" name="veiculo_chassi">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <label class="form-label">Município de Registro</label>
+                                                <input type="text" class="form-control req-veiculo" name="veiculo_municipio_registro">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">UF</label>
+                                                <input type="text" class="form-control req-veiculo" name="veiculo_uf" maxlength="2">
+                                            </div>
+                                            <div class="col-md-12">
+                                                <label class="form-label">Valor de Avaliação (R$)</label>
+                                                <input type="number" step="0.01" class="form-control req-veiculo" name="veiculo_valor_avaliacao">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="gerarContratoError" class="alert alert-danger" style="display: none;"></div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" id="btnConfirmarGerarContratos">
+                                <i class="bi bi-file-earmark-check"></i> Confirmar e Gerar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal para Excluir Contrato -->
+            <div class="modal fade" id="modalExcluirContrato" tabindex="-1" aria-labelledby="modalExcluirContratoLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title" id="modalExcluirContratoLabel"><i class="bi bi-exclamation-triangle-fill"></i> Confirmar Exclusão</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Tem certeza que deseja apagar o seguinte documento?</p>
+                            <p class="fw-bold" id="excluirContratoNome"></p>
+                            <p class="text-danger small mb-0"><i class="bi bi-info-circle"></i> Esta ação removerá o arquivo fisicamente do servidor e não pode ser desfeita. O status da operação será recalculado automaticamente.</p>
+                            <input type="hidden" id="excluirContratoId">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-danger" id="btnConfirmarExcluirContrato">
+                                <i class="bi bi-trash"></i> Sim, Apagar Arquivo
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1834,6 +2103,323 @@ if ($operacao && !isset($error_message)) {
             });
         }
     }
+
+    // --- Lógica de Contratos e Assinaturas ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnGerarContratos = document.getElementById('btnGerarContratos');
+        const btnAnexarAssinado = document.getElementById('btnAnexarAssinado');
+        const inputAnexarAssinado = document.getElementById('inputAnexarAssinado');
+        const listaContratos = document.getElementById('listaContratos');
+        const tabelaContratos = document.getElementById('tabelaContratos');
+        const contratosVazio = document.getElementById('contratosVazio');
+        const contratosLoading = document.getElementById('contratosLoading');
+        const statusContratoBadge = document.getElementById('statusContratoBadge');
+        
+        let modalExcluirContrato = null;
+        if (document.getElementById('modalExcluirContrato')) {
+            modalExcluirContrato = new bootstrap.Modal(document.getElementById('modalExcluirContrato'));
+        }
+        
+        // Event delegation para os botões de excluir contrato
+        listaContratos.addEventListener('click', function(e) {
+            const btnExcluir = e.target.closest('.btn-excluir-contrato');
+            if (btnExcluir) {
+                const docId = btnExcluir.getAttribute('data-id');
+                const docNome = btnExcluir.getAttribute('data-nome');
+                
+                document.getElementById('excluirContratoId').value = docId;
+                document.getElementById('excluirContratoNome').textContent = docNome;
+                
+                if (modalExcluirContrato) {
+                    modalExcluirContrato.show();
+                }
+            }
+        });
+
+        const btnConfirmarExcluirContrato = document.getElementById('btnConfirmarExcluirContrato');
+        if (btnConfirmarExcluirContrato) {
+            btnConfirmarExcluirContrato.addEventListener('click', function() {
+                const docId = document.getElementById('excluirContratoId').value;
+                if (!docId) return;
+
+                const originalHtml = this.innerHTML;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Apagando...';
+                this.disabled = true;
+
+                const formData = new FormData();
+                formData.append('operacao_id', operacaoId);
+                formData.append('documento_id', docId);
+
+                fetch('api_contratos.php?action=delete', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Contrato apagado com sucesso!');
+                        modalExcluirContrato.hide();
+                        carregarContratos();
+                    } else {
+                        alert('Erro ao apagar contrato: ' + (data.error || data.message || 'Erro desconhecido'));
+                    }
+                })
+                .catch(error => {
+                    alert('Erro na requisição: ' + error.message);
+                })
+                .finally(() => {
+                    this.innerHTML = originalHtml;
+                    this.disabled = false;
+                });
+            });
+        }
+        
+        function carregarContratos() {
+            contratosLoading.style.display = 'block';
+            tabelaContratos.style.display = 'none';
+            contratosVazio.style.display = 'none';
+            
+            fetch('api_contratos.php?action=listar&operacao_id=' + operacaoId)
+            .then(response => response.json())
+            .then(data => {
+                contratosLoading.style.display = 'none';
+                if (data.success && data.documentos && data.documentos.length > 0) {
+                    listaContratos.innerHTML = '';
+                    data.documentos.forEach(doc => {
+                        const tr = document.createElement('tr');
+                        
+                        let icone = 'bi-file-earmark-text';
+                        let cor = 'text-primary';
+                        if (doc.nome_arquivo.toLowerCase().endsWith('.pdf')) {
+                            icone = 'bi-file-earmark-pdf-fill';
+                            cor = 'text-danger';
+                        }
+                        
+                        tr.innerHTML = `
+                            <td><i class="bi ${icone} ${cor}"></i> <a href="${doc.caminho_arquivo}" target="_blank" class="text-decoration-none">${doc.nome_arquivo}</a></td>
+                            <td>${doc.data_geracao || '-'}</td>
+                            <td class="text-end text-nowrap">
+                                <a href="${doc.caminho_arquivo}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Visualizar/Baixar"><i class="bi bi-download"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-1 btn-excluir-contrato" data-id="${doc.id}" data-nome="${doc.nome_arquivo}" title="Excluir Arquivo"><i class="bi bi-trash"></i></button>
+                            </td>
+                        `;
+                        listaContratos.appendChild(tr);
+                    });
+                    tabelaContratos.style.display = 'table';
+                } else {
+                    contratosVazio.style.display = 'block';
+                }
+                
+                // Atualizar o status no badge se retornado
+                if (data.status_contrato) {
+                    const statusMap = {
+                        'aguardando_assinatura': 'Aguardando Assinatura',
+                        'assinado': 'Assinado',
+                        'pendente': 'Pendente'
+                    };
+                    const statusDisplay = statusMap[data.status_contrato] || data.status_contrato;
+                    statusContratoBadge.textContent = 'Status: ' + statusDisplay;
+                    statusContratoBadge.className = 'badge ' + (data.status_contrato === 'assinado' ? 'bg-success' : 'bg-warning text-dark');
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar contratos:', error);
+                contratosLoading.style.display = 'none';
+                contratosVazio.innerHTML = '<span class="text-danger">Erro ao carregar os documentos.</span>';
+                contratosVazio.style.display = 'block';
+            });
+        }
+
+        if (btnGerarContratos) {
+            btnGerarContratos.addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('modalGerarContrato'));
+                modal.show();
+                
+                // Trigger change to set initial visibility
+                document.getElementById('modalNatureza').dispatchEvent(new Event('change'));
+                document.getElementById('avalistaEstadoCivil').dispatchEvent(new Event('change'));
+            });
+        }
+        
+        // CPF/CNPJ Mask function
+        function applyCpfCnpjMask(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                // CPF
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            } else {
+                // CNPJ
+                if (value.length > 14) value = value.slice(0, 14);
+                value = value.replace(/(\d{2})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1/$2');
+                value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+            }
+            input.value = value;
+        }
+
+        document.querySelectorAll('.cpf-mask, .cnpj-mask').forEach(input => {
+            input.addEventListener('input', function() {
+                applyCpfCnpjMask(this);
+            });
+        });
+
+        // Show/hide sections based on selections
+        document.getElementById('modalNatureza').addEventListener('change', function() {
+            const garantiaToggleSection = document.getElementById('garantiaToggleSection');
+            const garantiasContainer = document.getElementById('garantiasContainer');
+            
+            if (this.value === 'EMPRESTIMO') {
+                garantiaToggleSection.style.display = 'block';
+                // Trigger the toggle change event to set correct visibility and required fields
+                document.getElementById('modalTemGarantia').dispatchEvent(new Event('change'));
+            } else {
+                garantiaToggleSection.style.display = 'none';
+                garantiasContainer.style.display = 'none';
+                // Remove all required from garantias
+                garantiasContainer.querySelectorAll('.req-avalista, .req-veiculo, .req-conjuge').forEach(input => input.required = false);
+            }
+        });
+
+        document.getElementById('modalTemGarantia').addEventListener('change', function() {
+            const garantiasContainer = document.getElementById('garantiasContainer');
+            const avalistaContainer = document.getElementById('avalistaContainer');
+            const veiculoContainer = document.getElementById('veiculoContainer');
+            
+            // Default: hide both
+            garantiasContainer.style.display = 'none';
+            avalistaContainer.style.display = 'none';
+            veiculoContainer.style.display = 'none';
+            
+            // Remove required
+            avalistaContainer.querySelectorAll('.req-avalista, .req-conjuge').forEach(input => input.required = false);
+            veiculoContainer.querySelectorAll('.req-veiculo').forEach(input => input.required = false);
+
+            if (this.value === 'com_veiculo_com_avalista') {
+                garantiasContainer.style.display = 'block';
+                avalistaContainer.style.display = 'block';
+                veiculoContainer.style.display = 'block';
+                avalistaContainer.querySelectorAll('.req-avalista').forEach(input => input.required = true);
+                veiculoContainer.querySelectorAll('.req-veiculo').forEach(input => input.required = true);
+            } else if (this.value === 'com_veiculo_sem_avalista') {
+                garantiasContainer.style.display = 'block';
+                veiculoContainer.style.display = 'block';
+                veiculoContainer.querySelectorAll('.req-veiculo').forEach(input => input.required = true);
+            } else if (this.value === 'sem_veiculo_com_avalista') {
+                garantiasContainer.style.display = 'block';
+                avalistaContainer.style.display = 'block';
+                avalistaContainer.querySelectorAll('.req-avalista').forEach(input => input.required = true);
+            }
+
+            // Always trigger conjuge update if avalista is visible
+            document.getElementById('avalistaEstadoCivil').dispatchEvent(new Event('change'));
+        });
+
+        document.getElementById('avalistaEstadoCivil').addEventListener('change', function() {
+            const conjugeSection = document.getElementById('conjugeSection');
+            const isAvalistaVisible = document.getElementById('avalistaContainer').style.display !== 'none';
+            
+            if ((this.value === 'Casado(a)' || this.value === 'União Estável') && isAvalistaVisible) {
+                conjugeSection.style.display = 'block';
+                conjugeSection.querySelectorAll('.req-conjuge').forEach(input => input.required = true);
+            } else {
+                conjugeSection.style.display = 'none';
+                conjugeSection.querySelectorAll('.req-conjuge').forEach(input => input.required = false);
+            }
+        });
+
+        const btnConfirmarGerarContratos = document.getElementById('btnConfirmarGerarContratos');
+        if (btnConfirmarGerarContratos) {
+            btnConfirmarGerarContratos.addEventListener('click', function() {
+                const form = document.getElementById('formGerarContrato');
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+
+                const originalHtml = this.innerHTML;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Gerando...';
+                this.disabled = true;
+
+                const formData = new FormData(form);
+
+                fetch('api_contratos.php?action=gerar', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Contratos gerados com sucesso!');
+                        bootstrap.Modal.getInstance(document.getElementById('modalGerarContrato')).hide();
+                        carregarContratos();
+                    } else {
+                        const errorDiv = document.getElementById('gerarContratoError');
+                        errorDiv.textContent = 'Erro ao gerar contratos: ' + (data.error || data.message || 'Erro desconhecido');
+                        errorDiv.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    const errorDiv = document.getElementById('gerarContratoError');
+                    errorDiv.textContent = 'Erro na requisição: ' + error.message;
+                    errorDiv.style.display = 'block';
+                })
+                .finally(() => {
+                    this.innerHTML = originalHtml;
+                    this.disabled = false;
+                });
+            });
+        }
+
+        if (btnAnexarAssinado && inputAnexarAssinado) {
+            btnAnexarAssinado.addEventListener('click', function() {
+                inputAnexarAssinado.click();
+            });
+
+            inputAnexarAssinado.addEventListener('change', function() {
+                if (this.files && this.files.length > 0) {
+                    const file = this.files[0];
+                    
+                    const originalHtml = btnAnexarAssinado.innerHTML;
+                    btnAnexarAssinado.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enviando...';
+                    btnAnexarAssinado.disabled = true;
+
+                    const formData = new FormData();
+                    formData.append('operacao_id', operacaoId);
+                    formData.append('contrato_assinado', file);
+
+                    fetch('api_contratos.php?action=upload', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Documento assinado anexado com sucesso!');
+                            carregarContratos();
+                        } else {
+                            alert('Erro ao enviar documento: ' + (data.error || data.message || 'Erro desconhecido'));
+                        }
+                    })
+                    .catch(error => {
+                        alert('Erro na requisição: ' + error.message);
+                    })
+                    .finally(() => {
+                        btnAnexarAssinado.innerHTML = originalHtml;
+                        btnAnexarAssinado.disabled = false;
+                        inputAnexarAssinado.value = '';
+                    });
+                }
+            });
+        }
+        
+        // Carregar na inicialização
+        if (typeof operacaoId !== 'undefined') {
+            carregarContratos();
+        }
+    });
     </script>
 </body>
 </html>

@@ -1,0 +1,5 @@
+- [x] O select de Garantias em `detalhes_operacao.php` exibe as 4 opções solicitadas.
+- [x] Ao selecionar opções com/sem Veículo, o bloco de formulário do Veículo aparece/desaparece corretamente e a validação `required` acompanha o estado.
+- [x] Ao selecionar opções com/sem Avalista, o bloco de formulário do Avalista aparece/desaparece corretamente e a validação `required` acompanha o estado.
+- [x] O arquivo `api_contratos.php` reconhece as 4 opções do POST `tem_garantia` e carrega o template `.md` exato que foi solicitado na tela (sem depender apenas da presença do texto).
+- [x] O backend não insere dados em branco em `operation_vehicles` ou `operation_guarantors` quando a opção correspondente não é selecionada.

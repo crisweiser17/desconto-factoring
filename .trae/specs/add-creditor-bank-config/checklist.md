@@ -1,0 +1,4 @@
+- [x] As variáveis bancárias do credor (`conta_titular`, `conta_documento`, `conta_banco`, `conta_agencia`, `conta_numero`, `conta_tipo`, `conta_pix`) são lidas, validadas e gravadas em `config.json` via interface do `config.php`.
+- [x] O formulário na interface de Configurações possui uma seção distinta para "Dados Bancários de Recebimento".
+- [x] A geração de contratos e borderôs (`api_contratos.php`) lê essas variáveis de `config.json` e popula o array `$data['credor']['conta']` no Mustache.
+- [x] Os dados estáticos ("Banco do Brasil", "0001", etc.) foram removidos do código de geração de contratos.

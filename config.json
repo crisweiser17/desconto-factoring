@@ -1,5 +1,21 @@
 {
+    "app_name": "Factoring",
+    "app_version": "5.2 de abril de 2026",
     "default_taxa_mensal": 5.5,
     "iof_adicional_rate": 0.0038,
-    "iof_diaria_rate": 8.2e-5
+    "iof_diaria_rate": 8.2e-5,
+    "resend_api_key": "",
+    "resend_from_name": "Notifica\u00e7\u00f5es",
+    "resend_from_email": "notificacoes@seudominio.com",
+    "resend_cc_email": "",
+    "resend_bcc_email": "",
+    "email_subject": "Notifica\u00e7\u00e3o de Cess\u00e3o de Cr\u00e9dito - Border\u00f4 #[BORDERO_NUMERO]",
+    "email_template": "<h2><strong>NOTIFICA\u00c7\u00c3O DE CESS\u00c3O DE CR\u00c9DITO<\/strong><\/h2><p><strong>Cedente:<\/strong> [CEDENTE_NOME] \/ [CEDENTE_CNPJ]<\/p><p><strong>Cession\u00e1rio:<\/strong> SUA EMPRESA FACTORING \/ 00.000.000\/0001-00<\/p><p><strong>Sacado (Devedor):<\/strong> [SACADO_NOME] \/ [SACADO_CNPJ]<\/p><p><strong>Assunto: Cess\u00e3o de Cr\u00e9dito \u2013 Art. 290 do C\u00f3digo Civil<\/strong><\/p><p>Prezado(a),<\/p><p>Informamos que os cr\u00e9ditos representados pelas duplicatas abaixo foram <strong>cedidos<\/strong> ao Cession\u00e1rio acima identificado, por meio de opera\u00e7\u00e3o de desconto.<\/p><p>Nos termos do Art. 290 do C\u00f3digo Civil, esta notifica\u00e7\u00e3o torna a cess\u00e3o eficaz perante V.Sa.<\/p><p><br><\/p><h3><strong>Border\u00f4<\/strong><\/h3><p>N\u00ba: [BORDERO_NUMERO]<\/p><p>Data: [BORDERO_DATA]<\/p><p>Valor Total: [BORDERO_VALOR]<\/p><h3><strong>T\u00edtulos Cedidos<\/strong><\/h3><p>[TABELA_TITULOS]<\/p><p><br><\/p><h3><strong>Pagamento<\/strong><\/h3><p>A partir do recebimento desta, <strong>os pagamentos dever\u00e3o ser feitos exclusivamente ao Cession\u00e1rio<\/strong>:<\/p><p>Banco: SEU BANCO<\/p><p>Ag\u00eancia: 0000<\/p><p>Conta: 00000-0<\/p><p>Favorecido: SUA EMPRESA FACTORING<\/p><p>CNPJ: 00.000.000\/0001-00<\/p><p>PIX: sua-chave-pix<\/p><h3><strong>Importante<\/strong><\/h3><ul><li>Pagamento ao Cedente ap\u00f3s esta notifica\u00e7\u00e3o <strong>n\u00e3o ter\u00e1 efeito liberat\u00f3rio<\/strong>.<\/li><li>A obriga\u00e7\u00e3o de pagamento permanece v\u00e1lida independentemente de concord\u00e2ncia com a cess\u00e3o.<\/li><\/ul><p><strong>Local e Data:<\/strong> [CIDADE_DATA]<\/p><p><strong>Cedente:<\/strong> _________________________<\/p><p><strong>Cession\u00e1rio:<\/strong> _________________________<\/p>",
+    "conta_titular": "ACM Empresa Simples de Cr\u00e9dito",
+    "conta_documento": "63.530.897\/0001-85",
+    "conta_banco": "Banco Ita\u00fa",
+    "conta_agencia": "2633",
+    "conta_numero": "97323-1",
+    "conta_tipo": "Corrente",
+    "conta_pix": "itau@acmcredito.com.br"
 }

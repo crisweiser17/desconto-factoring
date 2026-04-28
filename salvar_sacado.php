@@ -6,6 +6,7 @@ $sacadoId = isset($_POST['id']) ? (int)$_POST['id'] : null;
 $empresa = trim($_POST['empresa'] ?? '');
 $email = trim($_POST['email'] ?? '');
 $telefone = trim($_POST['telefone'] ?? '');
+$whatsapp = trim($_POST['whatsapp'] ?? '');
 $endereco = trim($_POST['endereco'] ?? '');
 $tipoPessoa = isset($_POST['tipo_pessoa']) ? strtoupper(trim($_POST['tipo_pessoa'])) : 'JURIDICA';
 if (!in_array($tipoPessoa, ['FISICA', 'JURIDICA'])) {
@@ -20,6 +21,35 @@ $complemento = trim($_POST['complemento'] ?? '');
 $bairro = trim($_POST['bairro'] ?? '');
 $cidade = trim($_POST['cidade'] ?? '');
 $estado = trim($_POST['estado'] ?? '');
+
+// Novos campos adicionados
+$porte = trim($_POST['porte'] ?? '');
+$possui_cnpj_mei = isset($_POST['possui_cnpj_mei']) ? 1 : 0;
+$representante_nome = trim($_POST['representante_nome'] ?? '');
+$representante_cpf = trim($_POST['representante_cpf'] ?? '');
+$representante_rg = trim($_POST['representante_rg'] ?? '');
+$representante_nacionalidade = trim($_POST['representante_nacionalidade'] ?? 'brasileiro(a)');
+$representante_estado_civil = trim($_POST['representante_estado_civil'] ?? '');
+$representante_profissao = trim($_POST['representante_profissao'] ?? '');
+$representante_endereco = trim($_POST['representante_endereco'] ?? '');
+
+// Cônjuge
+$casado = isset($_POST['casado']) ? 1 : 0;
+$regime_casamento = trim($_POST['regime_casamento'] ?? '');
+$conjuge_nome = trim($_POST['conjuge_nome'] ?? '');
+$conjuge_cpf = trim($_POST['conjuge_cpf'] ?? '');
+$conjuge_rg = trim($_POST['conjuge_rg'] ?? '');
+$conjuge_nacionalidade = trim($_POST['conjuge_nacionalidade'] ?? '');
+$conjuge_profissao = trim($_POST['conjuge_profissao'] ?? '');
+
+// Dados bancários
+$conta_banco = trim($_POST['conta_banco'] ?? '');
+$conta_agencia = trim($_POST['conta_agencia'] ?? '');
+$conta_numero = trim($_POST['conta_numero'] ?? '');
+$conta_tipo = trim($_POST['conta_tipo'] ?? '');
+$conta_pix = trim($_POST['conta_pix'] ?? '');
+$conta_titular = trim($_POST['conta_titular'] ?? '');
+$conta_documento = trim($_POST['conta_documento'] ?? '');
 
 // Documento principal (CPF/CNPJ)
 $documentoPrincipal = preg_replace('/\D/', '', trim($_POST['documento_principal'] ?? ''));
@@ -86,6 +116,7 @@ try {
                                 empresa = :empresa,
                                 email = :email,
                                 telefone = :telefone,
+                                whatsapp = :whatsapp,
                                 tipo_pessoa = :tipo_pessoa,
                                 documento_principal = :documento_principal,
                                 endereco = :endereco,
@@ -96,17 +127,54 @@ try {
                                 bairro = :bairro,
                                 cidade = :cidade,
                                 estado = :estado,
-                                nome = :nome
+                                nome = :nome,
+                                porte = :porte,
+                                possui_cnpj_mei = :possui_cnpj_mei,
+                                representante_nome = :representante_nome,
+                                representante_cpf = :representante_cpf,
+                                representante_rg = :representante_rg,
+                                representante_nacionalidade = :representante_nacionalidade,
+                                representante_estado_civil = :representante_estado_civil,
+                                representante_profissao = :representante_profissao,
+                                representante_endereco = :representante_endereco,
+                                casado = :casado,
+                                regime_casamento = :regime_casamento,
+                                conjuge_nome = :conjuge_nome,
+                                conjuge_cpf = :conjuge_cpf,
+                                conjuge_rg = :conjuge_rg,
+                                conjuge_nacionalidade = :conjuge_nacionalidade,
+                                conjuge_profissao = :conjuge_profissao,
+                                conta_banco = :conta_banco,
+                                conta_agencia = :conta_agencia,
+                                conta_numero = :conta_numero,
+                                conta_tipo = :conta_tipo,
+                                conta_pix = :conta_pix,
+                                conta_titular = :conta_titular,
+                                conta_documento = :conta_documento
                                 WHERE id = :id");
         $stmt->bindParam(':id', $sacadoId, PDO::PARAM_INT);
     } else { // Modo de Adição
-        $stmt = $pdo->prepare("INSERT INTO sacados (empresa, email, telefone, tipo_pessoa, documento_principal, endereco, cep, logradouro, numero, complemento, bairro, cidade, estado, nome)
-                                VALUES (:empresa, :email, :telefone, :tipo_pessoa, :documento_principal, :endereco, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :estado, :nome)");
+        $stmt = $pdo->prepare("INSERT INTO sacados (
+            empresa, email, telefone, whatsapp, tipo_pessoa, documento_principal, endereco, 
+            cep, logradouro, numero, complemento, bairro, cidade, estado, nome, 
+            porte, possui_cnpj_mei, representante_nome, representante_cpf, representante_rg, 
+            representante_nacionalidade, representante_estado_civil, representante_profissao, representante_endereco,
+            casado, regime_casamento, conjuge_nome, conjuge_cpf, conjuge_rg, conjuge_nacionalidade, conjuge_profissao,
+            conta_banco, conta_agencia, conta_numero, conta_tipo, conta_pix, conta_titular, conta_documento
+        ) VALUES (
+            :empresa, :email, :telefone, :whatsapp, :tipo_pessoa, :documento_principal, :endereco, 
+            :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :estado, :nome, 
+            :porte, :possui_cnpj_mei, :representante_nome, :representante_cpf, :representante_rg, 
+            :representante_nacionalidade, :representante_estado_civil, :representante_profissao, :representante_endereco,
+            :casado, :regime_casamento, :conjuge_nome, :conjuge_cpf, :conjuge_rg, :conjuge_nacionalidade, :conjuge_profissao,
+            :conta_banco, :conta_agencia, :conta_numero, :conta_tipo, :conta_pix, :conta_titular, :conta_documento
+        )");
     }
 
     $stmt->bindParam(':empresa', $empresa);
     $stmt->bindParam(':email', $email);
     $stmt->bindParam(':telefone', $telefone);
+    $stmt->bindParam(':whatsapp', $whatsapp);
     $stmt->bindParam(':tipo_pessoa', $tipoPessoa);
     $stmt->bindParam(':documento_principal', $documentoPrincipal);
     $stmt->bindParam(':endereco', $endereco);
@@ -118,6 +186,33 @@ try {
     $stmt->bindParam(':cidade', $cidade);
     $stmt->bindParam(':estado', $estado);
     $stmt->bindParam(':nome', $empresa); // nome = empresa
+    $stmt->bindParam(':porte', $porte);
+    $stmt->bindParam(':possui_cnpj_mei', $possui_cnpj_mei, PDO::PARAM_INT);
+    $stmt->bindParam(':representante_nome', $representante_nome);
+    $stmt->bindParam(':representante_cpf', $representante_cpf);
+    $stmt->bindParam(':representante_rg', $representante_rg);
+    $stmt->bindParam(':representante_nacionalidade', $representante_nacionalidade);
+    $stmt->bindParam(':representante_estado_civil', $representante_estado_civil);
+    $stmt->bindParam(':representante_profissao', $representante_profissao);
+    $stmt->bindParam(':representante_endereco', $representante_endereco);
+
+    // Bind cônjuge
+    $stmt->bindParam(':casado', $casado, PDO::PARAM_INT);
+    $stmt->bindParam(':regime_casamento', $regime_casamento);
+    $stmt->bindParam(':conjuge_nome', $conjuge_nome);
+    $stmt->bindParam(':conjuge_cpf', $conjuge_cpf);
+    $stmt->bindParam(':conjuge_rg', $conjuge_rg);
+    $stmt->bindParam(':conjuge_nacionalidade', $conjuge_nacionalidade);
+    $stmt->bindParam(':conjuge_profissao', $conjuge_profissao);
+    
+    // Bind dados bancários
+    $stmt->bindParam(':conta_banco', $conta_banco);
+    $stmt->bindParam(':conta_agencia', $conta_agencia);
+    $stmt->bindParam(':conta_numero', $conta_numero);
+    $stmt->bindParam(':conta_tipo', $conta_tipo);
+    $stmt->bindParam(':conta_pix', $conta_pix);
+    $stmt->bindParam(':conta_titular', $conta_titular);
+    $stmt->bindParam(':conta_documento', $conta_documento);
 
     if (!$stmt->execute()) {
         throw new Exception("Erro ao salvar dados do sacado: " . implode(" ", $stmt->errorInfo()));

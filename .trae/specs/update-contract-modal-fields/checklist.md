@@ -1,0 +1,8 @@
+- [x] O campo de Porte do Cliente exibe apenas MEI, ME e EPP.
+- [x] Existe uma nota explicativa sobre LTDA ser a natureza jurídica e os portes permitidos.
+- [x] Um toggle "Possui Garantia?" aparece apenas quando a Natureza "EMPRÉSTIMO" é selecionada.
+- [x] A seção do Avalista e do Veículo são ocultadas se "Possui Garantia?" for "Não".
+- [x] A geração de um contrato "EMPRÉSTIMO" sem garantia é permitida e não causa erros de "required" nos campos ocultos.
+- [x] CPF do avalista e CPF do cônjuge são formatados automaticamente com a máscara "000.000.000-00".
+- [x] Os campos de Município de Emplacamento, UF e Chassi não aparecem mais no modal.
+- [x] O backend `api_contratos.php` salva corretamente os dados de empréstimo (com e sem garantia) sem tentar inserir os campos de veículo removidos no banco de dados.

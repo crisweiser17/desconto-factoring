@@ -1,0 +1,4 @@
+- [x] O objeto `cedente` está presente no payload `$data` do arquivo `api_contratos.php`.
+- [x] A chave `cedente.pessoa_juridica` foi corretamente configurada como booleana com base na chave `tipo_pessoa` do cedente.
+- [x] Os objetos `contrato_mae` e `bordero` estão preenchidos no payload de dados.
+- [x] Os PDFs gerados para "Desconto" (Borderô) renderizam com sucesso as informações do Cedente no lugar de espaços em branco.

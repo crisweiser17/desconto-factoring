@@ -1,0 +1,6 @@
+- [x] Em `api_contratos.php`, a seleção do template para o tipo "Desconto" (Cessão/Borderô) não está mais fixa em um único arquivo.
+- [x] A lógica de código avalia corretamente a presença de veículo e a presença de avalista com base nos inputs do usuário (POST).
+- [x] O código utiliza `_contratos/contrato_1_com_veiculo_com_avalista.md` quando há ambos.
+- [x] O código utiliza `_contratos/contrato_2_sem_veiculo_sem_avalista.md` quando não há nenhum.
+- [x] O código utiliza `_contratos/contrato_3_com_veiculo_sem_avalista.md` quando há apenas veículo.
+- [x] O código utiliza `_contratos/contrato_4_sem_veiculo_com_avalista.md` quando há apenas avalista.

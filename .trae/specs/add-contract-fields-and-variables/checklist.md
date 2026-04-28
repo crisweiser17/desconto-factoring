@@ -1,0 +1,9 @@
+- [x] O script de banco de dados (`update_db_add_contract_fields.php`) foi executado e as tabelas `cedentes` e `sacados` possuem as novas colunas.
+- [x] Os formulários de Cedente e Sacado exibem os campos de Cônjuge (Casado, Regime, Nome, CPF, RG, Nacionalidade, Profissão), Conta Bancária (Banco, Agência, Conta, Pix, Tipo, Titular, Documento) e WhatsApp, e salvam corretamente.
+- [x] O modal "Gerar Contrato" exibe os inputs extras do Avalista (Email, WhatsApp) e do Veículo (Chassi, Município, UF) se necessário, e repassa ao POST.
+- [x] A API `api_contratos.php` intercepta e injeta os dados do Cônjuge, Conta Bancária, e Contatos no array do Cedente/Devedor (`$data['cedente']` e `$data['devedor']`).
+- [x] A API injeta Chassi, Município de Registro, UF no array do Veículo (`$data['veiculo']`).
+- [x] A API injeta Email e WhatsApp no array do Avalista (`$data['avalista']`).
+- [x] A API injeta Email e WhatsApp no array do Credor (`$data['credor']`).
+- [x] A API carrega a lista de `recebiveis` (Títulos) da operação e os injeta no array `$data['titulos']` e calcula os totais do Borderô (`total_face`, `total_titulos`, `taxa_desagio`, `total_desagio`, `prazo_medio`, `tarifas`, `valor_liquido`, `valor_liquido_extenso`, `forma_pagamento`).
+- [x] A documentação em `_contratos/variaveis_disponiveis.md` foi atualizada refletindo os novos campos.

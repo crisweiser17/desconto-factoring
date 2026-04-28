@@ -39,6 +39,15 @@ function readConfig($filePath) {
     if (!isset($config['email_subject'])) $config['email_subject'] = "Notificação de Cessão de Crédito - Borderô #[BORDERO_NUMERO]";
     if (!isset($config['email_template'])) $config['email_template'] = "<h2><strong>NOTIFICAÇÃO DE CESSÃO DE CRÉDITO</strong></h2><p><strong>Cedente:</strong> [CEDENTE_NOME] / [CEDENTE_CNPJ]<br><strong>Cessionário:</strong> SUA EMPRESA FACTORING / 00.000.000/0001-00<br><strong>Sacado (Devedor):</strong> [SACADO_NOME] / [SACADO_CNPJ]</p><hr><p><strong>Assunto: Cessão de Crédito – Art. 290 do Código Civil</strong></p><p>Prezado(a),</p><p>Informamos que os créditos representados pelas duplicatas abaixo foram <strong>cedidos</strong> ao Cessionário acima identificado, por meio de operação de desconto.</p><p>Nos termos do Art. 290 do Código Civil, esta notificação torna a cessão eficaz perante V.Sa.</p><hr><h3><strong>Borderô</strong></h3><p>Nº: [BORDERO_NUMERO]<br>Data: [BORDERO_DATA]<br>Valor Total: [BORDERO_VALOR]</p><hr><h3><strong>Títulos Cedidos</strong></h3><p>[TABELA_TITULOS]</p><hr><h3><strong>Pagamento</strong></h3><p>A partir do recebimento desta, <strong>os pagamentos deverão ser feitos exclusivamente ao Cessionário</strong>:</p><p>Banco: SEU BANCO<br>Agência: 0000<br>Conta: 00000-0<br>Favorecido: SUA EMPRESA FACTORING<br>CNPJ: 00.000.000/0001-00<br>PIX: sua-chave-pix</p><hr><h3><strong>Importante</strong></h3><ul><li>Pagamento ao Cedente após esta notificação <strong>não terá efeito liberatório</strong>.</li><li>A obrigação de pagamento permanece válida independentemente de concordância com a cessão.</li></ul><hr><p><strong>Local e Data:</strong> [CIDADE_DATA]</p><p><strong>Cedente:</strong> _________________________</p><p><strong>Cessionário:</strong> _________________________</p>";
     
+    // Fallbacks para Dados Bancários
+    if (!isset($config['conta_titular'])) $config['conta_titular'] = '';
+    if (!isset($config['conta_documento'])) $config['conta_documento'] = '';
+    if (!isset($config['conta_banco'])) $config['conta_banco'] = '';
+    if (!isset($config['conta_agencia'])) $config['conta_agencia'] = '';
+    if (!isset($config['conta_numero'])) $config['conta_numero'] = '';
+    if (!isset($config['conta_tipo'])) $config['conta_tipo'] = '';
+    if (!isset($config['conta_pix'])) $config['conta_pix'] = '';
+    
     return $config;
 }
 
@@ -57,6 +66,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $newEmailSubject = $_POST['email_subject'] ?? '';
     $newEmailTemplate = $_POST['email_template'] ?? '';
 
+    // Dados Bancários
+    $newContaTitular = $_POST['conta_titular'] ?? '';
+    $newContaDocumento = $_POST['conta_documento'] ?? '';
+    $newContaBanco = $_POST['conta_banco'] ?? '';
+    $newContaAgencia = $_POST['conta_agencia'] ?? '';
+    $newContaNumero = $_POST['conta_numero'] ?? '';
+    $newContaTipo = $_POST['conta_tipo'] ?? '';
+    $newContaPix = $_POST['conta_pix'] ?? '';
+
     if ($newDefaultTaxaMensal !== null && $newIofAdicionalRate !== null && $newIofDiariaRate !== null &&
         $newDefaultTaxaMensal >= 0 && $newIofAdicionalRate >= 0 && $newIofDiariaRate >= 0) {
 
@@ -72,7 +90,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             "resend_cc_email" => $newResendCcEmail,
             "resend_bcc_email" => $newResendBccEmail,
             "email_subject" => $newEmailSubject,
-            "email_template" => $newEmailTemplate
+            "email_template" => $newEmailTemplate,
+            "conta_titular" => $newContaTitular,
+            "conta_documento" => $newContaDocumento,
+            "conta_banco" => $newContaBanco,
+            "conta_agencia" => $newContaAgencia,
+            "conta_numero" => $newContaNumero,
+            "conta_tipo" => $newContaTipo,
+            "conta_pix" => $newContaPix
         ];
 
         if (file_put_contents($configFilePath, json_encode($config, JSON_PRETTY_PRINT))) {
@@ -231,6 +256,51 @@ $currentConfig = readConfig($configFilePath);
                         <input type="number" step="0.000001" min="0" class="form-control" id="iof_diaria_rate" name="iof_diaria_rate" value="<?php echo htmlspecialchars(number_format($currentConfig['iof_diaria_rate'] ?? 0, 8, '.', '')); ?>" required>
                     </div>
                     
+                    <hr class="my-4">
+                    <h5 class="mb-3"><i class="bi bi-bank"></i> Dados Bancários de Recebimento</h5>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="conta_titular" class="form-label">Titular (Favorecido):</label>
+                            <input type="text" class="form-control" id="conta_titular" name="conta_titular" value="<?php echo htmlspecialchars($currentConfig['conta_titular'] ?? ''); ?>" placeholder="Sua Empresa Factoring">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="conta_documento" class="form-label">CNPJ/CPF do Titular:</label>
+                            <input type="text" class="form-control" id="conta_documento" name="conta_documento" value="<?php echo htmlspecialchars($currentConfig['conta_documento'] ?? ''); ?>" placeholder="00.000.000/0001-00">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label for="conta_banco" class="form-label">Banco:</label>
+                            <input type="text" class="form-control" id="conta_banco" name="conta_banco" value="<?php echo htmlspecialchars($currentConfig['conta_banco'] ?? ''); ?>" placeholder="Ex: Banco do Brasil">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="conta_agencia" class="form-label">Agência:</label>
+                            <input type="text" class="form-control" id="conta_agencia" name="conta_agencia" value="<?php echo htmlspecialchars($currentConfig['conta_agencia'] ?? ''); ?>" placeholder="0000">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="conta_numero" class="form-label">Número da Conta:</label>
+                            <input type="text" class="form-control" id="conta_numero" name="conta_numero" value="<?php echo htmlspecialchars($currentConfig['conta_numero'] ?? ''); ?>" placeholder="00000-0">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="conta_tipo" class="form-label">Tipo de Conta:</label>
+                            <select class="form-select" id="conta_tipo" name="conta_tipo">
+                                <option value="" <?php echo ($currentConfig['conta_tipo'] ?? '') == '' ? 'selected' : ''; ?>>Selecione...</option>
+                                <option value="Corrente" <?php echo ($currentConfig['conta_tipo'] ?? '') == 'Corrente' ? 'selected' : ''; ?>>Corrente</option>
+                                <option value="Poupança" <?php echo ($currentConfig['conta_tipo'] ?? '') == 'Poupança' ? 'selected' : ''; ?>>Poupança</option>
+                                <option value="Pagamento" <?php echo ($currentConfig['conta_tipo'] ?? '') == 'Pagamento' ? 'selected' : ''; ?>>Pagamento</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-12">
+                            <label for="conta_pix" class="form-label">Chave PIX:</label>
+                            <input type="text" class="form-control" id="conta_pix" name="conta_pix" value="<?php echo htmlspecialchars($currentConfig['conta_pix'] ?? ''); ?>" placeholder="sua-chave-pix">
+                        </div>
+                    </div>
+
                     <hr class="my-4">
                     <h5 class="mb-3"><i class="bi bi-envelope"></i> Configurações de E-mail (Resend)</h5>
                     

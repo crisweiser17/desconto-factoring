@@ -1,7 +1,7 @@
-- [ ] O banco de dados possui as novas tabelas de suporte a contratos e as alterações em `clientes` e `operacoes`.
-- [ ] O Composer foi inicializado e as dependências (`mpdf`, `mustache`, `parsedown`) estão na pasta `vendor/`.
-- [ ] A arquitetura `app/Modules/Contracts/` foi criada contendo os validadores, renderizadores e services em PHP puro.
-- [ ] Uma operação de EMPRÉSTIMO (cliente PF ou porte irregular) é bloqueada com a mensagem correta (LC 167/2019).
-- [ ] Uma operação de DESCONTO com Sacado = Cedente é bloqueada com a mensagem correta.
-- [ ] O botão "Gerar Contratos" em `detalhes_operacao.php` consegue fazer um POST na API e baixar um PDF (mesmo que com template provisório).
-- [ ] Um registro é salvo na tabela `generated_contracts` com o hash do arquivo e o `operation_id`.
+- [x] O banco de dados possui o schema completo definido em `01_regras_de_negocio.md`.
+- [x] O botão "Gerar Contratos" abre um modal para seleção de Natureza da Operação e Dados de Garantia.
+- [x] O backend bloqueia empréstimos para Pessoas Físicas e portas diferentes de MEI/ME/EPP (Regra 2).
+- [x] O backend bloqueia operações de desconto cujo sacado seja igual ao cedente (Regra 3).
+- [x] Os valores em reais e número de parcelas são formatados por extenso.
+- [x] A API lê os arquivos `02_template_contrato_mutuo.md`, `03_template_cessao_bordero.md` e `04_template_nota_promissoria.md` da pasta `_contratos`.
+- [x] Os PDFs gerados têm os placeholders `{{...}}` substituídos corretamente com os dados da operação, credor, devedor, avalista e veículo.

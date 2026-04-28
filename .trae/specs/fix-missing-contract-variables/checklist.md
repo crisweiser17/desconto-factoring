@@ -1,0 +1,5 @@
+- [x] O script `update_sacados_columns.php` foi criado e executado com sucesso, adicionando as colunas de representante à tabela `sacados`.
+- [x] A tela de "Adicionar/Editar Sacado" exibe e salva os campos de representante e porte com sucesso.
+- [x] O script `api_contratos.php` busca corretamente os dados do Sacado (Mutuário) quando a operação for do tipo "Empréstimo".
+- [x] A validação de `pessoa_juridica` utiliza as strings 'JURIDICA' ou 'PJ' para retornar verdadeiro ou falso corretamente no template Mustache.
+- [x] O CPF/CNPJ renderiza corretamente no PDF utilizando o valor da coluna `documento_principal` quando a original estiver nula.

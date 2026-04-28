@@ -1,0 +1,2 @@
+- [x] O arquivo `_contratos/variaveis_disponiveis.md` foi criado.
+- [x] O arquivo contém todos os arrays injetados pela `api_contratos.php` e suas propriedades documentadas para uso no Mustache (incluindo laços de repetição como `{{#cronograma}}`).

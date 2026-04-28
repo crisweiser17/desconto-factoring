@@ -1,42 +1,28 @@
-# Template: Contrato de Cessão Onerosa de Créditos + Borderô
-
-**Arquivos:** `templates/cessao_mae.md` + `templates/bordero.md`  
-**Uso:** Operações de desconto de títulos / antecipação de recebíveis / cessão onerosa de créditos, para qualquer tomador (PF ou PJ).  
-**Fundamento legal:** Código Civil arts. 286 a 298; Lei Complementar 167/2019.
-
----
-
-# PARTE 1 — CONTRATO-MÃE DE CESSÃO ONEROSA DE CRÉDITOS
-
-> **Observação:** Este contrato é firmado **uma única vez** com cada cliente. Ele estabelece a relação jurídica permanente entre a ACM (cessionária) e o cliente (cedente). As operações específicas são documentadas a cada vez por meio de **Borderô** (Parte 2), que é considerado aditivo ao presente Contrato-Mãe.
-
----
-
 # INSTRUMENTO PARTICULAR DE CONTRATO DE CESSÃO ONEROSA DE CRÉDITOS
 
-**Contrato-Mãe nº {{contrato_mae.id}}**
+**Contrato nº {{contrato\_mae.id}}**
 
-Pelo presente **INSTRUMENTO PARTICULAR DE CONTRATO DE CESSÃO ONEROSA DE CRÉDITOS** (doravante denominado "CONTRATO"), firmado em {{contrato_mae.local}}, {{contrato_mae.data_extenso}}, as partes abaixo qualificadas:
+Pelo presente **INSTRUMENTO PARTICULAR DE CONTRATO DE CESSÃO ONEROSA DE CRÉDITOS** (doravante denominado "CONTRATO"), firmado em {{contrato\_mae.local}}, {{contrato\_mae.data\_extenso}}, as partes abaixo qualificadas:
 
-**CESSIONÁRIA:**  
+**CESSIONÁRIA:**\
 **ACM EMPRESA SIMPLES DE CRÉDITO LTDA**, pessoa jurídica de direito privado, constituída sob o regime da Lei Complementar nº 167/2019, inscrita no CNPJ/MF sob o nº **63.530.897/0001-85**, com sede na Rua Abelardo Benedicto Liborio, nº 600, Loteamento Distrito Industrial Uninorte, Município de Piracicaba, Estado de São Paulo, CEP 13.413-071, neste ato representada na forma de seu Contrato Social por {{credor.representante.nome}}, CPF nº {{credor.representante.cpf}}, doravante denominada **"CESSIONÁRIA"**;
 
-**CEDENTE:**  
-{{#cedente.pessoa_juridica}}
-**{{cedente.razao_social}}**, {{cedente.descricao_juridica}}, inscrita no CNPJ/MF sob o nº **{{cedente.cnpj}}**, com sede em {{cedente.endereco_completo}}, neste ato representada por {{cedente.representante.nome}}, {{cedente.representante.nacionalidade}}, {{cedente.representante.estado_civil}}, {{cedente.representante.profissao}}, portador(a) da cédula de identidade RG nº {{cedente.representante.rg}} e inscrito(a) no CPF/MF sob o nº {{cedente.representante.cpf}}, residente e domiciliado(a) em {{cedente.representante.endereco}}
-{{/cedente.pessoa_juridica}}
-{{^cedente.pessoa_juridica}}
-**{{cedente.nome_completo}}**, {{cedente.nacionalidade}}, {{cedente.estado_civil}}, {{cedente.profissao}}, portador(a) da cédula de identidade RG nº {{cedente.rg}} e inscrito(a) no CPF/MF sob o nº **{{cedente.cpf}}**, residente e domiciliado(a) em {{cedente.endereco_completo}}
-{{/cedente.pessoa_juridica}}, doravante denominado(a) simplesmente **"CEDENTE"**;
+**CEDENTE:**\
+{{#cedente.pessoa\_juridica}}
+**{{cedente.razao\_social}}**, {{cedente.descricao\_juridica}}, inscrita no CNPJ/MF sob o nº **{{cedente.cnpj}}**, com sede em {{cedente.endereco\_completo}}, neste ato representada por {{cedente.representante.nome}}, {{cedente.representante.nacionalidade}}, {{cedente.representante.estado\_civil}}, {{cedente.representante.profissao}}, portador(a) da cédula de identidade RG nº {{cedente.representante.rg}} e inscrito(a) no CPF/MF sob o nº {{cedente.representante.cpf}}, residente e domiciliado(a) em {{cedente.representante.endereco}}
+{{/cedente.pessoa\_juridica}}
+{{^cedente.pessoa\_juridica}}
+**{{cedente.nome\_completo}}**, {{cedente.nacionalidade}}, {{cedente.estado\_civil}}, {{cedente.profissao}}, portador(a) da cédula de identidade RG nº {{cedente.rg}} e inscrito(a) no CPF/MF sob o nº **{{cedente.cpf}}**, residente e domiciliado(a) em {{cedente.endereco\_completo}}
+{{/cedente.pessoa\_juridica}}, doravante denominado(a) simplesmente **"CEDENTE"**;
 
 {{#avalista}}
-**AVALISTA / GARANTIDOR SOLIDÁRIO:**  
-**{{avalista.nome}}**, {{avalista.nacionalidade}}, {{avalista.estado_civil}}, {{avalista.profissao}}, portador(a) da cédula de identidade RG nº {{avalista.rg}} e inscrito(a) no CPF/MF sob o nº **{{avalista.cpf}}**, residente e domiciliado(a) em {{avalista.endereco_completo}}{{#avalista.casado}}, casado(a) sob o regime de {{avalista.regime_casamento}} com {{avalista.conjuge.nome}}, CPF nº {{avalista.conjuge.cpf}}, que comparece em anuência{{/avalista.casado}}, doravante denominado(a) **"AVALISTA"**;
+**AVALISTA / GARANTIDOR SOLIDÁRIO:**\
+**{{avalista.nome}}**, {{avalista.nacionalidade}}, {{avalista.estado\_civil}}, {{avalista.profissao}}, portador(a) da cédula de identidade RG nº {{avalista.rg}} e inscrito(a) no CPF/MF sob o nº **{{avalista.cpf}}**, residente e domiciliado(a) em {{avalista.endereco\_completo}}{{#avalista.casado}}, casado(a) sob o regime de {{avalista.regime\_casamento}} com {{avalista.conjuge.nome}}, CPF nº {{avalista.conjuge.cpf}}, que comparece em anuência{{/avalista.casado}}, doravante denominado(a) **"AVALISTA"**;
 {{/avalista}}
 
 Têm entre si justo e contratado o presente Contrato de Cessão Onerosa de Créditos, que se regerá pelas cláusulas e condições a seguir estipuladas, em conformidade com os artigos 286 a 298 do Código Civil Brasileiro e a Lei Complementar nº 167/2019.
 
----
+***
 
 ## CONSIDERANDOS
 
@@ -48,7 +34,7 @@ Têm entre si justo e contratado o presente Contrato de Cessão Onerosa de Créd
 
 **AS PARTES** resolvem celebrar o presente CONTRATO, que se regerá pelas cláusulas seguintes:
 
----
+***
 
 ## CLÁUSULA 1ª — DO OBJETO
 
@@ -68,7 +54,7 @@ e) Assinatura do CEDENTE e da CESSIONÁRIA como aceite.
 
 **1.3.** A cessão operará seus efeitos a partir da assinatura do respectivo Borderô, transferindo-se, desse momento, todos os direitos creditórios à CESSIONÁRIA.
 
----
+***
 
 ## CLÁUSULA 2ª — DA FORMA DE OPERAÇÃO
 
@@ -80,7 +66,7 @@ e) Assinatura do CEDENTE e da CESSIONÁRIA como aceite.
 
 **2.4.** A operação considerar-se-á consumada com o pagamento do valor líquido pela CESSIONÁRIA, momento em que a titularidade dos créditos se transfere integralmente à CESSIONÁRIA.
 
----
+***
 
 ## CLÁUSULA 3ª — DO DESÁGIO
 
@@ -90,7 +76,7 @@ e) Assinatura do CEDENTE e da CESSIONÁRIA como aceite.
 
 **3.3.** As partes reconhecem que a operação de desconto de título, objeto deste Contrato, tem natureza jurídica de **cessão onerosa de crédito** (CC arts. 286 e seguintes), não se confundindo com operação de mútuo, razão pela qual o deságio aplicado não constitui juros remuneratórios e não se sujeita aos limites da Lei da Usura (Decreto 22.626/1933).
 
----
+***
 
 ## CLÁUSULA 4ª — DAS DECLARAÇÕES E GARANTIAS DO CEDENTE
 
@@ -110,7 +96,7 @@ f) Que tem conhecimento da situação cadastral e da capacidade de pagamento do 
 
 **4.2.** A CESSIONÁRIA responsabiliza-se pelo deságio pactuado, mas **não se responsabiliza por qualquer outra condição pactuada entre o CEDENTE e o sacado/devedor**, inclusive descontos comerciais, abatimentos, bonificações ou acordos de prorrogação.
 
----
+***
 
 ## CLÁUSULA 5ª — DA RESPONSABILIDADE PELA SOLVÊNCIA (CLÁUSULA PRO SOLVENDO)
 
@@ -124,7 +110,7 @@ b) Ou, alternativamente, a **recompra do título**, mediante devolução do valo
 
 **5.3.** A responsabilidade do CEDENTE persistirá mesmo em caso de concordata, recuperação judicial ou falência do sacado/devedor, bem como em qualquer outra hipótese de impossibilidade de recebimento do crédito pela CESSIONÁRIA.
 
----
+***
 
 ## CLÁUSULA 6ª — DO INADIMPLEMENTO E DOS ENCARGOS DE MORA DO CEDENTE
 
@@ -142,7 +128,7 @@ d) Honorários advocatícios de **10% (dez por cento)** em caso de cobrança ext
 
 **6.3.** A CESSIONÁRIA fica, desde já, autorizada a protestar os títulos inadimplidos, tanto os originalmente cedidos quanto o presente Contrato, e a inscrever o CEDENTE em cadastros de proteção ao crédito (SERASA, SPC, SCPC, entre outros).
 
----
+***
 
 ## CLÁUSULA 7ª — DA NOTIFICAÇÃO DO DEVEDOR
 
@@ -152,7 +138,7 @@ d) Honorários advocatícios de **10% (dez por cento)** em caso de cobrança ext
 
 **7.3.** Caso o sacado/devedor efetue o pagamento diretamente ao CEDENTE, após a cessão e mesmo na ausência de notificação formal, o CEDENTE obriga-se a repassar integralmente o valor recebido à CESSIONÁRIA no prazo de **48 (quarenta e oito) horas**, sob pena de incidência dos encargos previstos na Cláusula 6.2, além de configuração de apropriação indébita (CP art. 168).
 
----
+***
 
 ## CLÁUSULA 8ª — DAS GARANTIAS ADICIONAIS
 
@@ -170,7 +156,7 @@ d) Honorários advocatícios de **10% (dez por cento)** em caso de cobrança ext
 **8.1.** A presente operação não exige, por ora, garantia fidejussória adicional, mas a CESSIONÁRIA reserva-se o direito de solicitar aval ou fiança em operações futuras, conforme análise de risco de cada Borderô.
 {{/avalista}}
 
----
+***
 
 ## CLÁUSULA 9ª — DO PROTESTO E INSCRIÇÃO EM CADASTROS
 
@@ -182,7 +168,7 @@ b) A incluir o nome do CEDENTE e do AVALISTA (se houver) em cadastros restritivo
 
 c) A compartilhar informações com bureaus de crédito e outras cessionárias para fins de análise de risco.
 
----
+***
 
 ## CLÁUSULA 10ª — DA VIGÊNCIA E DO ENCERRAMENTO
 
@@ -192,19 +178,19 @@ c) A compartilhar informações com bureaus de crédito e outras cessionárias p
 
 **10.3.** A denúncia do Contrato não libera o CEDENTE nem o AVALISTA de suas obrigações relativas a operações já realizadas, que permanecerão regidas por este Contrato até sua completa liquidação.
 
----
+***
 
 ## CLÁUSULA 11ª — DAS COMUNICAÇÕES
 
 **11.1.** As comunicações entre as partes serão válidas quando enviadas para:
 
 - **CESSIONÁRIA:** Rua Abelardo Benedicto Liborio, nº 600, Piracicaba/SP, CEP 13.413-071 — E-mail: {{credor.email}} — WhatsApp: {{credor.whatsapp}}
-- **CEDENTE:** {{cedente.endereco_completo}} — E-mail: {{cedente.email}} — WhatsApp: {{cedente.whatsapp}}
-{{#avalista}}
-- **AVALISTA:** {{avalista.endereco_completo}} — E-mail: {{avalista.email}}
-{{/avalista}}
+- **CEDENTE:** {{cedente.endereco\_completo}} — E-mail: {{cedente.email}} — WhatsApp: {{cedente.whatsapp}}
+  {{#avalista}}
+- **AVALISTA:** {{avalista.endereco\_completo}} — E-mail: {{avalista.email}}
+  {{/avalista}}
 
----
+***
 
 ## CLÁUSULA 12ª — DAS DISPOSIÇÕES GERAIS
 
@@ -218,46 +204,48 @@ c) A compartilhar informações com bureaus de crédito e outras cessionárias p
 
 **12.5.** Este Contrato, juntamente com os Borderôs firmados, constitui **título executivo extrajudicial**, nos termos do art. 784, inciso III, do Código de Processo Civil, pela assinatura das partes e de 2 (duas) testemunhas.
 
----
+***
 
 ## CLÁUSULA 13ª — DO FORO
 
 **13.1.** Fica eleito o Foro da Comarca de **Piracicaba/SP** para dirimir quaisquer questões oriundas deste Contrato.
 
----
+***
 
-E, por estarem de acordo, as partes firmam o presente Contrato em {{contrato_mae.num_vias}} ({{contrato_mae.num_vias_extenso}}) vias de igual teor, na presença de 2 (duas) testemunhas.
+E, por estarem de acordo, as partes firmam o presente Contrato em {{contrato\_mae.num\_vias}} ({{contrato\_mae.num\_vias\_extenso}}) vias de igual teor, na presença de 2 (duas) testemunhas.
 
-**{{contrato_mae.local}}, {{contrato_mae.data_extenso}}.**
+**{{contrato\_mae.local}}, {{contrato\_mae.data\_extenso}}.**
 
----
+***
 
 ### CESSIONÁRIA:
 
 \
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-**ACM EMPRESA SIMPLES DE CRÉDITO LTDA**  
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
+**ACM EMPRESA SIMPLES DE CRÉDITO LTDA**\
 CNPJ: 63.530.897/0001-85
 
 ### CEDENTE:
 
 \
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-{{#cedente.pessoa_juridica}}**{{cedente.razao_social}}**{{/cedente.pessoa_juridica}}{{^cedente.pessoa_juridica}}**{{cedente.nome_completo}}**{{/cedente.pessoa_juridica}}  
-{{#cedente.pessoa_juridica}}CNPJ: {{cedente.cnpj}}{{/cedente.pessoa_juridica}}{{^cedente.pessoa_juridica}}CPF: {{cedente.cpf}}{{/cedente.pessoa_juridica}}
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
+{{#cedente.pessoa\_juridica}}**{{cedente.razao\_social}}**{{/cedente.pessoa\_juridica}}{{^cedente.pessoa\_juridica}}**{{cedente.nome\_completo}}**{{/cedente.pessoa\_juridica}}\
+{{#cedente.pessoa\_juridica}}CNPJ: {{cedente.cnpj}}{{/cedente.pessoa\_juridica}}{{^cedente.pessoa\_juridica}}CPF: {{cedente.cpf}}{{/cedente.pessoa\_juridica}}
 
 {{#avalista}}
+
 ### AVALISTA:
 
 \
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
 **{{avalista.nome}}** — CPF: {{avalista.cpf}}
 
 {{#avalista.casado}}
+
 ### CÔNJUGE DO AVALISTA (anuência):
 
 \
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
 **{{avalista.conjuge.nome}}** — CPF: {{avalista.conjuge.cpf}}
 {{/avalista.casado}}
 {{/avalista}}
@@ -265,77 +253,79 @@ CNPJ: 63.530.897/0001-85
 ### TESTEMUNHAS:
 
 \
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
 Nome: {{testemunhas.0.nome}} — CPF: {{testemunhas.0.cpf}}
 
 \
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
 Nome: {{testemunhas.1.nome}} — CPF: {{testemunhas.1.cpf}}
 
----
----
+***
+
+***
 
 # PARTE 2 — BORDERÔ DE CESSÃO DE CRÉDITOS
 
 > **Observação:** Documento emitido **a cada operação** de desconto. Considerado aditivo ao Contrato-Mãe firmado entre as mesmas partes.
 
----
+***
 
 # BORDERÔ DE CESSÃO DE CRÉDITOS Nº {{bordero.numero}}
 
-**Aditivo ao Contrato-Mãe de Cessão Onerosa de Créditos nº {{contrato_mae.id}}, firmado em {{contrato_mae.data}}.**
+**Aditivo ao Contrato-Mãe de Cessão Onerosa de Créditos nº {{contrato\_mae.id}}, firmado em {{contrato\_mae.data}}.**
 
-**Data da Operação:** {{bordero.data}}  
+**Data da Operação:** {{bordero.data}}\
 **Local:** {{bordero.local}}
 
----
+***
 
 ## 1. PARTES
 
 **CESSIONÁRIA:** ACM EMPRESA SIMPLES DE CRÉDITO LTDA — CNPJ 63.530.897/0001-85
 
-**CEDENTE:** {{#cedente.pessoa_juridica}}{{cedente.razao_social}} — CNPJ {{cedente.cnpj}}{{/cedente.pessoa_juridica}}{{^cedente.pessoa_juridica}}{{cedente.nome_completo}} — CPF {{cedente.cpf}}{{/cedente.pessoa_juridica}}
+**CEDENTE:** {{#cedente.pessoa\_juridica}}{{cedente.razao\_social}} — CNPJ {{cedente.cnpj}}{{/cedente.pessoa\_juridica}}{{^cedente.pessoa\_juridica}}{{cedente.nome\_completo}} — CPF {{cedente.cpf}}{{/cedente.pessoa\_juridica}}
 
----
+***
 
 ## 2. RELAÇÃO DE TÍTULOS CEDIDOS
 
-| # | Título | Tipo | Sacado (Nome) | Sacado (CNPJ/CPF) | Data Emissão | Data Vencimento | Valor de Face (R$) | Valor Presente (R$) |
-|:---:|:---|:---|:---|:---|:---:|:---:|---:|---:|
-{{#titulos}}
-| {{ordem}} | {{numero}} | {{tipo}} | {{sacado_nome}} | {{sacado_documento}} | {{data_emissao}} | {{data_vencimento}} | {{valor_face}} | {{valor_presente}} |
-{{/titulos}}
+|       #      | Título     | Tipo     | Sacado (Nome)    | Sacado (CNPJ/CPF)     |    Data Emissão   |    Data Vencimento   | Valor de Face (R$) | Valor Presente (R$) |
+| :----------: | :--------- | :------- | :--------------- | :-------------------- | :---------------: | :------------------: | -----------------: | ------------------: |
+| {{#titulos}} | <br />     | <br />   | <br />           | <br />                |       <br />      |        <br />        |             <br /> |              <br /> |
+|   {{ordem}}  | {{numero}} | {{tipo}} | {{sacado\_nome}} | {{sacado\_documento}} | {{data\_emissao}} | {{data\_vencimento}} |    {{valor\_face}} | {{valor\_presente}} |
+| {{/titulos}} | <br />     | <br />   | <br />           | <br />                |       <br />      |        <br />        |             <br /> |              <br /> |
 
----
+***
 
 ## 3. RESUMO FINANCEIRO DA OPERAÇÃO
 
-| Item | Valor |
-|---|---:|
-| **Quantidade de Títulos** | {{bordero.total_titulos}} |
-| **Valor Total de Face** | R$ {{bordero.total_face}} |
-| **Taxa de Deságio Aplicada** | {{bordero.taxa_desagio}}% ao mês |
-| **Prazo Médio Ponderado** | {{bordero.prazo_medio}} dias |
-| **Total de Deságio (Valor do Desconto)** | R$ {{bordero.total_desagio}} |
-| **(-) Tarifas Operacionais (se houver)** | R$ {{bordero.tarifas}} |
-| **= VALOR LÍQUIDO A PAGAR AO CEDENTE** | **R$ {{bordero.valor_liquido}}** |
+| Item                                     |                             Valor |
+| ---------------------------------------- | --------------------------------: |
+| **Quantidade de Títulos**                |        {{bordero.total\_titulos}} |
+| **Valor Total de Face**                  |        R$ {{bordero.total\_face}} |
+| **Taxa de Deságio Aplicada**             | {{bordero.taxa\_desagio}}% ao mês |
+| **Prazo Médio Ponderado**                |     {{bordero.prazo\_medio}} dias |
+| **Total de Deságio (Valor do Desconto)** |     R$ {{bordero.total\_desagio}} |
+| **(-) Tarifas Operacionais (se houver)** |            R$ {{bordero.tarifas}} |
+| **= VALOR LÍQUIDO A PAGAR AO CEDENTE**   | **R$ {{bordero.valor\_liquido}}** |
 
-**Valor Líquido por Extenso:** _{{bordero.valor_liquido_extenso}}_
+**Valor Líquido por Extenso:** _{{bordero.valor\_liquido\_extenso}}_
 
-**Forma de Pagamento ao CEDENTE:** {{bordero.forma_pagamento}}
+**Forma de Pagamento ao CEDENTE:** {{bordero.forma\_pagamento}}
 
 **Conta de Depósito do CEDENTE:**
+
 - Banco: {{cedente.conta.banco}}
 - Agência: {{cedente.conta.agencia}}
 - Conta: {{cedente.conta.numero}}
 - Tipo: {{cedente.conta.tipo}}
 - Titular: {{cedente.conta.titular}}
 - CPF/CNPJ: {{cedente.conta.documento}}
-{{#cedente.conta.pix}}
+  {{#cedente.conta.pix}}
 - Chave PIX: {{cedente.conta.pix}}
-{{/cedente.conta.pix}}
+  {{/cedente.conta.pix}}
 
----
+***
 
 ## 4. DECLARAÇÕES E ACEITE
 
@@ -347,29 +337,29 @@ Nome: {{testemunhas.1.nome}} — CPF: {{testemunhas.1.cpf}}
 
 **4.4.** A assinatura deste Borderô, pelas partes, formaliza a cessão e autoriza a CESSIONÁRIA a efetuar o pagamento do valor líquido conforme indicado no item 3 acima.
 
----
+***
 
-**{{bordero.local}}, {{bordero.data_extenso}}.**
+**{{bordero.local}}, {{bordero.data\_extenso}}.**
 
 ### CESSIONÁRIA:
 
 \
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-**ACM EMPRESA SIMPLES DE CRÉDITO LTDA**  
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
+**ACM EMPRESA SIMPLES DE CRÉDITO LTDA**\
 CNPJ: 63.530.897/0001-85
 
 ### CEDENTE:
 
 \
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-{{#cedente.pessoa_juridica}}**{{cedente.razao_social}}** — CNPJ: {{cedente.cnpj}}{{/cedente.pessoa_juridica}}{{^cedente.pessoa_juridica}}**{{cedente.nome_completo}}** — CPF: {{cedente.cpf}}{{/cedente.pessoa_juridica}}
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
+{{#cedente.pessoa\_juridica}}**{{cedente.razao\_social}}** — CNPJ: {{cedente.cnpj}}{{/cedente.pessoa\_juridica}}{{^cedente.pessoa\_juridica}}**{{cedente.nome\_completo}}** — CPF: {{cedente.cpf}}{{/cedente.pessoa\_juridica}}
 
 ### TESTEMUNHAS:
 
 \
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
 Nome: {{testemunhas.0.nome}} — CPF: {{testemunhas.0.cpf}}
 
 \
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
 Nome: {{testemunhas.1.nome}} — CPF: {{testemunhas.1.cpf}}

@@ -8,6 +8,7 @@ $cedente = [ // Valores padrão para um novo cedente
     'nome' => '',
     'email' => '',
     'telefone' => '',
+    'whatsapp' => '',
     'tipo_pessoa' => 'JURIDICA', // Padrão pessoa jurídica
     'documento_principal' => '',
     'empresa' => '',
@@ -18,7 +19,21 @@ $cedente = [ // Valores padrão para um novo cedente
     'complemento' => '',
     'bairro' => '',
     'cidade' => '',
-    'estado' => ''
+    'estado' => '',
+    'casado' => 0,
+    'regime_casamento' => '',
+    'conjuge_nome' => '',
+    'conjuge_cpf' => '',
+    'conjuge_rg' => '',
+    'conjuge_nacionalidade' => '',
+    'conjuge_profissao' => '',
+    'conta_banco' => '',
+    'conta_agencia' => '',
+    'conta_numero' => '',
+    'conta_pix' => '',
+    'conta_tipo' => '',
+    'conta_titular' => '',
+    'conta_documento' => ''
 ];
 $socios = []; // Array de sócios
 $editMode = false; // Flag para saber se estamos editando
@@ -121,14 +136,20 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                             <input type="text" class="form-control" id="documento_principal" name="documento_principal" value="<?php echo htmlspecialchars($cedente['documento_principal'] ?? ''); ?>" required>
                             <div class="invalid-feedback" id="documento_principal-feedback"></div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="email" class="form-label">Email</label>
                             <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($cedente['email'] ?? ''); ?>">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label" for="telefone">Telefone</label>
                             <input type="tel" class="form-control" id="telefone" name="telefone"
                                    value="<?php echo htmlspecialchars($cedente['telefone'] ?? ''); ?>"
+                                   placeholder="(99) 99999-9999">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="whatsapp">WhatsApp</label>
+                            <input type="tel" class="form-control" id="whatsapp" name="whatsapp"
+                                   value="<?php echo htmlspecialchars($cedente['whatsapp'] ?? ''); ?>"
                                    placeholder="(99) 99999-9999">
                         </div>
                     </div>
@@ -186,6 +207,49 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 </div>
             </div>
 
+            <!-- Dados do Cônjuge -->
+            <div class="card mb-4" id="card-conjuge">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-person-heart"></i> Dados do Cônjuge</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12 mb-2">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="casado" name="casado" value="1" <?php echo !empty($cedente['casado']) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="casado">Cedente/Representante é Casado(a)?</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3" id="campos-conjuge" style="<?php echo !empty($cedente['casado']) ? '' : 'display: none;'; ?>">
+                        <div class="col-md-6">
+                            <label for="conjuge_nome" class="form-label">Nome do Cônjuge</label>
+                            <input type="text" class="form-control" id="conjuge_nome" name="conjuge_nome" value="<?php echo htmlspecialchars($cedente['conjuge_nome'] ?? ''); ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="regime_casamento" class="form-label">Regime de Casamento</label>
+                            <input type="text" class="form-control" id="regime_casamento" name="regime_casamento" value="<?php echo htmlspecialchars($cedente['regime_casamento'] ?? ''); ?>" placeholder="Ex: Comunhão Parcial de Bens">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="conjuge_cpf" class="form-label">CPF do Cônjuge</label>
+                            <input type="text" class="form-control" id="conjuge_cpf" name="conjuge_cpf" value="<?php echo htmlspecialchars($cedente['conjuge_cpf'] ?? ''); ?>" placeholder="000.000.000-00">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="conjuge_rg" class="form-label">RG do Cônjuge</label>
+                            <input type="text" class="form-control" id="conjuge_rg" name="conjuge_rg" value="<?php echo htmlspecialchars($cedente['conjuge_rg'] ?? ''); ?>">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="conjuge_nacionalidade" class="form-label">Nacionalidade</label>
+                            <input type="text" class="form-control" id="conjuge_nacionalidade" name="conjuge_nacionalidade" value="<?php echo htmlspecialchars($cedente['conjuge_nacionalidade'] ?? ''); ?>">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="conjuge_profissao" class="form-label">Profissão</label>
+                            <input type="text" class="form-control" id="conjuge_profissao" name="conjuge_profissao" value="<?php echo htmlspecialchars($cedente['conjuge_profissao'] ?? ''); ?>">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Dados Bancários -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -193,29 +257,37 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="conta_titular" class="form-label">Titular da Conta</label>
+                            <input type="text" class="form-control" id="conta_titular" name="conta_titular" value="<?php echo htmlspecialchars($cedente['conta_titular'] ?? ''); ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="conta_documento" class="form-label">CPF/CNPJ do Titular</label>
+                            <input type="text" class="form-control" id="conta_documento" name="conta_documento" value="<?php echo htmlspecialchars($cedente['conta_documento'] ?? ''); ?>">
+                        </div>
                         <div class="col-md-4">
-                            <label for="banco" class="form-label">Banco</label>
-                            <input type="text" class="form-control" id="banco" name="banco" value="<?php echo htmlspecialchars($cedente['banco'] ?? ''); ?>" placeholder="Ex: Itaú, Bradesco">
+                            <label for="conta_banco" class="form-label">Banco</label>
+                            <input type="text" class="form-control" id="conta_banco" name="conta_banco" value="<?php echo htmlspecialchars($cedente['conta_banco'] ?? ''); ?>" placeholder="Ex: Itaú, Bradesco">
                         </div>
                         <div class="col-md-2">
-                            <label for="agencia" class="form-label">Agência</label>
-                            <input type="text" class="form-control" id="agencia" name="agencia" value="<?php echo htmlspecialchars($cedente['agencia'] ?? ''); ?>" placeholder="0000">
+                            <label for="conta_agencia" class="form-label">Agência</label>
+                            <input type="text" class="form-control" id="conta_agencia" name="conta_agencia" value="<?php echo htmlspecialchars($cedente['conta_agencia'] ?? ''); ?>" placeholder="0000">
                         </div>
                         <div class="col-md-3">
-                            <label for="conta" class="form-label">Conta</label>
-                            <input type="text" class="form-control" id="conta" name="conta" value="<?php echo htmlspecialchars($cedente['conta'] ?? ''); ?>" placeholder="00000-0">
+                            <label for="conta_numero" class="form-label">Conta</label>
+                            <input type="text" class="form-control" id="conta_numero" name="conta_numero" value="<?php echo htmlspecialchars($cedente['conta_numero'] ?? ''); ?>" placeholder="00000-0">
                         </div>
                         <div class="col-md-3">
-                            <label for="tipo_conta" class="form-label">Tipo de Conta</label>
-                            <select class="form-select" id="tipo_conta" name="tipo_conta">
-                                <option value="" <?php echo empty($cedente['tipo_conta']) ? 'selected' : ''; ?>>Selecione...</option>
-                                <option value="Corrente" <?php echo ($cedente['tipo_conta'] ?? '') === 'Corrente' ? 'selected' : ''; ?>>Conta Corrente</option>
-                                <option value="Poupanca" <?php echo ($cedente['tipo_conta'] ?? '') === 'Poupanca' ? 'selected' : ''; ?>>Conta Poupança</option>
+                            <label for="conta_tipo" class="form-label">Tipo de Conta</label>
+                            <select class="form-select" id="conta_tipo" name="conta_tipo">
+                                <option value="" <?php echo empty($cedente['conta_tipo']) ? 'selected' : ''; ?>>Selecione...</option>
+                                <option value="Corrente" <?php echo ($cedente['conta_tipo'] ?? '') === 'Corrente' ? 'selected' : ''; ?>>Conta Corrente</option>
+                                <option value="Poupanca" <?php echo ($cedente['conta_tipo'] ?? '') === 'Poupanca' ? 'selected' : ''; ?>>Conta Poupança</option>
                             </select>
                         </div>
                         <div class="col-md-12">
-                            <label for="chave_pix" class="form-label">Chave PIX</label>
-                            <input type="text" class="form-control" id="chave_pix" name="chave_pix" value="<?php echo htmlspecialchars($cedente['chave_pix'] ?? ''); ?>" placeholder="CPF, CNPJ, E-mail, Telefone ou Chave Aleatória">
+                            <label for="conta_pix" class="form-label">Chave PIX</label>
+                            <input type="text" class="form-control" id="conta_pix" name="conta_pix" value="<?php echo htmlspecialchars($cedente['conta_pix'] ?? ''); ?>" placeholder="CPF, CNPJ, E-mail, Telefone ou Chave Aleatória">
                         </div>
                     </div>
                 </div>
@@ -318,9 +390,30 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 placeholder: "_"
             });
 
+            $('#whatsapp').inputmask({
+                mask: "(99) 9999[9]-9999",
+                greedy: false,
+                clearIncomplete: true,
+                placeholder: "_"
+            });
+
+            $('#conjuge_cpf').inputmask("999.999.999-99", {
+                clearIncomplete: true,
+                placeholder: "_"
+            });
+
             $('#cep').inputmask("99999-999", {
                 clearIncomplete: true,
                 placeholder: "_"
+            });
+
+            // Toggle para campos do cônjuge
+            $('#casado').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#campos-conjuge').slideDown();
+                } else {
+                    $('#campos-conjuge').slideUp();
+                }
             });
 
             // Aplicar máscara inicial do documento
