@@ -226,6 +226,9 @@ try {
         )");
     }
 
+    // Bind de parâmetros
+    $porte_val = !empty($porte) ? $porte : null;
+    
     $stmt->bindParam(':empresa', $empresa);
     $stmt->bindParam(':email', $email);
     $stmt->bindParam(':telefone', $telefone);
@@ -241,7 +244,7 @@ try {
     $stmt->bindParam(':cidade', $cidade);
     $stmt->bindParam(':estado', $estado);
     $stmt->bindParam(':nome', $empresa); // nome = empresa
-    $stmt->bindParam(':porte', $porte);
+    $stmt->bindParam(':porte', $porte_val);
     $stmt->bindParam(':representante_nome', $representante_nome);
     $stmt->bindParam(':representante_cpf', $representante_cpf);
     $stmt->bindParam(':representante_rg', $representante_rg);

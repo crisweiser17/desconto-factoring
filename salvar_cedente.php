@@ -191,12 +191,14 @@ try {
         )");
     }
 
+    // Processamento de nulos para campos ENUM e opcionais
+    $porte_val = !empty($porte) ? $porte : null;
+
     $stmt->bindParam(':empresa', $empresa);
     $stmt->bindParam(':email', $email);
     $stmt->bindParam(':telefone', $telefone);
     $stmt->bindParam(':whatsapp', $whatsapp);
     $stmt->bindParam(':tipo_pessoa', $tipoPessoa);
-    $stmt->bindParam(':porte', $porte);
     $stmt->bindParam(':documento_principal', $documentoPrincipal);
     $stmt->bindParam(':endereco', $endereco);
     $stmt->bindParam(':cep', $cep);
@@ -228,6 +230,7 @@ try {
     if (!$cedenteId) {
         $stmt->bindParam(':nome', $empresa); // nome = empresa
     }
+    $stmt->bindParam(':porte', $porte_val);
 
     if (!$stmt->execute()) {
         throw new Exception("Erro ao salvar dados do cedente: " . implode(" ", $stmt->errorInfo()));
