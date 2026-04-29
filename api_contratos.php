@@ -628,7 +628,7 @@ function gerarContrato($pdo, $operacao_id) {
     $mpdf->WriteHTML($html);
     
     // Save to disk
-    $filename = $operacao_id . '_' . $natureza . '_' . date('Ymd') . '.pdf';
+    $filename = $operacao_id . '_' . $natureza . '_' . date('Ymd_His') . '.pdf';
     
     // Diretorio especifico da operacao
     $uploadFileDir = 'uploads/contratos/' . $operacao_id . '/';
