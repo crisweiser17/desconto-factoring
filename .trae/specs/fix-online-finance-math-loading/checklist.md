@@ -1,0 +1,5 @@
+- [x] A calculadora de empréstimo online deixa de lançar `ReferenceError: calculatePMTFromDays is not defined`
+- [x] `financeMath.js` é carregado de forma compatível com a versão atual de `index.php`
+- [x] Os três modos da calculadora funcionam após a correção
+- [x] Existe comportamento defensivo caso o JavaScript externo falhe
+- [x] `index.php` e `financeMath.js` passam nas verificações aplicáveis após a correção

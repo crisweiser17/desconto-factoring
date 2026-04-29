@@ -30,12 +30,11 @@ O sistema deve classificar cada operação em **uma das duas naturezas jurídica
 
 ```
 SE operacao.natureza == "EMPRESTIMO":
-    SE cliente.tipo_pessoa == "PF" E cliente.possui_cnpj_mei == false:
+    SE cliente.tipo_pessoa == "PF":
         BLOQUEAR_GERACAO
         MENSAGEM: "A ACM ESC não pode realizar operações de mútuo com 
-                   pessoa física sem CNPJ. Oriente o cliente a abrir MEI 
-                   (gratuito no Portal do Empreendedor) ou converta esta 
-                   operação para Desconto de Título."
+                   pessoa física. Oriente o cliente a abrir MEI 
+                   (gratuito no Portal do Empreendedor)."
     SE cliente.porte NOT IN ["MEI", "ME", "EPP"]:
         BLOQUEAR_GERACAO
         MENSAGEM: "LC 167/2019 restringe operações da ESC a MEI, 
@@ -44,6 +43,9 @@ SE operacao.natureza == "EMPRESTIMO":
         GERAR: Contrato_Mutuo + Nota_Promissoria
 
 SE operacao.natureza == "DESCONTO":
+    SE cliente.tipo_pessoa == "PF":
+        BLOQUEAR_GERACAO
+        MENSAGEM: "A ACM ESC não pode realizar operações de desconto com pessoa física. O Cedente deve ser obrigatoriamente Pessoa Jurídica."
     VALIDAR: operacao.titulos existe e tem >= 1 título com sacado distinto do cedente
     SE já existe Contrato_Mae_Cessao ativo com este cliente:
         GERAR: apenas Borderô
@@ -102,7 +104,7 @@ SE operacao.natureza == "DESCONTO":
 **Da CESSIONÁRIA (ACM — fixo):** mesmos dados da Mutuante acima.
 
 **Do CEDENTE (cliente):**
-- Mesma estrutura do Mutuário. Pode ser PF ou PJ (qualquer porte).
+- Mesma estrutura do Mutuário. Obrigatoriamente PJ (Pessoa Jurídica, de qualquer porte).
 
 **Do AVALISTA do Cedente (opcional, recomendado):**
 - Mesmos dados do avalista no mútuo.

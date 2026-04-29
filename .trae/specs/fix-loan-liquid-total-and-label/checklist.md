@@ -1,0 +1,5 @@
+- [x] O contrato de empréstimo exibe um valor numérico na linha `VALOR LÍQUIDO A PAGAR AO CEDENTE`.
+- [x] O valor numérico exibido nessa linha usa a mesma base do valor líquido por extenso.
+- [x] O ajuste não causa regressão na geração de contratos de desconto.
+- [x] A tela `detalhes_operacao.php` exibe `Valor a Receber` para operações de empréstimo.
+- [x] Testes, lint e preview local foram executados antes da entrega.

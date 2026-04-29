@@ -1,0 +1,6 @@
+- [x] O backend de contratos de empréstimo popula `Valor de Face` dos títulos com os valores reais da operação.
+- [x] O backend de contratos de empréstimo popula `Valor Presente` dos títulos com os valores reais da operação.
+- [x] O borderô do contrato gerado para a operação 59 não exibe itens zerados indevidamente.
+- [x] O `Valor Total de Face` do resumo financeiro corresponde à soma dos títulos exibidos.
+- [x] A correção não causa regressão na geração de contratos de desconto.
+- [x] Testes, lint e preview local foram executados antes da entrega.

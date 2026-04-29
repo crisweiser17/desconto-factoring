@@ -1,0 +1,7 @@
+- [x] O arquivo `_contratos/01_regras_de_negocio.md` e `05_prompt_para_trae.md` estão atualizados.
+- [x] A interface `form_sacado.php` e `visualizar_sacado.php` não exibe mais a opção de "Possui CNPJ MEI".
+- [x] O formulário de Cedente não permite mais escolher "Pessoa Física" e agora contém o select de "Porte".
+- [x] A interface de visualização do Cedente exibe o porte corretamente.
+- [x] Ao salvar um sacado ou cedente, o campo `possui_cnpj_mei` não é mais processado. O Cedente é salvo obrigatoriamente como `JURIDICA` e armazena seu respectivo porte.
+- [x] A API de contratos (`api_contratos.php`) não depende mais da flag `possui_cnpj_mei` e avalia estritamente `tipo_pessoa` e `porte` quando aplicável (Empréstimos e Descontos).
+- [x] O script de banco de dados (`remove_possui_cnpj_mei.php`) foi criado e roda sem erros para limpar a estrutura legada.

@@ -1,0 +1,13 @@
+- [x] A tela `detalhes_operacao.php` usa labels diferentes para `desconto` e `emprestimo`
+- [x] Operações de desconto exibem terminologia de antecipação/recebíveis sem termos de empréstimo
+- [x] Operações de empréstimo não exibem o label `Total Original (Recebíveis)`
+- [x] Operações de empréstimo exibem `Taxa de Juros Aplicada` em vez de `Taxa Mensal Aplicada`
+- [x] Operações de empréstimo exibem `Valor Liberado ao Tomador` em vez de `Total Líquido Pago`
+- [x] Operações de empréstimo exibem `Valor Futuro da Operação` no lugar do total antes rotulado como recebíveis
+- [x] Operações de empréstimo exibem `Valor Original do Empréstimo` quando `valor_emprestimo` estiver disponível
+- [x] Operações de empréstimo usam `Forma de Recebimento` e removem a menção a `Notificação ao Sacado` no pagamento direto
+- [x] O campo `Custo da Antecipação` não aparece em operações de empréstimo
+- [x] A ação/modal de `Notificar Sacados` fica oculta em operações de empréstimo
+- [x] A tela continua exibindo os mesmos valores financeiros, alterando apenas a semântica visual
+- [x] O arquivo alterado passa em diagnóstico/lint
+- [x] O preview local confirma a renderização correta para os dois tipos de operação

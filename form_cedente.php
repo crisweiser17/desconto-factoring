@@ -10,6 +10,7 @@ $cedente = [ // Valores padrão para um novo cedente
     'telefone' => '',
     'whatsapp' => '',
     'tipo_pessoa' => 'JURIDICA', // Padrão pessoa jurídica
+    'porte' => '',
     'documento_principal' => '',
     'empresa' => '',
     'endereco' => '',
@@ -122,11 +123,16 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                             <label for="empresa" class="form-label">Razão Social <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="empresa" name="empresa" value="<?php echo htmlspecialchars($cedente['empresa'] ?? ''); ?>" required>
                         </div>
+                        <input type="hidden" id="tipo_pessoa" name="tipo_pessoa" value="JURIDICA">
                         <div class="col-md-3">
-                            <label for="tipo_pessoa" class="form-label">Tipo de Pessoa <span class="text-danger">*</span></label>
-                            <select class="form-select" id="tipo_pessoa" name="tipo_pessoa" required>
-                                <option value="JURIDICA" <?php echo ($cedente['tipo_pessoa'] ?? 'JURIDICA') == 'JURIDICA' ? 'selected' : ''; ?>>Pessoa Jurídica</option>
-                                <option value="FISICA" <?php echo ($cedente['tipo_pessoa'] ?? '') == 'FISICA' ? 'selected' : ''; ?>>Pessoa Física</option>
+                            <label for="porte" class="form-label">Porte <span class="text-danger">*</span></label>
+                            <select class="form-select" id="porte" name="porte" required>
+                                <option value="" <?php echo empty($cedente['porte']) ? 'selected' : ''; ?>>Selecione...</option>
+                                <option value="MEI" <?php echo ($cedente['porte'] ?? '') == 'MEI' ? 'selected' : ''; ?>>MEI</option>
+                                <option value="ME" <?php echo ($cedente['porte'] ?? '') == 'ME' ? 'selected' : ''; ?>>ME</option>
+                                <option value="EPP" <?php echo ($cedente['porte'] ?? '') == 'EPP' ? 'selected' : ''; ?>>EPP</option>
+                                <option value="MEDIO" <?php echo ($cedente['porte'] ?? '') == 'MEDIO' ? 'selected' : ''; ?>>Médio</option>
+                                <option value="GRANDE" <?php echo ($cedente['porte'] ?? '') == 'GRANDE' ? 'selected' : ''; ?>>Grande</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -353,6 +359,53 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.9/jquery.inputmask.min.js"></script>
 
     <script>
+        // Função para validar e-mail
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // Funções para validar CPF e CNPJ
+        function isValidCPF(cpf) {
+            cpf = cpf.replace(/[^\d]+/g, '');
+            if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+            let soma = 0, resto;
+            for (let i = 1; i <= 9; i++) soma += parseInt(cpf.substring(i - 1, i)) * (11 - i);
+            resto = (soma * 10) % 11;
+            if (resto === 10 || resto === 11) resto = 0;
+            if (resto !== parseInt(cpf.substring(9, 10))) return false;
+            soma = 0;
+            for (let i = 1; i <= 10; i++) soma += parseInt(cpf.substring(i - 1, i)) * (12 - i);
+            resto = (soma * 10) % 11;
+            if (resto === 10 || resto === 11) resto = 0;
+            return resto === parseInt(cpf.substring(10, 11));
+        }
+
+        function isValidCNPJ(cnpj) {
+            cnpj = cnpj.replace(/[^\d]+/g, '');
+            if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+            let tamanho = cnpj.length - 2;
+            let numeros = cnpj.substring(0, tamanho);
+            let digitos = cnpj.substring(tamanho);
+            let soma = 0, pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+            if (resultado !== parseInt(digitos.charAt(0))) return false;
+            tamanho += 1;
+            numeros = cnpj.substring(0, tamanho);
+            soma = 0;
+            pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+            return resultado === parseInt(digitos.charAt(1));
+        }
+
         $(document).ready(function(){
             let socioIndex = <?php echo count($socios); ?>;
 
@@ -543,6 +596,45 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 }
             });
 
+            // Validação em tempo real do CNPJ/CPF
+            $('#documento_principal').on('blur', function() {
+                const tipoPessoa = $('#tipo_pessoa').val();
+                const documento = $(this).val().replace(/\D/g, '');
+                const expectedLength = tipoPessoa === 'FISICA' ? 11 : 14;
+                const documentoTipo = tipoPessoa === 'FISICA' ? 'CPF' : 'CNPJ';
+
+                let valid = true;
+                if (documento.length !== expectedLength) {
+                    valid = false;
+                } else if (tipoPessoa === 'FISICA' && !isValidCPF(documento)) {
+                    valid = false;
+                } else if (tipoPessoa === 'JURIDICA' && !isValidCNPJ(documento)) {
+                    valid = false;
+                }
+
+                if (!valid) {
+                    $(this).addClass('is-invalid');
+                    $('#documento_principal-feedback').text(`${documentoTipo} inválido`);
+                } else {
+                    $(this).removeClass('is-invalid');
+                    $('#documento_principal-feedback').text('');
+                }
+            });
+
+            $('.cpf-mask').inputmask("999.999.999-99", {
+                clearIncomplete: true,
+                placeholder: "_"
+            });
+
+            $('#conta_documento').on('input', function() {
+                let val = $(this).val().replace(/\D/g, '');
+                if (val.length <= 11) {
+                    $(this).inputmask("999.999.999-99", { clearIncomplete: false });
+                } else {
+                    $(this).inputmask("99.999.999/9999-99", { clearIncomplete: false });
+                }
+            });
+
             // Validação do formulário
             $('#form-cedente').on('submit', function(e) {
                 let isValid = true;
@@ -566,9 +658,18 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 const expectedLength = tipoPessoa === 'FISICA' ? 11 : 14;
                 const documentoTipo = tipoPessoa === 'FISICA' ? 'CPF' : 'CNPJ';
                 
+                let isDocValid = true;
                 if (documento.length !== expectedLength) {
+                    isDocValid = false;
+                } else if (tipoPessoa === 'FISICA' && !isValidCPF(documento)) {
+                    isDocValid = false;
+                } else if (tipoPessoa === 'JURIDICA' && !isValidCNPJ(documento)) {
+                    isDocValid = false;
+                }
+
+                if (!isDocValid) {
                     $('#documento_principal').addClass('is-invalid');
-                    $('#documento_principal-feedback').text(`${documentoTipo} deve ter ${expectedLength} dígitos`);
+                    $('#documento_principal-feedback').text(`${documentoTipo} inválido`);
                     isValid = false;
                 } else {
                     $('#documento_principal').removeClass('is-invalid');
@@ -577,14 +678,51 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 // Validar CPFs dos sócios
                 $('.socio-cpf').each(function() {
                     const cpf = $(this).val().replace(/\D/g, '');
-                    if (cpf.length !== 11) {
+                    if (cpf.length !== 11 || !isValidCPF(cpf)) {
                         $(this).addClass('is-invalid');
-                        $(this).next('.invalid-feedback').text('CPF deve ter 11 dígitos');
+                        $(this).next('.invalid-feedback').text('CPF inválido');
                         isValid = false;
                     } else {
                         $(this).removeClass('is-invalid');
                     }
                 });
+
+                // Validar Representante CPF
+                const repCpf = $('#representante_cpf').val().replace(/\D/g, '');
+                if (repCpf && (repCpf.length !== 11 || !isValidCPF(repCpf))) {
+                    $('#representante_cpf').addClass('is-invalid');
+                    isValid = false;
+                } else {
+                    $('#representante_cpf').removeClass('is-invalid');
+                }
+
+                // Validar Cônjuge CPF
+                if ($('#casado').is(':checked')) {
+                    const conjugeCpf = $('#conjuge_cpf').val().replace(/\D/g, '');
+                    if (conjugeCpf && (conjugeCpf.length !== 11 || !isValidCPF(conjugeCpf))) {
+                        $('#conjuge_cpf').addClass('is-invalid');
+                        isValid = false;
+                    } else {
+                        $('#conjuge_cpf').removeClass('is-invalid');
+                    }
+                }
+
+                // Validar Conta Documento
+                const contaDoc = $('#conta_documento').val().replace(/\D/g, '');
+                if (contaDoc) {
+                    if (contaDoc.length === 11 && !isValidCPF(contaDoc)) {
+                        $('#conta_documento').addClass('is-invalid');
+                        isValid = false;
+                    } else if (contaDoc.length === 14 && !isValidCNPJ(contaDoc)) {
+                        $('#conta_documento').addClass('is-invalid');
+                        isValid = false;
+                    } else if (contaDoc.length !== 11 && contaDoc.length !== 14) {
+                        $('#conta_documento').addClass('is-invalid');
+                        isValid = false;
+                    } else {
+                        $('#conta_documento').removeClass('is-invalid');
+                    }
+                }
 
                 if (!isValid) {
                     e.preventDefault();

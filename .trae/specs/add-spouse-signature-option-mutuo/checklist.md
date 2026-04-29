@@ -1,0 +1,6 @@
+- [x] A interface "Gerar Contratos" tem uma opção para escolher se o cônjuge do Sacado/Devedor vai assinar.
+- [x] Quando o formulário é enviado, o valor "conjuge_assina" é capturado e enviado via POST.
+- [x] O `api_contratos.php` lê "conjuge_assina" e repassa para o objeto `$data['devedor']['conjuge_assina']` (somente se `devedor.casado` for verdadeiro e a opção for "1").
+- [x] O template `02_template_contrato_mutuo.md` possui o bloco `{{#devedor.conjuge_assina}}` logo abaixo da assinatura do Mutuário.
+- [x] Os outros templates `contrato_*` de mútuo (1 a 4) também possuem o bloco `{{#devedor.conjuge_assina}}` de assinatura.
+- [x] A documentação em `variaveis_disponiveis.md` foi atualizada com a variável `devedor.conjuge_assina`.

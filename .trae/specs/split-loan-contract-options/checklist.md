@@ -1,0 +1,9 @@
+- [x] O modal de geração de contratos para `Empréstimo` não exibe mais o select consolidado `Possui Garantia?`.
+- [x] O modal exibe dois controles independentes com os rótulos `O empréstimo tem garantia real?` e `O sacado tem avalista?`.
+- [x] Cada controle oferece opções binárias claras (`Sim` e `Não`) e envia valores utilizáveis pelo backend.
+- [x] A combinação `garantia real = Sim` e `avalista = Sim` usa `contrato_1_com_veiculo_com_avalista.md`.
+- [x] A combinação `garantia real = Não` e `avalista = Não` usa `contrato_2_sem_veiculo_sem_avalista.md`.
+- [x] A combinação `garantia real = Sim` e `avalista = Não` usa `contrato_3_com_veiculo_sem_avalista.md`.
+- [x] A combinação `garantia real = Não` e `avalista = Sim` usa `contrato_4_sem_veiculo_com_avalista.md`.
+- [x] A geração de contratos para operação de desconto continua funcionando sem regressão.
+- [x] Testes, lint e preview local foram executados antes da entrega.

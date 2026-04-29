@@ -81,6 +81,46 @@ function formatCEP($cep) {
     return $cep;
 }
 
+function formatValorOuPadrao($valor, $padrao = '-') {
+    return !empty($valor) ? htmlspecialchars($valor) : $padrao;
+}
+
+function formatDocumentoGenerico($documento) {
+    $docLimpo = preg_replace('/\D/', '', $documento);
+    if (empty($docLimpo)) {
+        return '-';
+    }
+    if (strlen($docLimpo) === 11) {
+        return formatDocumento($docLimpo, 'FISICA');
+    }
+    if (strlen($docLimpo) === 14) {
+        return formatDocumento($docLimpo, 'JURIDICA');
+    }
+    return htmlspecialchars($documento);
+}
+
+$tipoPessoa = strtoupper($cedente['tipo_pessoa'] ?? '');
+$isPessoaFisica = $tipoPessoa === 'FISICA';
+$isPessoaJuridica = $tipoPessoa === 'JURIDICA';
+$tituloDadosPrincipais = $isPessoaFisica ? 'Dados Pessoais' : 'Dados da Empresa';
+$labelNomeEmpresa = $isPessoaFisica ? 'Nome' : 'Razão Social';
+$labelConjuge = $isPessoaFisica ? 'Dados do Cônjuge' : 'Dados do Cônjuge do Representante';
+$labelEstadoCivil = $isPessoaFisica ? 'Cedente é Casado(a)?' : 'Representante é Casado(a)?';
+$mostrarConjuge = !empty($cedente['casado'])
+    || !empty($cedente['regime_casamento'])
+    || !empty($cedente['conjuge_nome'])
+    || !empty($cedente['conjuge_cpf'])
+    || !empty($cedente['conjuge_rg'])
+    || !empty($cedente['conjuge_nacionalidade'])
+    || !empty($cedente['conjuge_profissao']);
+$mostrarDadosBancarios = !empty($cedente['conta_titular'])
+    || !empty($cedente['conta_documento'])
+    || !empty($cedente['conta_banco'])
+    || !empty($cedente['conta_agencia'])
+    || !empty($cedente['conta_numero'])
+    || !empty($cedente['conta_tipo'])
+    || !empty($cedente['conta_pix']);
+
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -128,25 +168,28 @@ function formatCEP($cep) {
             </div>
         </div>
 
-        <!-- Dados da Empresa -->
+        <!-- Dados Principais -->
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-building"></i> Dados da Empresa</h5>
+                <h5 class="mb-0"><i class="bi bi-building"></i> <?php echo htmlspecialchars($tituloDadosPrincipais); ?></h5>
             </div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <div class="info-label">Razão Social</div>
+                        <div class="info-label"><?php echo htmlspecialchars($labelNomeEmpresa); ?></div>
                         <div class="info-value"><?php echo htmlspecialchars($cedente['empresa'] ?? '-'); ?></div>
                     </div>
                     <div class="col-md-3">
-                        <div class="info-label">Tipo de Pessoa</div>
+                        <div class="info-label">Porte</div>
                         <div class="info-value">
                             <?php
-                            if ($cedente['tipo_pessoa'] == 'FISICA') {
-                                echo '<span class="badge bg-info">Pessoa Física</span>';
-                            } elseif ($cedente['tipo_pessoa'] == 'JURIDICA') {
-                                echo '<span class="badge bg-success">Pessoa Jurídica</span>';
+                            $porte = $cedente['porte'] ?? '';
+                            if ($porte === 'MEDIO') {
+                                echo 'Médio';
+                            } elseif ($porte === 'GRANDE') {
+                                echo 'Grande';
+                            } elseif (!empty($porte)) {
+                                echo htmlspecialchars($porte);
                             } else {
                                 echo '-';
                             }
@@ -154,10 +197,10 @@ function formatCEP($cep) {
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="info-label"><?php echo $cedente['tipo_pessoa'] == 'FISICA' ? 'CPF' : 'CNPJ'; ?></div>
-                        <div class="info-value"><?php echo formatDocumento($cedente['documento_principal'] ?? '', $cedente['tipo_pessoa'] ?? ''); ?></div>
+                        <div class="info-label"><?php echo $isPessoaFisica ? 'CPF' : 'CNPJ'; ?></div>
+                        <div class="info-value"><?php echo formatDocumento($cedente['documento_principal'] ?? '', $tipoPessoa); ?></div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="info-label">Email</div>
                         <div class="info-value">
                             <?php if (!empty($cedente['email'])): ?>
@@ -167,11 +210,21 @@ function formatCEP($cep) {
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="info-label">Telefone</div>
                         <div class="info-value">
                             <?php if (!empty($cedente['telefone'])): ?>
                                 <a href="tel:<?php echo preg_replace('/\D/', '', $cedente['telefone']); ?>"><?php echo formatTelefone($cedente['telefone']); ?></a>
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-label">WhatsApp</div>
+                        <div class="info-value">
+                            <?php if (!empty($cedente['whatsapp'])): ?>
+                                <a href="https://wa.me/55<?php echo preg_replace('/\D/', '', $cedente['whatsapp']); ?>" target="_blank" rel="noopener noreferrer"><?php echo formatTelefone($cedente['whatsapp']); ?></a>
                             <?php else: ?>
                                 -
                             <?php endif; ?>
@@ -226,37 +279,95 @@ function formatCEP($cep) {
             </div>
         </div>
 
-        <!-- Dados Bancários -->
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="bi bi-bank me-2"></i>Dados Bancários</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="info-label">Banco</div>
-                            <div class="info-value"><?php echo htmlspecialchars($cedente['banco'] ?: 'Não informado'); ?></div>
+        <?php if ($mostrarConjuge): ?>
+        <!-- Dados do Cônjuge -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-heart"></i> <?php echo htmlspecialchars($labelConjuge); ?></h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="info-label"><?php echo htmlspecialchars($labelEstadoCivil); ?></div>
+                        <div class="info-value">
+                            <?php if (!empty($cedente['casado'])): ?>
+                                <span class="badge bg-success">Sim</span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary">Não</span>
+                            <?php endif; ?>
                         </div>
-                        <div class="col-md-2">
-                            <div class="info-label">Agência</div>
-                            <div class="info-value"><?php echo htmlspecialchars($cedente['agencia'] ?: 'Não informado'); ?></div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="info-label">Conta</div>
-                            <div class="info-value"><?php echo htmlspecialchars($cedente['conta'] ?: 'Não informado'); ?></div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="info-label">Tipo de Conta</div>
-                            <div class="info-value"><?php echo htmlspecialchars($cedente['tipo_conta'] ?: 'Não informado'); ?></div>
-                        </div>
-                        <div class="col-md-12">
-                            <div class="info-label">Chave PIX</div>
-                            <div class="info-value"><?php echo htmlspecialchars($cedente['chave_pix'] ?: 'Não informada'); ?></div>
-                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="info-label">Regime de Casamento</div>
+                        <div class="info-value"><?php echo htmlspecialchars($cedente['regime_casamento'] ?? '-'); ?></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-label">Nome do Cônjuge</div>
+                        <div class="info-value"><?php echo htmlspecialchars($cedente['conjuge_nome'] ?? '-'); ?></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-label">CPF do Cônjuge</div>
+                        <div class="info-value"><?php echo formatDocumento($cedente['conjuge_cpf'] ?? '', 'FISICA'); ?></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-label">RG do Cônjuge</div>
+                        <div class="info-value"><?php echo htmlspecialchars($cedente['conjuge_rg'] ?? '-'); ?></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-label">Nacionalidade</div>
+                        <div class="info-value"><?php echo htmlspecialchars($cedente['conjuge_nacionalidade'] ?? '-'); ?></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-label">Profissão</div>
+                        <div class="info-value"><?php echo htmlspecialchars($cedente['conjuge_profissao'] ?? '-'); ?></div>
                     </div>
                 </div>
             </div>
+        </div>
+        <?php endif; ?>
 
+        <?php if ($mostrarDadosBancarios): ?>
+        <!-- Dados Bancários -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bank"></i> Dados Bancários</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="info-label">Titular da Conta</div>
+                        <div class="info-value"><?php echo formatValorOuPadrao($cedente['conta_titular'] ?? ''); ?></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-label">CPF/CNPJ do Titular</div>
+                        <div class="info-value"><?php echo formatDocumentoGenerico($cedente['conta_documento'] ?? ''); ?></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-label">Banco</div>
+                        <div class="info-value"><?php echo formatValorOuPadrao($cedente['conta_banco'] ?? ''); ?></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-label">Agência</div>
+                        <div class="info-value"><?php echo formatValorOuPadrao($cedente['conta_agencia'] ?? ''); ?></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-label">Conta</div>
+                        <div class="info-value"><?php echo formatValorOuPadrao($cedente['conta_numero'] ?? ''); ?></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="info-label">Tipo de Conta</div>
+                        <div class="info-value"><?php echo formatValorOuPadrao($cedente['conta_tipo'] ?? ''); ?></div>
+                    </div>
+                    <div class="col-12">
+                        <div class="info-label">Chave PIX</div>
+                        <div class="info-value"><?php echo formatValorOuPadrao($cedente['conta_pix'] ?? ''); ?></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+            <?php if ($isPessoaJuridica): ?>
             <!-- Sócios -->
         <div class="card mb-4">
             <div class="card-header">
@@ -287,6 +398,7 @@ function formatCEP($cep) {
                 <?php endif; ?>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Botões de Ação -->
         <div class="row">

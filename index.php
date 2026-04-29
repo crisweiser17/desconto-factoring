@@ -612,7 +612,11 @@ try {
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="financeMath.js"></script>
+  <?php $financeMathVersion = file_exists(__DIR__ . '/financeMath.js') ? (string) filemtime(__DIR__ . '/financeMath.js') : 'missing'; ?>
+  <script>
+      window.__financeMathLoadFailed = false;
+  </script>
+  <script src="financeMath.js?v=<?= rawurlencode($financeMathVersion) ?>" onerror="window.__financeMathLoadFailed = true;"></script>
   <script>
       // --- Funções para formatar moeda em JavaScript (MOVIDA PARA CIMA) ---
       function formatCurrencyJS(value) {
@@ -723,11 +727,67 @@ try {
       const resumoItemTaxa = document.getElementById('resumoItemTaxa');
       const resumoItemTotal = document.getElementById('resumoItemTotal');
       const resumoItemLucro = document.getElementById('resumoItemLucro');
+      const resumoPvValue = document.getElementById('resumoPv');
+      const resumoPmtValue = document.getElementById('resumoPmt');
+      const resumoPrazoValue = document.getElementById('resumoPrazo');
+      const resumoTaxaValue = document.getElementById('resumoTaxa');
+      const resumoTotalValue = document.getElementById('resumoTotal');
+      const resumoLucroValue = document.getElementById('resumoLucro');
+      const btnGerarParcelas = document.getElementById('btnGerarParcelas');
 
       // Card de Resumo do Empréstimo
       const resumoEmprestimoSection = document.getElementById('resumoEmprestimoSection');
       if (!resumoEmprestimoSection) {
           // Criaremos dinamicamente se não existir, mas o ideal é injetar no HTML
+      }
+
+      function getFinanceMathApi() {
+          const namespaceApi = window.FinanceMath && typeof window.FinanceMath === 'object'
+              ? window.FinanceMath
+              : null;
+          const api = {
+              calculatePMTFromDays: (namespaceApi && namespaceApi.calculatePMTFromDays) || window.calculatePMTFromDays,
+              calculatePVFromDays: (namespaceApi && namespaceApi.calculatePVFromDays) || window.calculatePVFromDays,
+              calculateRATEFromDays: (namespaceApi && namespaceApi.calculateRATEFromDays) || window.calculateRATEFromDays,
+          };
+
+          return Object.values(api).every(fn => typeof fn === 'function') ? api : null;
+      }
+
+      function showFinanceMathDependencyError() {
+          const motivo = window.__financeMathLoadFailed
+              ? 'O arquivo de matematica financeira nao carregou corretamente.'
+              : 'As funcoes de matematica financeira nao estao disponiveis ou estao desatualizadas.';
+          errorMessageDiv.textContent = `${motivo} Atualize a pagina para sincronizar os scripts e tente novamente.`;
+          errorMessageDiv.classList.remove('d-none');
+      }
+
+      function clearFinanceMathDependencyError() {
+          const currentMessage = errorMessageDiv.textContent || '';
+          if (currentMessage.includes('matematica financeira') || currentMessage.includes('sincronizar os scripts')) {
+              errorMessageDiv.textContent = '';
+              errorMessageDiv.classList.add('d-none');
+          }
+      }
+
+      function updateFinanceMathDependentUI() {
+          const financeMathAvailable = !!getFinanceMathApi();
+          if (btnGerarParcelas) {
+              btnGerarParcelas.disabled = tipoEmprestimoRadio.checked && !financeMathAvailable;
+              btnGerarParcelas.title = financeMathAvailable
+                  ? ''
+                  : 'Atualize a pagina para carregar a matematica financeira.';
+          }
+      }
+
+      function clearCalculatedFieldForMode(modo) {
+          if (modo === 'parcela') {
+              valorParcelaInput.value = '';
+          } else if (modo === 'taxa') {
+              taxaMensalInput.value = '';
+          } else if (modo === 'emprestimo') {
+              valorEmprestimoInput.value = '';
+          }
       }
 
       function parseLocalDate(dateStr) {
@@ -847,12 +907,24 @@ try {
           };
 
           const config = configuracoesModo[modo] || configuracoesModo.parcela;
-          resumoModoBadge.textContent = config.badge;
-          resumoModoDescricao.textContent = config.descricao;
+          if (resumoModoBadge) resumoModoBadge.textContent = config.badge;
+          if (resumoModoDescricao) resumoModoDescricao.textContent = config.descricao;
 
           [resumoItemPv, resumoItemPmt, resumoItemPrazo, resumoItemTaxa, resumoItemTotal, resumoItemLucro].forEach(item => {
               if (item) item.classList.toggle('is-active', item === config.destaque);
           });
+      }
+
+      function getResumoFrequenciaLabel(freq) {
+          if (freq === 'mensal') return '/m';
+          if (freq === 'quinzenal') return '/15d';
+          if (freq === 'semanal') return '/sem';
+          return '/unico';
+      }
+
+      function getQuantidadeParcelasResumo(freq) {
+          if (freq === 'pagamento_unico') return 1;
+          return parseInt(quantidadeParcelasInput.value, 10) || 0;
       }
 
       function atualizarCampoCalculadoSuperior(modo) {
@@ -931,48 +1003,82 @@ try {
           const freq = frequenciaParcelasSelect.value;
           const schedule = buildEmprestimoSchedule(dataOperacaoInput.value, dataPrimeiroVencimentoInput.value, nper, freq);
           const scheduleValido = schedule.days.length === nper && schedule.days.every(days => days >= 0);
+          const precisaFinanceMath =
+              (modo === 'parcela' && pv > 0 && nper > 0 && scheduleValido) ||
+              (modo === 'taxa' && pv > 0 && pmt > 0 && nper > 0 && scheduleValido) ||
+              (modo === 'emprestimo' && pmt > 0 && nper > 0 && scheduleValido);
 
-          if (modo === 'parcela' && pv > 0 && nper > 0 && scheduleValido) {
-              const calcPmt = calculatePMTFromDays(taxa, schedule.days, pv);
-              valorParcelaInput.value = calcPmt.toFixed(2);
-          } else if (modo === 'taxa' && pv > 0 && pmt > 0 && nper > 0 && scheduleValido) {
-              const calcI = calculateRATEFromDays(schedule.days, pmt, pv, 0.05);
-              if (calcI !== null) {
-                  taxaMensalInput.value = (calcI * 100).toFixed(4);
-              } else {
-                  taxaMensalInput.value = ''; // Não convergiu
+          if (precisaFinanceMath) {
+              const financeMath = getFinanceMathApi();
+              if (!financeMath) {
+                  clearCalculatedFieldForMode(modo);
+                  updateFinanceMathDependentUI();
+                  showFinanceMathDependencyError();
+                  atualizarCardResumoEmprestimo();
+                  return;
               }
-          } else if (modo === 'emprestimo' && pmt > 0 && nper > 0 && scheduleValido) {
-              const calcPv = calculatePVFromDays(taxa, schedule.days, pmt);
-              valorEmprestimoInput.value = calcPv.toFixed(2);
+
+              clearFinanceMathDependencyError();
+              updateFinanceMathDependentUI();
+
+              if (modo === 'parcela') {
+                  const calcPmt = financeMath.calculatePMTFromDays(taxa, schedule.days, pv);
+                  valorParcelaInput.value = calcPmt.toFixed(2);
+              } else if (modo === 'taxa') {
+                  const calcI = financeMath.calculateRATEFromDays(schedule.days, pmt, pv, 0.05);
+                  if (calcI !== null) {
+                      taxaMensalInput.value = (calcI * 100).toFixed(4);
+                  } else {
+                      taxaMensalInput.value = '';
+                  }
+              } else if (modo === 'emprestimo') {
+                  const calcPv = financeMath.calculatePVFromDays(taxa, schedule.days, pmt);
+                  valorEmprestimoInput.value = calcPv.toFixed(2);
+              }
+          } else {
+              updateFinanceMathDependentUI();
+              clearFinanceMathDependencyError();
           }
           
           atualizarCardResumoEmprestimo();
       }
 
       function atualizarCardResumoEmprestimo() {
+          if (!resumoEmprestimoSection) {
+              return;
+          }
+
           const pv = parseFloat(valorEmprestimoInput.value) || 0;
           const pmt = parseFloat(valorParcelaInput.value) || 0;
-          const nper = frequenciaParcelasSelect.value === 'pagamento_unico'
-              ? 1
-              : (parseInt(quantidadeParcelasInput.value, 10) || 1);
+          const nper = getQuantidadeParcelasResumo(frequenciaParcelasSelect.value);
           const taxaMensal = parseFloat(taxaMensalInput.value) || 0;
           const freq = frequenciaParcelasSelect.value;
+          const mostrarResumoParcial = tipoEmprestimoRadio.checked && (pv > 0 || pmt > 0 || nper > 0 || taxaMensal > 0);
           
           if (pv > 0 && pmt > 0 && nper > 0) {
               const total = pmt * nper;
               const lucro = total - pv;
               
-              document.getElementById('resumoPv').textContent = formatCurrencyJS(pv);
-              document.getElementById('resumoPmt').textContent = formatCurrencyJS(pmt) + (freq==='mensal' ? '/m' : (freq==='quinzenal' ? '/15d' : (freq==='semanal' ? '/sem' : '/único')));
-              document.getElementById('resumoPrazo').textContent = nper + 'x';
-              document.getElementById('resumoTaxa').textContent = taxaMensal.toFixed(2) + '%';
-              document.getElementById('resumoTotal').textContent = formatCurrencyJS(total);
-              document.getElementById('resumoLucro').textContent = formatCurrencyJS(lucro);
+              if (resumoPvValue) resumoPvValue.textContent = formatCurrencyJS(pv);
+              if (resumoPmtValue) resumoPmtValue.textContent = formatCurrencyJS(pmt) + getResumoFrequenciaLabel(freq);
+              if (resumoPrazoValue) resumoPrazoValue.textContent = nper + 'x';
+              if (resumoTaxaValue) resumoTaxaValue.textContent = taxaMensal.toFixed(2) + '%';
+              if (resumoTotalValue) resumoTotalValue.textContent = formatCurrencyJS(total);
+              if (resumoLucroValue) resumoLucroValue.textContent = formatCurrencyJS(lucro);
               
               resumoEmprestimoSection.style.display = 'block';
           } else {
-              resumoEmprestimoSection.style.display = 'none';
+              if (resumoPvValue) resumoPvValue.textContent = pv > 0 ? formatCurrencyJS(pv) : '--';
+              if (resumoPmtValue) {
+                  resumoPmtValue.textContent = pmt > 0
+                      ? formatCurrencyJS(pmt) + getResumoFrequenciaLabel(freq)
+                      : '--';
+              }
+              if (resumoPrazoValue) resumoPrazoValue.textContent = nper > 0 ? nper + 'x' : '--';
+              if (resumoTaxaValue) resumoTaxaValue.textContent = taxaMensal > 0 ? taxaMensal.toFixed(2) + '%' : '--';
+              if (resumoTotalValue) resumoTotalValue.textContent = '--';
+              if (resumoLucroValue) resumoLucroValue.textContent = '--';
+              resumoEmprestimoSection.style.display = mostrarResumoParcial ? 'block' : 'none';
           }
       }
 
@@ -1049,6 +1155,7 @@ try {
       // Carregar rascunho ao iniciar
       document.addEventListener('DOMContentLoaded', () => {
           carregarRascunho();
+          updateFinanceMathDependentUI();
       });
 
       frequenciaParcelasSelect.addEventListener('change', () => {
@@ -1082,6 +1189,11 @@ try {
           const containerTipoPagamento = document.getElementById('containerTipoPagamento');
           const containerNotificarSacado = document.getElementById('containerNotificarSacado');
           const containerResTotalIOF = document.getElementById('containerResTotalIOF');
+          const displayBotaoTaxa = tipoEmprestimoRadio.checked ? 'none' : 'inline-block';
+
+          if (btnAbrirModalTaxa) {
+              btnAbrirModalTaxa.style.display = displayBotaoTaxa;
+          }
 
           if (tipoEmprestimoRadio.checked) {
               emprestimoParamsSection.style.display = 'block';
@@ -1144,13 +1256,22 @@ try {
               titulosBody.querySelectorAll('select').forEach(el => el.style.pointerEvents = 'auto');
               titulosBody.querySelectorAll('.remove-row-btn').forEach(el => el.style.display = 'inline-block');
           }
+          updateFinanceMathDependentUI();
           clearResultsAndRegister();
       }
 
       tipoAntecipacaoRadio.addEventListener('change', toggleModoOperacao);
       tipoEmprestimoRadio.addEventListener('change', toggleModoOperacao);
 
-      document.getElementById('btnGerarParcelas').addEventListener('click', function() {
+      btnGerarParcelas.addEventListener('click', function() {
+          const financeMath = getFinanceMathApi();
+          if (!financeMath) {
+              updateFinanceMathDependentUI();
+              showFinanceMathDependencyError();
+              return;
+          }
+
+          clearFinanceMathDependencyError();
           const pv = parseFloat(document.getElementById('valorEmprestimo').value);
           const freq = document.getElementById('frequenciaParcelas').value;
           const qtd = freq === 'pagamento_unico' ? 1 : parseInt(document.getElementById('quantidadeParcelas').value, 10);
@@ -1175,7 +1296,7 @@ try {
           if (pmtCalculadaFlex > 0) {
               pmt = pmtCalculadaFlex;
           } else {
-              pmt = calculatePMTFromDays(taxaMensal, schedule.days, pv);
+              pmt = financeMath.calculatePMTFromDays(taxaMensal, schedule.days, pv);
           }
 
           // Clear table

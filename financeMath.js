@@ -123,15 +123,39 @@ function calculateRATEFromDays(daysArray, pmt, pv, guess = 0.1) {
     return null;
 }
 
+const financeMathApi = {
+    calculatePMT,
+    calculatePV,
+    calculateRATE,
+    calculateDiscountFactorSum,
+    calculatePMTFromDays,
+    calculatePVFromDays,
+    calculateRATEFromDays,
+};
+
+const financeMathGlobalScope =
+    typeof globalThis !== 'undefined'
+        ? globalThis
+        : (typeof window !== 'undefined'
+            ? window
+            : (typeof self !== 'undefined' ? self : null));
+
+if (financeMathGlobalScope) {
+    financeMathGlobalScope.FinanceMath = Object.assign(
+        {},
+        financeMathGlobalScope.FinanceMath || {},
+        financeMathApi,
+    );
+
+    // Mantem compatibilidade com chamadas legadas via funções globais.
+    Object.keys(financeMathApi).forEach((key) => {
+        if (typeof financeMathGlobalScope[key] !== 'function') {
+            financeMathGlobalScope[key] = financeMathApi[key];
+        }
+    });
+}
+
 // Export para uso em testes (Node.js) se module for definido
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        calculatePMT,
-        calculatePV,
-        calculateRATE,
-        calculateDiscountFactorSum,
-        calculatePMTFromDays,
-        calculatePVFromDays,
-        calculateRATEFromDays,
-    };
+    module.exports = financeMathApi;
 }

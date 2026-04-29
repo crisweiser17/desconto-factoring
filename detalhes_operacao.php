@@ -450,6 +450,20 @@ if ($operacao && !isset($error_message)) {
             <div class="alert alert-danger"><?php echo $error_message; ?></div>
             <a href="listar_operacoes.php" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Voltar para Lista</a>
         <?php elseif ($operacao): ?>
+            <?php
+            $isEmprestimo = ($operacao['tipo_operacao'] ?? 'antecipacao') === 'emprestimo';
+            $valorEmprestimoOriginal = (float)($operacao['valor_emprestimo'] ?? 0);
+            $temValorEmprestimoOriginal = $isEmprestimo && $valorEmprestimoOriginal > 0;
+            $labelParteOperacao = $isEmprestimo ? 'Tomador do Empréstimo:' : 'Cedente:';
+            $labelTipoOperacao = $isEmprestimo ? 'Empréstimo' : 'Desconto';
+            $labelTaxa = $isEmprestimo ? 'Taxa de Juros Aplicada:' : 'Taxa de Desconto Aplicada:';
+            $labelTotalOriginal = $isEmprestimo ? 'Valor a Receber' : 'Total Original dos Recebíveis:';
+            $labelTotalIOF = 'Total IOF (Teórico):';
+            $labelIOFCliente = $isEmprestimo ? 'IOF Repassado ao Cliente:' : 'Cobra IOF do Cliente:';
+            $labelValorLiberado = $isEmprestimo ? 'Valor Liberado ao Tomador:' : 'Valor Líquido Liberado:';
+            $labelResultadoLiquido = $isEmprestimo ? 'Receita/Lucro Líquido da Operação:' : 'Lucro Líquido:';
+            $labelPagamento = $isEmprestimo ? 'Forma de Recebimento:' : 'Tipo de Pagamento:';
+            ?>
 
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-3">
                  <h1 class="mb-0">Detalhes da Operação #<?php echo htmlspecialchars($operacao['id']); ?></h1>
@@ -458,7 +472,9 @@ if ($operacao && !isset($error_message)) {
                     <div class="btn-group">
                         <button id="editarOperacaoBtn" class="btn btn-warning btn-sm"><i class="bi bi-pencil-fill"></i> Editar Operação</button>
                         <button id="gerarAnaliseInternaBtn" class="btn btn-primary btn-sm"><i class="bi bi-bar-chart-fill"></i> Gerar Análise Interna</button>
+                        <?php if (!$isEmprestimo): ?>
                         <button id="notificarSacadosBtn" class="btn btn-info btn-sm text-white" data-operacao-id="<?php echo htmlspecialchars($operacao['id']); ?>"><i class="bi bi-envelope-fill"></i> Notificar Sacados</button>
+                        <?php endif; ?>
                     </div>
                     <!-- Ações Secundárias -->
                     <div class="btn-group">
@@ -480,14 +496,27 @@ if ($operacao && !isset($error_message)) {
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <strong class="text-muted d-block mb-1"><?php echo ($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo' ? 'Tomador de Empréstimo (Sacado):' : 'Cedente:'; ?></strong>
+                            <strong class="text-muted d-block mb-1"><?php echo $labelParteOperacao; ?></strong>
                             <div class="fs-6">
                                 <?php if ($operacao['cedente_id']): ?>
-                                    <a href="form_cedente.php?id=<?php echo $operacao['cedente_id']; ?>" title="Ver/Editar Cedente" class="text-decoration-none fw-semibold">
+                                    <a href="visualizar_cedente.php?id=<?php echo $operacao['cedente_id']; ?>" title="Ver Perfil" class="text-decoration-none fw-semibold">
                                         <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'Desconhecido'); ?>
                                     </a>
                                 <?php else: ?>
-                                    <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'N/A'); ?>
+                                    <!-- Fallback para sacado se cedente não existir, com link para o sacado caso possível -->
+                                    <?php
+                                    $sacadoIdParaLink = null;
+                                    if (isset($recebiveis) && count($recebiveis) > 0) {
+                                        $sacadoIdParaLink = $recebiveis[0]['sacado_id'] ?? null;
+                                    }
+                                    ?>
+                                    <?php if ($sacadoIdParaLink): ?>
+                                        <a href="visualizar_sacado.php?id=<?php echo $sacadoIdParaLink; ?>" title="Ver Perfil" class="text-decoration-none fw-semibold">
+                                            <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'N/A'); ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'N/A'); ?>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -500,22 +529,22 @@ if ($operacao && !isset($error_message)) {
                             <div class="fs-6"><?php echo htmlspecialchars(isset($operacao['data_operacao']) ? date('d/m/Y H:i', strtotime($operacao['data_operacao'])) : '-'); ?></div>
                         </div>
                          <div class="col-md-6">
-                            <strong class="text-muted d-block mb-1">Taxa Mensal Aplicada:</strong>
+                            <strong class="text-muted d-block mb-1"><?php echo $labelTaxa; ?></strong>
                              <div class="fs-6"><?php echo htmlspecialchars(number_format(($operacao['taxa_mensal'] ?? 0) * 100, 2, ',', '.') . '%'); ?></div>
                         </div>
                         <div class="col-md-6">
                             <strong class="text-muted d-block mb-1">Tipo de Operação:</strong>
                             <div>
                                 <?php 
-                                if (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') {
+                                if ($isEmprestimo) {
                                     echo '<span class="badge bg-warning text-dark"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
                                 } else {
-                                    echo '<span class="badge bg-success text-white"><i class="bi bi-arrow-return-left"></i> Antecipação</span>';
+                                    echo '<span class="badge bg-success text-white"><i class="bi bi-arrow-return-left"></i> ' . $labelTipoOperacao . '</span>';
                                 }
                                 ?>
                             </div>
                         </div>
-                        <?php if (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo'): ?>
+                        <?php if ($isEmprestimo): ?>
                         <div class="col-md-6">
                             <strong class="text-muted d-block mb-1">Possui Garantia?</strong>
                             <div class="fs-6"><?php echo (!empty($operacao['tem_garantia'])) ? 'Sim' : 'Não'; ?></div>
@@ -528,14 +557,14 @@ if ($operacao && !isset($error_message)) {
                         <?php endif; ?>
                         <?php endif; ?>
                         <div class="col-md-6">
-                            <strong class="text-muted d-block mb-1">Tipo de Pagamento:</strong>
+                            <strong class="text-muted d-block mb-1"><?php echo $labelPagamento; ?></strong>
                             <div class="fs-6">
                                 <?php 
                                     $tipoPagamento = $operacao['tipo_pagamento'] ?? 'direto';
                                     switch($tipoPagamento) {
-                                        case 'direto': echo 'Pagamento Direto (Notificação ao Sacado)'; break;
-                                        case 'escrow': echo 'Pagamento via Conta Escrow (Conta Vinculada)'; break;
-                                        case 'indireto': echo 'Pagamento Indireto (via Cedente)'; break;
+                                        case 'direto': echo $isEmprestimo ? 'Pagamento Direto' : 'Pagamento Direto (Notificação ao Sacado)'; break;
+                                        case 'escrow': echo $isEmprestimo ? 'Conta Escrow' : 'Pagamento via Conta Escrow (Conta Vinculada)'; break;
+                                        case 'indireto': echo $isEmprestimo ? 'Repasse via Cedente' : 'Pagamento Indireto (via Cedente)'; break;
                                         case 'cheque': echo 'Cheque(s)'; break;
                                         default: echo htmlspecialchars($tipoPagamento);
                                     }
@@ -547,15 +576,21 @@ if ($operacao && !isset($error_message)) {
                             <div class="fs-6"><?php echo formatHtmlSimNao($incorreCustoIOF); ?></div>
                         </div>
                         <div class="col-md-6">
-                            <strong class="text-muted d-block mb-1">Cobra IOF do Cliente:</strong>
+                            <strong class="text-muted d-block mb-1"><?php echo $labelIOFCliente; ?></strong>
                             <div class="fs-6"><?php echo formatHtmlSimNao($cobrarIOFCliente); ?></div>
                         </div>
+                        <?php if ($temValorEmprestimoOriginal): ?>
                         <div class="col-md-6">
-                            <strong class="text-muted d-block mb-1">Total Original (Recebíveis):</strong>
+                            <strong class="text-muted d-block mb-1">Valor Original do Empréstimo:</strong>
+                            <div class="fs-6"><?php echo formatHtmlCurrency($valorEmprestimoOriginal); ?></div>
+                        </div>
+                        <?php endif; ?>
+                        <div class="col-md-6">
+                            <strong class="text-muted d-block mb-1"><?php echo $labelTotalOriginal; ?></strong>
                             <div class="fs-6"><?php echo formatHtmlCurrency($totalOriginalCalculado); ?></div>
                         </div>
                         <div class="col-md-6">
-                            <strong class="text-muted d-block mb-1">Total IOF (Teórico):</strong>
+                            <strong class="text-muted d-block mb-1"><?php echo $labelTotalIOF; ?></strong>
                              <div class="fs-6"><?php echo formatHtmlCurrency($operacao['iof_total_calc'] ?? 0); ?></div>
                         </div>
                         <?php if ($operacao['valor_total_compensacao'] > 0): ?>
@@ -582,17 +617,19 @@ if ($operacao && !isset($error_message)) {
                             // Em caso de erro, manter custo como 0
                         }
                         ?>
+                        <?php if (!$isEmprestimo): ?>
                         <div class="col-md-6">
                             <strong class="text-muted d-block mb-1">Custo da Antecipação:</strong>
                              <div class="fs-6 text-danger fw-bold"><?php echo formatHtmlCurrency($custo_antecipacao_total); ?></div>
                         </div>
                         <?php endif; ?>
+                        <?php endif; ?>
                         <div class="col-md-6">
-                            <strong class="text-muted d-block mb-1">Total Líquido Pago:</strong>
+                            <strong class="text-muted d-block mb-1"><?php echo $labelValorLiberado; ?></strong>
                              <div class="fs-5 text-primary fw-bold"><?php echo formatHtmlCurrency($totalLiquidoPagoCalculado); ?></div>
                         </div>
                          <div class="col-md-6">
-                            <strong class="text-muted d-block mb-1">Lucro Líquido:</strong>
+                            <strong class="text-muted d-block mb-1"><?php echo $labelResultadoLiquido; ?></strong>
                              <div class="fs-5 text-success fw-bold"><?php echo formatHtmlCurrency($totalLucroLiquidoCalculado); ?> <small class="text-muted fs-6">(<?php echo number_format($percentualLucroLiquido, 2, ',', '.') . '%'; ?>)</small></div>
                         </div>
                         <div class="col-md-12 mt-4">
@@ -992,11 +1029,14 @@ if ($operacao && !isset($error_message)) {
                                 <div class="row g-3 mb-4">
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Natureza da Operação</label>
-                                        <select class="form-select" name="natureza" id="modalNatureza" required>
-                                            <option value="">Selecione...</option>
-                                            <option value="EMPRESTIMO" <?php echo ($operacao['natureza'] ?? '') === 'EMPRESTIMO' ? 'selected' : ''; ?>>Empréstimo</option>
-                                            <option value="DESCONTO" <?php echo ($operacao['natureza'] ?? '') === 'DESCONTO' ? 'selected' : ''; ?>>Desconto (Cessão)</option>
+                                        <select class="form-select" name="natureza" id="modalNatureza" required <?php echo $isEmprestimo ? 'disabled' : ''; ?>>
+                                            <option value="" <?php echo !$isEmprestimo && empty($operacao['natureza']) ? 'selected' : ''; ?>>Selecione...</option>
+                                            <option value="EMPRESTIMO" <?php echo $isEmprestimo || ($operacao['natureza'] ?? '') === 'EMPRESTIMO' ? 'selected' : ''; ?>>Empréstimo</option>
+                                            <option value="DESCONTO" <?php echo !$isEmprestimo && ($operacao['natureza'] ?? '') === 'DESCONTO' ? 'selected' : ''; ?>>Desconto (Cessão)</option>
                                         </select>
+                                        <?php if ($isEmprestimo): ?>
+                                            <input type="hidden" name="natureza" value="EMPRESTIMO">
+                                        <?php endif; ?>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Porte do Cliente (Cedente)</label>
@@ -1020,13 +1060,33 @@ if ($operacao && !isset($error_message)) {
                                         <div class="form-text text-muted small"><i class="bi bi-info-circle"></i> Nota: LTDA é a Natureza Jurídica. Escolha o porte correspondente (ME, EPP). LC 167 restringe a MEI, ME e EPP.</div>
                                     </div>
                                     <div class="col-md-12" id="garantiaToggleSection" style="display: none;">
-                                        <label class="form-label fw-bold">Possui Garantia?</label>
-                                        <select class="form-select" name="tem_garantia" id="modalTemGarantia">
-                                            <option value="com_veiculo_com_avalista">Com Veículo e Com Avalista</option>
-                                            <option value="sem_veiculo_sem_avalista" selected>Sem Veículo e Sem Avalista</option>
-                                            <option value="com_veiculo_sem_avalista">Com Veículo e Sem Avalista</option>
-                                            <option value="sem_veiculo_com_avalista">Sem Veículo e Com Avalista</option>
-                                        </select>
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold d-block">O empréstimo tem garantia real?</label>
+                                                <div class="btn-group w-100" role="group" aria-label="Garantia real">
+                                                    <input type="radio" class="btn-check" name="tem_garantia_real" id="modalTemGarantiaRealSim" value="1">
+                                                    <label class="btn btn-outline-primary" for="modalTemGarantiaRealSim">Sim</label>
+                                                    <input type="radio" class="btn-check" name="tem_garantia_real" id="modalTemGarantiaRealNao" value="0" checked>
+                                                    <label class="btn btn-outline-primary" for="modalTemGarantiaRealNao">Não</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold d-block">O sacado tem avalista?</label>
+                                                <div class="btn-group w-100" role="group" aria-label="Avalista">
+                                                    <input type="radio" class="btn-check" name="tem_avalista" id="modalTemAvalistaSim" value="1">
+                                                    <label class="btn btn-outline-primary" for="modalTemAvalistaSim">Sim</label>
+                                                    <input type="radio" class="btn-check" name="tem_avalista" id="modalTemAvalistaNao" value="0" checked>
+                                                    <label class="btn btn-outline-primary" for="modalTemAvalistaNao">Não</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold d-block">Cônjuge vai Assinar?</label>
+                                                <select class="form-select" name="conjuge_assina" id="modalConjugeAssina">
+                                                    <option value="0" selected>Não</option>
+                                                    <option value="1">Sim (Incluir no contrato)</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1235,6 +1295,7 @@ if ($operacao && !isset($error_message)) {
                 </div>
             </div>
 
+            <?php if (!$isEmprestimo): ?>
             <!-- Modal para Pré-visualização de Notificação -->
             <div class="modal fade" id="previewNotificacaoModal" tabindex="-1" aria-labelledby="previewNotificacaoModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -1270,6 +1331,7 @@ if ($operacao && !isset($error_message)) {
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
             <div id="status-feedback" class="mt-2 mb-3" style="min-height: 1.5em;"></div> <fieldset class="border p-3 rounded mb-5 mt-4">
                 <legend class="float-none w-auto px-3 h6">Fluxo de Caixa (Saída, Retorno e Lucro por Mês)</legend>
@@ -2266,59 +2328,87 @@ if ($operacao && !isset($error_message)) {
             });
         });
 
+        // Phone Mask function
+        function applyPhoneMask(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+            if (value.length <= 10) {
+                value = value.replace(/(\d{2})(\d)/, '($1) $2');
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            } else {
+                value = value.replace(/(\d{2})(\d)/, '($1) $2');
+                value = value.replace(/(\d{5})(\d)/, '$1-$2');
+            }
+            input.value = value;
+        }
+
+        document.querySelectorAll('.phone-mask').forEach(input => {
+            input.addEventListener('input', function() {
+                applyPhoneMask(this);
+            });
+        });
+
+        const modalNatureza = document.getElementById('modalNatureza');
+        const garantiaToggleSection = document.getElementById('garantiaToggleSection');
+        const garantiasContainer = document.getElementById('garantiasContainer');
+        const avalistaContainer = document.getElementById('avalistaContainer');
+        const veiculoContainer = document.getElementById('veiculoContainer');
+        const conjugeSection = document.getElementById('conjugeSection');
+        const modalTemGarantiaRealInputs = document.querySelectorAll('input[name="tem_garantia_real"]');
+        const modalTemAvalistaInputs = document.querySelectorAll('input[name="tem_avalista"]');
+
+        function obterValorRadioSelecionado(inputs) {
+            const selecionado = Array.from(inputs).find(input => input.checked);
+            return selecionado ? selecionado.value : '0';
+        }
+
+        function atualizarCamposEmprestimo() {
+            const temGarantiaReal = obterValorRadioSelecionado(modalTemGarantiaRealInputs) === '1';
+            const temAvalista = obterValorRadioSelecionado(modalTemAvalistaInputs) === '1';
+
+            garantiasContainer.style.display = 'none';
+            avalistaContainer.style.display = 'none';
+            veiculoContainer.style.display = 'none';
+
+            avalistaContainer.querySelectorAll('.req-avalista, .req-conjuge').forEach(input => input.required = false);
+            veiculoContainer.querySelectorAll('.req-veiculo').forEach(input => input.required = false);
+
+            if (temGarantiaReal || temAvalista) {
+                garantiasContainer.style.display = 'block';
+            }
+
+            if (temAvalista) {
+                avalistaContainer.style.display = 'block';
+                avalistaContainer.querySelectorAll('.req-avalista').forEach(input => input.required = true);
+            }
+
+            if (temGarantiaReal) {
+                veiculoContainer.style.display = 'block';
+                veiculoContainer.querySelectorAll('.req-veiculo').forEach(input => input.required = true);
+            }
+
+            document.getElementById('avalistaEstadoCivil').dispatchEvent(new Event('change'));
+        }
+
         // Show/hide sections based on selections
-        document.getElementById('modalNatureza').addEventListener('change', function() {
-            const garantiaToggleSection = document.getElementById('garantiaToggleSection');
-            const garantiasContainer = document.getElementById('garantiasContainer');
-            
+        modalNatureza.addEventListener('change', function() {
             if (this.value === 'EMPRESTIMO') {
                 garantiaToggleSection.style.display = 'block';
-                // Trigger the toggle change event to set correct visibility and required fields
-                document.getElementById('modalTemGarantia').dispatchEvent(new Event('change'));
+                atualizarCamposEmprestimo();
             } else {
                 garantiaToggleSection.style.display = 'none';
                 garantiasContainer.style.display = 'none';
-                // Remove all required from garantias
+                avalistaContainer.style.display = 'none';
+                veiculoContainer.style.display = 'none';
+                conjugeSection.style.display = 'none';
                 garantiasContainer.querySelectorAll('.req-avalista, .req-veiculo, .req-conjuge').forEach(input => input.required = false);
             }
         });
 
-        document.getElementById('modalTemGarantia').addEventListener('change', function() {
-            const garantiasContainer = document.getElementById('garantiasContainer');
-            const avalistaContainer = document.getElementById('avalistaContainer');
-            const veiculoContainer = document.getElementById('veiculoContainer');
-            
-            // Default: hide both
-            garantiasContainer.style.display = 'none';
-            avalistaContainer.style.display = 'none';
-            veiculoContainer.style.display = 'none';
-            
-            // Remove required
-            avalistaContainer.querySelectorAll('.req-avalista, .req-conjuge').forEach(input => input.required = false);
-            veiculoContainer.querySelectorAll('.req-veiculo').forEach(input => input.required = false);
-
-            if (this.value === 'com_veiculo_com_avalista') {
-                garantiasContainer.style.display = 'block';
-                avalistaContainer.style.display = 'block';
-                veiculoContainer.style.display = 'block';
-                avalistaContainer.querySelectorAll('.req-avalista').forEach(input => input.required = true);
-                veiculoContainer.querySelectorAll('.req-veiculo').forEach(input => input.required = true);
-            } else if (this.value === 'com_veiculo_sem_avalista') {
-                garantiasContainer.style.display = 'block';
-                veiculoContainer.style.display = 'block';
-                veiculoContainer.querySelectorAll('.req-veiculo').forEach(input => input.required = true);
-            } else if (this.value === 'sem_veiculo_com_avalista') {
-                garantiasContainer.style.display = 'block';
-                avalistaContainer.style.display = 'block';
-                avalistaContainer.querySelectorAll('.req-avalista').forEach(input => input.required = true);
-            }
-
-            // Always trigger conjuge update if avalista is visible
-            document.getElementById('avalistaEstadoCivil').dispatchEvent(new Event('change'));
-        });
+        modalTemGarantiaRealInputs.forEach(input => input.addEventListener('change', atualizarCamposEmprestimo));
+        modalTemAvalistaInputs.forEach(input => input.addEventListener('change', atualizarCamposEmprestimo));
 
         document.getElementById('avalistaEstadoCivil').addEventListener('change', function() {
-            const conjugeSection = document.getElementById('conjugeSection');
             const isAvalistaVisible = document.getElementById('avalistaContainer').style.display !== 'none';
             
             if ((this.value === 'Casado(a)' || this.value === 'União Estável') && isAvalistaVisible) {
@@ -2344,6 +2434,21 @@ if ($operacao && !isset($error_message)) {
                 this.disabled = true;
 
                 const formData = new FormData(form);
+                
+                // Garantir que a natureza seja enviada se estiver desabilitada no select
+                const naturezaValue = modalNatureza.value || form.querySelector('input[name="natureza"][type="hidden"]')?.value;
+                if (naturezaValue) {
+                    formData.set('natureza', naturezaValue);
+                }
+
+                if (naturezaValue === 'EMPRESTIMO') {
+                    formData.set('tem_garantia_real', obterValorRadioSelecionado(modalTemGarantiaRealInputs));
+                    formData.set('tem_avalista', obterValorRadioSelecionado(modalTemAvalistaInputs));
+                } else {
+                    formData.set('tem_garantia_real', '0');
+                    formData.set('tem_avalista', '0');
+                    formData.set('conjuge_assina', '0');
+                }
 
                 fetch('api_contratos.php?action=gerar', {
                     method: 'POST',

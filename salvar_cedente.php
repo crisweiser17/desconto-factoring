@@ -8,7 +8,8 @@ $email = trim($_POST['email'] ?? '');
 $telefone = trim($_POST['telefone'] ?? '');
 $whatsapp = trim($_POST['whatsapp'] ?? '');
 $endereco = trim($_POST['endereco'] ?? '');
-$tipoPessoa = trim($_POST['tipo_pessoa'] ?? 'JURIDICA');
+$tipoPessoa = 'JURIDICA'; // Forçado como JURIDICA
+$porte = trim($_POST['porte'] ?? '');
 
 // Novos campos de endereço
 $cep = trim($_POST['cep'] ?? '');
@@ -73,6 +74,52 @@ if (strlen($documentoPrincipal) !== $expectedLength) {
     exit;
 }
 
+if ($tipoPessoa === 'FISICA' && !validaCPF($documentoPrincipal)) {
+    $message = "O CPF informado é inválido.";
+    ob_clean();
+    header("Location: listar_cedentes.php?status=error&msg=" . urlencode($message));
+    exit;
+}
+
+if ($tipoPessoa === 'JURIDICA' && !validaCNPJ($documentoPrincipal)) {
+    $message = "O CNPJ informado é inválido.";
+    ob_clean();
+    header("Location: listar_cedentes.php?status=error&msg=" . urlencode($message));
+    exit;
+}
+
+// Validação de Cônjuge CPF
+if ($casado && !empty($conjuge_cpf)) {
+    $conjugeCpfLimpo = preg_replace('/\D/', '', $conjuge_cpf);
+    if (!validaCPF($conjugeCpfLimpo)) {
+        $message = "O CPF do cônjuge é inválido.";
+        ob_clean();
+        header("Location: listar_cedentes.php?status=error&msg=" . urlencode($message));
+        exit;
+    }
+}
+
+// Validação da Conta Documento (pode ser CPF ou CNPJ)
+if (!empty($conta_documento)) {
+    $contaDocLimpo = preg_replace('/\D/', '', $conta_documento);
+    if (strlen($contaDocLimpo) === 11 && !validaCPF($contaDocLimpo)) {
+        $message = "O CPF do titular da conta é inválido.";
+        ob_clean();
+        header("Location: listar_cedentes.php?status=error&msg=" . urlencode($message));
+        exit;
+    } elseif (strlen($contaDocLimpo) === 14 && !validaCNPJ($contaDocLimpo)) {
+        $message = "O CNPJ do titular da conta é inválido.";
+        ob_clean();
+        header("Location: listar_cedentes.php?status=error&msg=" . urlencode($message));
+        exit;
+    } elseif (strlen($contaDocLimpo) !== 11 && strlen($contaDocLimpo) !== 14) {
+        $message = "O documento do titular da conta deve ser um CPF (11) ou CNPJ (14) válido.";
+        ob_clean();
+        header("Location: listar_cedentes.php?status=error&msg=" . urlencode($message));
+        exit;
+    }
+}
+
 // Validação dos sócios
 foreach ($socios as $index => $socio) {
     if (empty($socio['nome']) || empty($socio['cpf'])) {
@@ -83,8 +130,8 @@ foreach ($socios as $index => $socio) {
     }
     
     $cpfLimpo = preg_replace('/\D/', '', $socio['cpf']);
-    if (strlen($cpfLimpo) !== 11) {
-        $message = "CPF do sócio deve ter 11 dígitos.";
+    if (strlen($cpfLimpo) !== 11 || !validaCPF($cpfLimpo)) {
+        $message = "CPF do sócio {$socio['nome']} é inválido.";
         ob_clean();
         header("Location: listar_cedentes.php?status=error&msg=" . urlencode($message));
         exit;
@@ -104,6 +151,7 @@ try {
                                 telefone = :telefone,
                                 whatsapp = :whatsapp,
                                 tipo_pessoa = :tipo_pessoa,
+                                porte = :porte,
                                 documento_principal = :documento_principal,
                                 endereco = :endereco,
                                 cep = :cep,
@@ -131,12 +179,12 @@ try {
         $stmt->bindParam(':id', $cedenteId, PDO::PARAM_INT);
     } else { // Modo de Adição
         $stmt = $pdo->prepare("INSERT INTO cedentes (
-            empresa, email, telefone, whatsapp, tipo_pessoa, documento_principal, endereco, 
+            empresa, email, telefone, whatsapp, tipo_pessoa, porte, documento_principal, endereco, 
             cep, logradouro, numero, complemento, bairro, cidade, estado, nome,
             casado, regime_casamento, conjuge_nome, conjuge_cpf, conjuge_rg, conjuge_nacionalidade, conjuge_profissao,
             conta_banco, conta_agencia, conta_numero, conta_tipo, conta_pix, conta_titular, conta_documento
         ) VALUES (
-            :empresa, :email, :telefone, :whatsapp, :tipo_pessoa, :documento_principal, :endereco, 
+            :empresa, :email, :telefone, :whatsapp, :tipo_pessoa, :porte, :documento_principal, :endereco, 
             :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :estado, :nome,
             :casado, :regime_casamento, :conjuge_nome, :conjuge_cpf, :conjuge_rg, :conjuge_nacionalidade, :conjuge_profissao,
             :conta_banco, :conta_agencia, :conta_numero, :conta_tipo, :conta_pix, :conta_titular, :conta_documento
@@ -148,6 +196,7 @@ try {
     $stmt->bindParam(':telefone', $telefone);
     $stmt->bindParam(':whatsapp', $whatsapp);
     $stmt->bindParam(':tipo_pessoa', $tipoPessoa);
+    $stmt->bindParam(':porte', $porte);
     $stmt->bindParam(':documento_principal', $documentoPrincipal);
     $stmt->bindParam(':endereco', $endereco);
     $stmt->bindParam(':cep', $cep);

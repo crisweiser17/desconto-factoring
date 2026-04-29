@@ -117,7 +117,6 @@ foreach ($queries as $i => $sql) {
 $alterCedentes = [
     "ADD COLUMN tipo_pessoa ENUM('PF','PJ') NOT NULL DEFAULT 'PJ'",
     "ADD COLUMN porte ENUM('MEI','ME','EPP','MEDIO','GRANDE','PF') NULL",
-    "ADD COLUMN possui_cnpj_mei TINYINT(1) DEFAULT 0",
     "ADD COLUMN representante_nome VARCHAR(255)",
     "ADD COLUMN representante_cpf VARCHAR(14)",
     "ADD COLUMN representante_rg VARCHAR(30)",

@@ -48,6 +48,13 @@ function readConfig($filePath) {
     if (!isset($config['conta_tipo'])) $config['conta_tipo'] = '';
     if (!isset($config['conta_pix'])) $config['conta_pix'] = '';
     
+    // Fallbacks para Dados da Empresa
+    if (!isset($config['empresa_representante_nome'])) $config['empresa_representante_nome'] = '';
+    if (!isset($config['empresa_representante_cpf'])) $config['empresa_representante_cpf'] = '';
+    if (!isset($config['empresa_endereco'])) $config['empresa_endereco'] = '';
+    if (!isset($config['empresa_email'])) $config['empresa_email'] = '';
+    if (!isset($config['empresa_whatsapp'])) $config['empresa_whatsapp'] = '';
+    
     return $config;
 }
 
@@ -75,6 +82,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $newContaTipo = $_POST['conta_tipo'] ?? '';
     $newContaPix = $_POST['conta_pix'] ?? '';
 
+    // Dados da Empresa
+    $newEmpresaRepresentanteNome = $_POST['empresa_representante_nome'] ?? '';
+    $newEmpresaRepresentanteCpf = $_POST['empresa_representante_cpf'] ?? '';
+    $newEmpresaEndereco = $_POST['empresa_endereco'] ?? '';
+    $newEmpresaEmail = $_POST['empresa_email'] ?? '';
+    $newEmpresaWhatsapp = $_POST['empresa_whatsapp'] ?? '';
+
     if ($newDefaultTaxaMensal !== null && $newIofAdicionalRate !== null && $newIofDiariaRate !== null &&
         $newDefaultTaxaMensal >= 0 && $newIofAdicionalRate >= 0 && $newIofDiariaRate >= 0) {
 
@@ -97,7 +111,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             "conta_agencia" => $newContaAgencia,
             "conta_numero" => $newContaNumero,
             "conta_tipo" => $newContaTipo,
-            "conta_pix" => $newContaPix
+            "conta_pix" => $newContaPix,
+            "empresa_representante_nome" => $newEmpresaRepresentanteNome,
+            "empresa_representante_cpf" => $newEmpresaRepresentanteCpf,
+            "empresa_endereco" => $newEmpresaEndereco,
+            "empresa_email" => $newEmpresaEmail,
+            "empresa_whatsapp" => $newEmpresaWhatsapp
         ];
 
         if (file_put_contents($configFilePath, json_encode($config, JSON_PRETTY_PRINT))) {
@@ -254,6 +273,36 @@ $currentConfig = readConfig($configFilePath);
                     <div class="mb-3">
                         <label for="iof_diaria_rate" class="form-label">Taxa de IOF Diária (decimal, ex: 0.000082 para 0.0082%):</label>
                         <input type="number" step="0.000001" min="0" class="form-control" id="iof_diaria_rate" name="iof_diaria_rate" value="<?php echo htmlspecialchars(number_format($currentConfig['iof_diaria_rate'] ?? 0, 8, '.', '')); ?>" required>
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="mb-3"><i class="bi bi-building"></i> Dados da Empresa</h5>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="empresa_representante_nome" class="form-label">Nome do Representante Legal:</label>
+                            <input type="text" class="form-control" id="empresa_representante_nome" name="empresa_representante_nome" value="<?php echo htmlspecialchars($currentConfig['empresa_representante_nome'] ?? ''); ?>" placeholder="João da Silva">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="empresa_representante_cpf" class="form-label">CPF do Representante:</label>
+                            <input type="text" class="form-control" id="empresa_representante_cpf" name="empresa_representante_cpf" value="<?php echo htmlspecialchars($currentConfig['empresa_representante_cpf'] ?? ''); ?>" placeholder="000.000.000-00">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="empresa_endereco" class="form-label">Endereço Completo:</label>
+                        <input type="text" class="form-control" id="empresa_endereco" name="empresa_endereco" value="<?php echo htmlspecialchars($currentConfig['empresa_endereco'] ?? ''); ?>" placeholder="Rua Exemplo, 123, Bairro, Cidade - UF, CEP">
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="empresa_email" class="form-label">E-mail de Contato:</label>
+                            <input type="email" class="form-control" id="empresa_email" name="empresa_email" value="<?php echo htmlspecialchars($currentConfig['empresa_email'] ?? ''); ?>" placeholder="contato@suaempresa.com.br">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="empresa_whatsapp" class="form-label">WhatsApp de Contato:</label>
+                            <input type="text" class="form-control" id="empresa_whatsapp" name="empresa_whatsapp" value="<?php echo htmlspecialchars($currentConfig['empresa_whatsapp'] ?? ''); ?>" placeholder="(00) 00000-0000">
+                        </div>
                     </div>
                     
                     <hr class="my-4">

@@ -1,0 +1,8 @@
+- [x] A página `config.php` possui campos para o Representante Legal (Nome, CPF) e Contatos da Empresa (Endereço, E-mail, WhatsApp).
+- [x] O `config.json` salva e carrega essas novas variáveis de configuração.
+- [x] Os contratos exibem `MUTUANTE:` e `MUTUARIO:` sem a barra invertida (`\`).
+- [x] A Cláusula 2.1 (ou referente ao pagamento) não diz mais "1 (uma) parcela única de R$ ... cada" para operações com múltiplas parcelas.
+- [x] A Cláusula 2.1 cita o valor total a ser pago, compatível com a soma de todas as parcelas.
+- [x] O "ANEXO II - CRONOGRAMA DE PAGAMENTOS" reflete a quantidade exata de títulos/recebíveis da operação, com datas e valores corretos para cada parcela.
+- [x] Se o Mutuário não tiver E-mail ou WhatsApp, o texto não fica quebrado e as variáveis não aparecem literalmente no contrato final.
+- [x] A qualificação do `MUTUANTE` (Factoring) no topo do contrato utiliza as novas variáveis dinâmicas de Representante e Contato configuradas.

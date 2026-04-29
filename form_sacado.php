@@ -148,14 +148,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                                 <option value="PF" <?php echo ($sacado['porte'] ?? '') == 'PF' ? 'selected' : ''; ?>>Pessoa Física</option>
                             </select>
                         </div>
-                        <div class="col-md-3 mt-4 pt-2">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="possui_cnpj_mei" name="possui_cnpj_mei" value="1" <?php echo !empty($sacado['possui_cnpj_mei']) ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="possui_cnpj_mei">
-                                    Possui CNPJ MEI
-                                </label>
-                            </div>
-                        </div>
+
                         <div class="col-md-6">
                             <label for="email" class="form-label">Email</label>
                             <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($sacado['email'] ?? ''); ?>">
@@ -418,6 +411,47 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
             return emailRegex.test(email);
         }
 
+        // Funções para validar CPF e CNPJ
+        function isValidCPF(cpf) {
+            cpf = cpf.replace(/[^\d]+/g, '');
+            if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+            let soma = 0, resto;
+            for (let i = 1; i <= 9; i++) soma += parseInt(cpf.substring(i - 1, i)) * (11 - i);
+            resto = (soma * 10) % 11;
+            if (resto === 10 || resto === 11) resto = 0;
+            if (resto !== parseInt(cpf.substring(9, 10))) return false;
+            soma = 0;
+            for (let i = 1; i <= 10; i++) soma += parseInt(cpf.substring(i - 1, i)) * (12 - i);
+            resto = (soma * 10) % 11;
+            if (resto === 10 || resto === 11) resto = 0;
+            return resto === parseInt(cpf.substring(10, 11));
+        }
+
+        function isValidCNPJ(cnpj) {
+            cnpj = cnpj.replace(/[^\d]+/g, '');
+            if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+            let tamanho = cnpj.length - 2;
+            let numeros = cnpj.substring(0, tamanho);
+            let digitos = cnpj.substring(tamanho);
+            let soma = 0, pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+            if (resultado !== parseInt(digitos.charAt(0))) return false;
+            tamanho += 1;
+            numeros = cnpj.substring(0, tamanho);
+            soma = 0;
+            pos = tamanho - 7;
+            for (let i = tamanho; i >= 1; i--) {
+                soma += numeros.charAt(tamanho - i) * pos--;
+                if (pos < 2) pos = 9;
+            }
+            resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+            return resultado === parseInt(digitos.charAt(1));
+        }
+
         $(document).ready(function(){
             let socioIndex = <?php echo count($socios); ?>;
 
@@ -524,12 +558,35 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 const expectedLength = tipoPessoa === 'FISICA' ? 11 : 14;
                 const documentoTipo = tipoPessoa === 'FISICA' ? 'CPF' : 'CNPJ';
 
-                if (documento && documento.length !== expectedLength) {
+                let valid = true;
+                if (documento.length !== expectedLength) {
+                    valid = false;
+                } else if (tipoPessoa === 'FISICA' && !isValidCPF(documento)) {
+                    valid = false;
+                } else if (tipoPessoa === 'JURIDICA' && !isValidCNPJ(documento)) {
+                    valid = false;
+                }
+
+                if (!valid) {
                     $(this).addClass('is-invalid');
-                    $('#documento_principal-feedback').text(`${documentoTipo} deve ter ${expectedLength} dígitos`);
+                    $('#documento_principal-feedback').text(`${documentoTipo} inválido`);
                 } else {
                     $(this).removeClass('is-invalid');
                     $('#documento_principal-feedback').text('');
+                }
+            });
+
+            $('.cpf-mask').inputmask("999.999.999-99", {
+                clearIncomplete: true,
+                placeholder: "_"
+            });
+
+            $('#conta_documento').on('input', function() {
+                let val = $(this).val().replace(/\D/g, '');
+                if (val.length <= 11) {
+                    $(this).inputmask("999.999.999-99", { clearIncomplete: false });
+                } else {
+                    $(this).inputmask("99.999.999/9999-99", { clearIncomplete: false });
                 }
             });
 
@@ -637,9 +694,18 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 const expectedLength = tipoPessoa === 'FISICA' ? 11 : 14;
                 const documentoTipo = tipoPessoa === 'FISICA' ? 'CPF' : 'CNPJ';
                 
+                let isDocValid = true;
                 if (documento.length !== expectedLength) {
+                    isDocValid = false;
+                } else if (tipoPessoa === 'FISICA' && !isValidCPF(documento)) {
+                    isDocValid = false;
+                } else if (tipoPessoa === 'JURIDICA' && !isValidCNPJ(documento)) {
+                    isDocValid = false;
+                }
+
+                if (!isDocValid) {
                     $('#documento_principal').addClass('is-invalid');
-                    $('#documento_principal-feedback').text(`${documentoTipo} deve ter ${expectedLength} dígitos`);
+                    $('#documento_principal-feedback').text(`${documentoTipo} inválido`);
                     isValid = false;
                 } else {
                     $('#documento_principal').removeClass('is-invalid');
@@ -661,14 +727,51 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                 // Validar CPFs dos sócios
                 $('.socio-cpf').each(function() {
                     const cpf = $(this).val().replace(/\D/g, '');
-                    if (cpf.length !== 11) {
+                    if (cpf.length !== 11 || !isValidCPF(cpf)) {
                         $(this).addClass('is-invalid');
-                        $(this).next('.invalid-feedback').text('CPF deve ter 11 dígitos');
+                        $(this).next('.invalid-feedback').text('CPF inválido');
                         isValid = false;
                     } else {
                         $(this).removeClass('is-invalid');
                     }
                 });
+
+                // Validar Representante CPF
+                const repCpf = $('#representante_cpf').val().replace(/\D/g, '');
+                if (repCpf && (repCpf.length !== 11 || !isValidCPF(repCpf))) {
+                    $('#representante_cpf').addClass('is-invalid');
+                    isValid = false;
+                } else {
+                    $('#representante_cpf').removeClass('is-invalid');
+                }
+
+                // Validar Cônjuge CPF
+                if ($('#casado').is(':checked')) {
+                    const conjugeCpf = $('#conjuge_cpf').val().replace(/\D/g, '');
+                    if (conjugeCpf && (conjugeCpf.length !== 11 || !isValidCPF(conjugeCpf))) {
+                        $('#conjuge_cpf').addClass('is-invalid');
+                        isValid = false;
+                    } else {
+                        $('#conjuge_cpf').removeClass('is-invalid');
+                    }
+                }
+
+                // Validar Conta Documento
+                const contaDoc = $('#conta_documento').val().replace(/\D/g, '');
+                if (contaDoc) {
+                    if (contaDoc.length === 11 && !isValidCPF(contaDoc)) {
+                        $('#conta_documento').addClass('is-invalid');
+                        isValid = false;
+                    } else if (contaDoc.length === 14 && !isValidCNPJ(contaDoc)) {
+                        $('#conta_documento').addClass('is-invalid');
+                        isValid = false;
+                    } else if (contaDoc.length !== 11 && contaDoc.length !== 14) {
+                        $('#conta_documento').addClass('is-invalid');
+                        isValid = false;
+                    } else {
+                        $('#conta_documento').removeClass('is-invalid');
+                    }
+                }
 
                 if (!isValid) {
                     e.preventDefault();

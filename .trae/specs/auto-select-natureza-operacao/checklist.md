@@ -1,0 +1,3 @@
+- [x] Campo Natureza da Operação no modal "Gerar Contratos" é selecionado automaticamente como Empréstimo se a operação for do tipo empréstimo
+- [x] O campo fica desabilitado para interações manuais (read-only)
+- [x] O backend/sistema ainda recebe corretamente a natureza `EMPRESTIMO` ao submeter a geração do contrato

@@ -46,10 +46,10 @@ A ACM é uma Empresa Simples de Crédito (ESC) regulada pela Lei Complementar 16
 
 ```php
 if ($operacao->natureza === 'EMPRESTIMO') {
-    if ($cliente->tipo_pessoa === 'PF' && !$cliente->possui_cnpj_mei) {
+    if ($cliente->tipo_pessoa === 'PF') {
         throw new ValidationException(
-            'Operação não permitida: a ACM ESC não pode realizar empréstimo para pessoa física sem CNPJ. '
-            . 'Oriente o cliente a abrir MEI (gratuito em gov.br/mei) ou converta para operação de desconto.'
+            'Operação não permitida: a ACM ESC não pode realizar empréstimo para pessoa física. '
+            . 'Oriente o cliente a abrir MEI (gratuito em gov.br/mei).'
         );
     }
     
@@ -66,6 +66,10 @@ if ($operacao->natureza === 'EMPRESTIMO') {
 
 ```php
 if ($operacao->natureza === 'DESCONTO') {
+    if ($cliente->tipo_pessoa === 'PF') {
+        throw new ValidationException('A ACM ESC não pode realizar operações de desconto com pessoa física. O Cedente deve ser obrigatoriamente Pessoa Jurídica.');
+    }
+
     if (empty($operacao->titulos)) {
         throw new ValidationException('Operação de desconto requer pelo menos 1 título.');
     }
@@ -154,7 +158,6 @@ CREATE TABLE master_cession_contracts (
 ALTER TABLE clientes 
     ADD COLUMN IF NOT EXISTS tipo_pessoa ENUM('PF','PJ') NOT NULL DEFAULT 'PJ',
     ADD COLUMN IF NOT EXISTS porte ENUM('MEI','ME','EPP','MEDIO','GRANDE','PF') NULL,
-    ADD COLUMN IF NOT EXISTS possui_cnpj_mei TINYINT(1) DEFAULT 0,
     ADD COLUMN IF NOT EXISTS representante_nome VARCHAR(255),
     ADD COLUMN IF NOT EXISTS representante_cpf VARCHAR(14),
     ADD COLUMN IF NOT EXISTS representante_rg VARCHAR(30),

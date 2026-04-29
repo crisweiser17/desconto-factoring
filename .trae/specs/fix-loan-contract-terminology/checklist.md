@@ -1,0 +1,7 @@
+- [x] Os quatro templates de empréstimo foram revisados para remover terminologia de cessão de crédito.
+- [x] Nenhum contrato de empréstimo gerado exibe `CEDENTE` ou `CESSIONÁRIA` como parte principal.
+- [x] Nenhum contrato de empréstimo gerado usa rótulos `Forma de Pagamento ao CEDENTE` ou `Conta de Depósito do CEDENTE`.
+- [x] A qualificação do tomador e do representante legal renderiza com texto natural, sem aparência de placeholder incorreto.
+- [x] A seção de pagamento do empréstimo descreve corretamente o fluxo de pagamento do mutuário para a mutuante.
+- [x] `api_contratos.php` fornece todos os dados exigidos pela redação final dos templates de empréstimo.
+- [x] Testes, diagnostics/lint e preview local foram executados antes da entrega da implementação.

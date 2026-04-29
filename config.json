@@ -17,5 +17,10 @@
     "conta_agencia": "2633",
     "conta_numero": "97323-1",
     "conta_tipo": "Corrente",
-    "conta_pix": "itau@acmcredito.com.br"
+    "conta_pix": "itau@acmcredito.com.br",
+    "empresa_representante_nome": "Cristian Weiser",
+    "empresa_representante_cpf": "22723140822",
+    "empresa_endereco": "Avenida Dona Lidia 1700",
+    "empresa_email": "e@crisweiser.com",
+    "empresa_whatsapp": "19998989999"
 }

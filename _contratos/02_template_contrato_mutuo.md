@@ -258,6 +258,15 @@ CNPJ: {{devedor.cnpj}}
 p.p.: {{devedor.representante.nome}}  
 CPF: {{devedor.representante.cpf}}
 
+{{#devedor.conjuge_assina}}
+### CÔNJUGE DO MUTUÁRIO / DEVEDOR FIDUCIANTE (anuência):
+
+\
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
+**{{devedor.conjuge.nome}}**  
+CPF: {{devedor.conjuge.cpf}}
+{{/devedor.conjuge_assina}}
+
 ### AVALISTA / GARANTIDOR SOLIDÁRIO:
 
 \
@@ -279,13 +288,13 @@ CPF: {{avalista.conjuge.cpf}}
 
 \
 \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-Nome: {{testemunhas.0.nome}}  
-CPF: {{testemunhas.0.cpf}}
+Nome: ________________________________________________  
+CPF: _______________________
 
 \
 \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-Nome: {{testemunhas.1.nome}}  
-CPF: {{testemunhas.1.cpf}}
+Nome: ________________________________________________  
+CPF: _______________________
 
 ---
 

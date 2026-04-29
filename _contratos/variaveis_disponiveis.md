@@ -85,6 +85,7 @@ Informações sobre o devedor (Sacado no caso de Empréstimo, ou Cedente depende
 - `{{devedor.email}}`: E-mail do devedor.
 - `{{devedor.whatsapp}}`: WhatsApp do devedor.
 - `{{devedor.casado}}`: Booleano (true/false). Pode ser usado em condicionais `{{#devedor.casado}}...{{/devedor.casado}}`.
+- `{{devedor.conjuge_assina}}`: Booleano (true/false). Pode ser usado em condicionais `{{#devedor.conjuge_assina}}...{{/devedor.conjuge_assina}}`.
 - `{{devedor.regime_casamento}}`: Regime de casamento do devedor.
 
 ### 5.1 Cônjuge do Devedor

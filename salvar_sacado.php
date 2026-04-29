@@ -24,7 +24,6 @@ $estado = trim($_POST['estado'] ?? '');
 
 // Novos campos adicionados
 $porte = trim($_POST['porte'] ?? '');
-$possui_cnpj_mei = isset($_POST['possui_cnpj_mei']) ? 1 : 0;
 $representante_nome = trim($_POST['representante_nome'] ?? '');
 $representante_cpf = trim($_POST['representante_cpf'] ?? '');
 $representante_rg = trim($_POST['representante_rg'] ?? '');
@@ -79,6 +78,63 @@ if (strlen($documentoPrincipal) !== $tamanhoDoc) {
     exit;
 }
 
+if ($tipoPessoa === 'FISICA' && !validaCPF($documentoPrincipal)) {
+    $message = "O CPF informado é inválido.";
+    ob_clean();
+    header("Location: listar_sacados.php?status=error&msg=" . urlencode($message));
+    exit;
+}
+
+if ($tipoPessoa === 'JURIDICA' && !validaCNPJ($documentoPrincipal)) {
+    $message = "O CNPJ informado é inválido.";
+    ob_clean();
+    header("Location: listar_sacados.php?status=error&msg=" . urlencode($message));
+    exit;
+}
+
+// Validação de Representante CPF
+if (!empty($representante_cpf)) {
+    $repCpfLimpo = preg_replace('/\D/', '', $representante_cpf);
+    if (!validaCPF($repCpfLimpo)) {
+        $message = "O CPF do representante é inválido.";
+        ob_clean();
+        header("Location: listar_sacados.php?status=error&msg=" . urlencode($message));
+        exit;
+    }
+}
+
+// Validação de Cônjuge CPF
+if ($casado && !empty($conjuge_cpf)) {
+    $conjugeCpfLimpo = preg_replace('/\D/', '', $conjuge_cpf);
+    if (!validaCPF($conjugeCpfLimpo)) {
+        $message = "O CPF do cônjuge é inválido.";
+        ob_clean();
+        header("Location: listar_sacados.php?status=error&msg=" . urlencode($message));
+        exit;
+    }
+}
+
+// Validação da Conta Documento (pode ser CPF ou CNPJ)
+if (!empty($conta_documento)) {
+    $contaDocLimpo = preg_replace('/\D/', '', $conta_documento);
+    if (strlen($contaDocLimpo) === 11 && !validaCPF($contaDocLimpo)) {
+        $message = "O CPF do titular da conta é inválido.";
+        ob_clean();
+        header("Location: listar_sacados.php?status=error&msg=" . urlencode($message));
+        exit;
+    } elseif (strlen($contaDocLimpo) === 14 && !validaCNPJ($contaDocLimpo)) {
+        $message = "O CNPJ do titular da conta é inválido.";
+        ob_clean();
+        header("Location: listar_sacados.php?status=error&msg=" . urlencode($message));
+        exit;
+    } elseif (strlen($contaDocLimpo) !== 11 && strlen($contaDocLimpo) !== 14) {
+        $message = "O documento do titular da conta deve ser um CPF (11) ou CNPJ (14) válido.";
+        ob_clean();
+        header("Location: listar_sacados.php?status=error&msg=" . urlencode($message));
+        exit;
+    }
+}
+
 // Validação do e-mail
 if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $message = "Por favor, insira um e-mail válido.";
@@ -97,8 +153,8 @@ foreach ($socios as $index => $socio) {
     }
     
     $cpfLimpo = preg_replace('/\D/', '', $socio['cpf']);
-    if (strlen($cpfLimpo) !== 11) {
-        $message = "CPF do sócio deve ter 11 dígitos.";
+    if (strlen($cpfLimpo) !== 11 || !validaCPF($cpfLimpo)) {
+        $message = "CPF do sócio {$socio['nome']} é inválido.";
         ob_clean();
         header("Location: listar_sacados.php?status=error&msg=" . urlencode($message));
         exit;
@@ -129,7 +185,6 @@ try {
                                 estado = :estado,
                                 nome = :nome,
                                 porte = :porte,
-                                possui_cnpj_mei = :possui_cnpj_mei,
                                 representante_nome = :representante_nome,
                                 representante_cpf = :representante_cpf,
                                 representante_rg = :representante_rg,
@@ -157,14 +212,14 @@ try {
         $stmt = $pdo->prepare("INSERT INTO sacados (
             empresa, email, telefone, whatsapp, tipo_pessoa, documento_principal, endereco, 
             cep, logradouro, numero, complemento, bairro, cidade, estado, nome, 
-            porte, possui_cnpj_mei, representante_nome, representante_cpf, representante_rg, 
+            porte, representante_nome, representante_cpf, representante_rg, 
             representante_nacionalidade, representante_estado_civil, representante_profissao, representante_endereco,
             casado, regime_casamento, conjuge_nome, conjuge_cpf, conjuge_rg, conjuge_nacionalidade, conjuge_profissao,
             conta_banco, conta_agencia, conta_numero, conta_tipo, conta_pix, conta_titular, conta_documento
         ) VALUES (
             :empresa, :email, :telefone, :whatsapp, :tipo_pessoa, :documento_principal, :endereco, 
             :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :estado, :nome, 
-            :porte, :possui_cnpj_mei, :representante_nome, :representante_cpf, :representante_rg, 
+            :porte, :representante_nome, :representante_cpf, :representante_rg, 
             :representante_nacionalidade, :representante_estado_civil, :representante_profissao, :representante_endereco,
             :casado, :regime_casamento, :conjuge_nome, :conjuge_cpf, :conjuge_rg, :conjuge_nacionalidade, :conjuge_profissao,
             :conta_banco, :conta_agencia, :conta_numero, :conta_tipo, :conta_pix, :conta_titular, :conta_documento
@@ -187,7 +242,6 @@ try {
     $stmt->bindParam(':estado', $estado);
     $stmt->bindParam(':nome', $empresa); // nome = empresa
     $stmt->bindParam(':porte', $porte);
-    $stmt->bindParam(':possui_cnpj_mei', $possui_cnpj_mei, PDO::PARAM_INT);
     $stmt->bindParam(':representante_nome', $representante_nome);
     $stmt->bindParam(':representante_cpf', $representante_cpf);
     $stmt->bindParam(':representante_rg', $representante_rg);

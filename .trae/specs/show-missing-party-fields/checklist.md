@@ -1,0 +1,6 @@
+- [x] `visualizar_sacado.php` exibe os campos adicionais já disponíveis no cadastro do sacado.
+- [x] `visualizar_sacado.php` trata corretamente diferenças entre pessoa física e jurídica, incluindo ocultação de sócios quando não aplicável.
+- [x] `visualizar_cedente.php` exibe os campos adicionais já disponíveis no cadastro do cedente.
+- [x] `visualizar_cedente.php` usa os nomes corretos dos campos bancários salvos no cadastro.
+- [x] As páginas alteradas passam em verificação de sintaxe PHP e não apresentam diagnósticos novos relevantes.
+- [x] As duas telas são conferidas em preview local no navegador.

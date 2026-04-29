@@ -68,11 +68,150 @@ function listarDocumentos($pdo, $operacao_id) {
     ]);
 }
 
+function parseBooleanContratoFlag($value) {
+    if (is_bool($value)) {
+        return $value;
+    }
+
+    if ($value === null) {
+        return false;
+    }
+
+    $normalized = strtolower(trim((string) $value));
+    return in_array($normalized, ['1', 'sim', 'true', 'on', 'yes'], true);
+}
+
+function normalizarCampoContrato($value, $default = '') {
+    if ($value === null) {
+        return $default;
+    }
+
+    $normalized = trim((string) $value);
+    return $normalized !== '' ? $normalized : $default;
+}
+
+function montarEnderecoContrato(array $operacao) {
+    $logradouro = normalizarCampoContrato($operacao['cedente_endereco'] ?? '');
+    $cidade = normalizarCampoContrato($operacao['cedente_cidade'] ?? '');
+    $estado = normalizarCampoContrato($operacao['cedente_estado'] ?? '');
+
+    if ($logradouro !== '' && $cidade !== '' && $estado !== '') {
+        return $logradouro . ', ' . $cidade . ' - ' . $estado;
+    }
+
+    $partes = array_values(array_filter([$logradouro, $cidade, $estado], static function ($parte) {
+        return $parte !== '';
+    }));
+
+    return implode(' - ', $partes);
+}
+
+function montarParteContrato(array $operacao, $porteCliente = '') {
+    $tipoPessoa = strtoupper((string) ($operacao['tipo_pessoa'] ?? ''));
+    $pessoaJuridica = in_array($tipoPessoa, ['PJ', 'JURIDICA'], true);
+    $documentoPrincipal = normalizarCampoContrato($operacao['cedente_documento_principal'] ?? '');
+    $cpf = normalizarCampoContrato($operacao['cedente_cpf'] ?? '', $documentoPrincipal);
+    $cnpj = normalizarCampoContrato($operacao['cedente_cnpj'] ?? '', $documentoPrincipal);
+    $nomeCompleto = normalizarCampoContrato($operacao['cedente_nome'] ?? '');
+    $razaoSocial = normalizarCampoContrato($operacao['empresa'] ?? '', $nomeCompleto);
+    $nomeExibicao = $pessoaJuridica ? $razaoSocial : $nomeCompleto;
+    $documento = $pessoaJuridica ? $cnpj : $cpf;
+    $enderecoCompleto = montarEnderecoContrato($operacao);
+    $representanteNome = $pessoaJuridica
+        ? normalizarCampoContrato($operacao['representante_nome'] ?? '')
+        : normalizarCampoContrato($operacao['representante_nome'] ?? '', $nomeCompleto);
+    $representanteCpf = $pessoaJuridica
+        ? normalizarCampoContrato($operacao['representante_cpf'] ?? '')
+        : normalizarCampoContrato($operacao['representante_cpf'] ?? '', $cpf);
+    $representanteRg = $pessoaJuridica
+        ? normalizarCampoContrato($operacao['representante_rg'] ?? '')
+        : normalizarCampoContrato($operacao['representante_rg'] ?? '', '-');
+    $representanteEndereco = $pessoaJuridica
+        ? normalizarCampoContrato($operacao['representante_endereco'] ?? '')
+        : normalizarCampoContrato($operacao['representante_endereco'] ?? '', $enderecoCompleto);
+
+    return [
+        'pessoa_juridica' => $pessoaJuridica,
+        'razao_social' => $razaoSocial,
+        'descricao_juridica' => 'pessoa jurídica de direito privado',
+        'cnpj' => $cnpj,
+        'nome_completo' => $nomeCompleto,
+        'nacionalidade' => normalizarCampoContrato($operacao['nacionalidade'] ?? '', 'brasileiro(a)'),
+        'estado_civil' => normalizarCampoContrato($operacao['estado_civil'] ?? '', 'Solteiro(a)'),
+        'profissao' => normalizarCampoContrato($operacao['profissao'] ?? '', 'Empresário'),
+        'rg' => normalizarCampoContrato($operacao['rg'] ?? '', '-'),
+        'cpf' => $cpf,
+        'documento' => $documento,
+        'documento_label' => $pessoaJuridica ? 'CNPJ' : 'CPF',
+        'nome_exibicao' => $nomeExibicao,
+        'porte' => normalizarCampoContrato($porteCliente, normalizarCampoContrato($operacao['porte'] ?? '')),
+        'endereco_completo' => $enderecoCompleto,
+        'email' => normalizarCampoContrato($operacao['email'] ?? '', 'Não informado'),
+        'whatsapp' => normalizarCampoContrato($operacao['whatsapp'] ?? '', 'Não informado'),
+        'casado' => !empty($operacao['casado']) && (int) $operacao['casado'] === 1,
+        'conjuge' => [
+            'nome' => normalizarCampoContrato($operacao['conjuge_nome'] ?? ''),
+            'cpf' => normalizarCampoContrato($operacao['conjuge_cpf'] ?? '')
+        ],
+        'conta' => [
+            'banco' => normalizarCampoContrato($operacao['conta_banco'] ?? ''),
+            'agencia' => normalizarCampoContrato($operacao['conta_agencia'] ?? ''),
+            'numero' => normalizarCampoContrato($operacao['conta_numero'] ?? ''),
+            'tipo' => normalizarCampoContrato($operacao['conta_tipo'] ?? ''),
+            'pix' => normalizarCampoContrato($operacao['conta_pix'] ?? ''),
+            'titular' => $nomeExibicao,
+            'documento' => $documento
+        ],
+        'representante' => [
+            'nome' => $representanteNome,
+            'nacionalidade' => normalizarCampoContrato($operacao['representante_nacionalidade'] ?? '', 'brasileiro(a)'),
+            'estado_civil' => normalizarCampoContrato($operacao['representante_estado_civil'] ?? '', 'Solteiro(a)'),
+            'profissao' => normalizarCampoContrato($operacao['representante_profissao'] ?? '', 'Empresário'),
+            'rg' => $representanteRg,
+            'cpf' => $representanteCpf,
+            'endereco' => $representanteEndereco
+        ]
+    ];
+}
+
 function gerarContrato($pdo, $operacao_id) {
     // Pegar dados do POST
     $natureza = $_POST['natureza'] ?? '';
     $porte_cliente = $_POST['porte_cliente'] ?? '';
-    $tem_garantia = $_POST['tem_garantia'] ?? 'sem_veiculo_sem_avalista';
+    $tem_garantia_legado = $_POST['tem_garantia'] ?? null;
+    $tem_garantia_real_flag = $_POST['tem_garantia_real'] ?? null;
+    $tem_avalista_flag = $_POST['tem_avalista'] ?? null;
+    $conjuge_assina_flag = $_POST['conjuge_assina'] ?? null;
+    $conjuge_assina = parseBooleanContratoFlag($conjuge_assina_flag);
+
+    $tem_veiculo = null;
+    $tem_avalista = null;
+
+    if ($tem_garantia_real_flag !== null) {
+        $tem_veiculo = parseBooleanContratoFlag($tem_garantia_real_flag);
+    }
+
+    if ($tem_avalista_flag !== null) {
+        $tem_avalista = parseBooleanContratoFlag($tem_avalista_flag);
+    }
+
+    if ($tem_veiculo === null || $tem_avalista === null) {
+        $tem_veiculo_legado = in_array($tem_garantia_legado, ['com_veiculo_com_avalista', 'com_veiculo_sem_avalista'], true);
+        $tem_avalista_legado = in_array($tem_garantia_legado, ['com_veiculo_com_avalista', 'sem_veiculo_com_avalista'], true);
+
+        if ($tem_veiculo === null) {
+            $tem_veiculo = $tem_veiculo_legado;
+        }
+
+        if ($tem_avalista === null) {
+            $tem_avalista = $tem_avalista_legado;
+        }
+    }
+
+    if ($natureza !== 'EMPRESTIMO') {
+        $tem_veiculo = false;
+        $tem_avalista = false;
+    }
     
     // Avalista
     $avalista_nome = $_POST['avalista_nome'] ?? '';
@@ -115,7 +254,7 @@ function gerarContrato($pdo, $operacao_id) {
         // Para Empréstimo, o Devedor é o Sacado
         $stmtSacado = $pdo->prepare("
             SELECT s.id as sacado_id, s.nome as cedente_nome, s.documento_principal as cedente_documento_principal, s.cpf as cedente_cpf, s.cnpj as cedente_cnpj, s.endereco as cedente_endereco, 
-                   s.cidade as cedente_cidade, s.estado as cedente_estado, s.tipo_pessoa, s.possui_cnpj_mei, s.empresa,
+                   s.cidade as cedente_cidade, s.estado as cedente_estado, s.tipo_pessoa, s.empresa,
                    s.representante_nome, s.representante_cpf, s.representante_rg, s.representante_estado_civil, s.representante_profissao, s.representante_nacionalidade, s.representante_endereco,
                    s.casado, s.conjuge_nome, s.conjuge_cpf, s.conta_banco, s.conta_agencia, s.conta_numero, s.conta_tipo, s.conta_pix, s.email, s.whatsapp
             FROM recebiveis r
@@ -132,7 +271,7 @@ function gerarContrato($pdo, $operacao_id) {
         // Para Antecipação, o Devedor/Cedente é o Cedente
         $stmtCedente = $pdo->prepare("
             SELECT c.nome as cedente_nome, c.documento_principal as cedente_documento_principal, c.cpf as cedente_cpf, c.cnpj as cedente_cnpj, c.endereco as cedente_endereco, 
-                   c.cidade as cedente_cidade, c.estado as cedente_estado, c.tipo_pessoa, c.possui_cnpj_mei, c.empresa,
+                   c.cidade as cedente_cidade, c.estado as cedente_estado, c.tipo_pessoa, c.empresa,
                    c.representante_nome, c.representante_cpf, c.representante_rg, c.representante_estado_civil, c.representante_profissao, c.representante_nacionalidade, c.representante_endereco,
                    c.casado, c.conjuge_nome, c.conjuge_cpf, c.conta_banco, c.conta_agencia, c.conta_numero, c.conta_tipo, c.conta_pix, c.email, c.whatsapp
             FROM cedentes c
@@ -147,8 +286,9 @@ function gerarContrato($pdo, $operacao_id) {
     
     // Regra 2: Validação de Tomador
     if ($natureza === 'EMPRESTIMO') {
-        if ($operacao['tipo_pessoa'] === 'PF' && empty($operacao['possui_cnpj_mei'])) {
-            throw new Exception("A ACM ESC não pode realizar operações de mútuo com pessoa física sem CNPJ. Oriente o cliente a abrir MEI ou converta esta operação para Desconto de Título.");
+        $tipoPessoa = strtoupper((string) ($operacao['tipo_pessoa'] ?? ''));
+        if (!in_array($tipoPessoa, ['PJ', 'JURIDICA'], true)) {
+            throw new Exception("A ACM ESC não pode realizar operações de mútuo com pessoa física. Apenas pessoas jurídicas (MEI, ME, EPP) são permitidas.");
         }
         if (!in_array($porte_cliente, ['MEI', 'ME', 'EPP'])) {
             throw new Exception("LC 167/2019 restringe operações da ESC a MEI, Microempresas e Empresas de Pequeno Porte.");
@@ -179,7 +319,6 @@ function gerarContrato($pdo, $operacao_id) {
 
     $total_liquido_pago_calc = (float)($operacao['total_liquido_pago_calc'] ?? 0);
     $total_original_calc = (float)($operacao['total_original_calc'] ?? 0);
-    $total_presente_calc = (float)($operacao['total_presente_calc'] ?? 0);
     $taxa_mensal = (float)($operacao['taxa_mensal'] ?? 0);
     $veiculo_valor_avaliacao = (float)($veiculo_valor_avaliacao ?? 0);
 
@@ -198,46 +337,99 @@ function gerarContrato($pdo, $operacao_id) {
     $total_face_bordero = 0;
     $total_juros_bordero = 0;
     $total_liquido_bordero = 0;
+    $tipo_operacao_normalizado = strtolower((string)($operacao['tipo_operacao'] ?? 'antecipacao'));
+    $is_emprestimo_operacao = $tipo_operacao_normalizado === 'emprestimo';
     
     $ordem = 1;
     foreach ($titulos as $t) {
-        $valor_face = (float)$t['valor_face'];
-        $valor_liquido = (float)$t['valor_liquido'];
-        $juros = $valor_face - $valor_liquido;
+        // `valor_original` + `valor_presente_calc` são os campos canônicos dos recebíveis atuais.
+        // Mantemos fallback para colunas legadas para preservar contratos de desconto antigos.
+        $valor_face = (float)($t['valor_original'] ?? $t['valor_face'] ?? 0);
+        $numero_titulo = trim((string)($t['numero_documento'] ?? $t['numero_titulo'] ?? ''));
+
+        if ($numero_titulo === '') {
+            $numero_titulo = (string)($t['id'] ?? '');
+        }
+
+        if ($is_emprestimo_operacao) {
+            $valor_presente = (float)($t['valor_presente_calc'] ?? $t['valor_liquido_calc'] ?? $t['valor_presente'] ?? $t['valor_liquido'] ?? 0);
+        } else {
+            $valor_presente = (float)($t['valor_liquido_calc'] ?? $t['valor_presente_calc'] ?? $t['valor_liquido'] ?? $t['valor_presente'] ?? 0);
+        }
+
+        $juros = $valor_face - $valor_presente;
 
         $total_face_bordero += $valor_face;
         $total_juros_bordero += $juros;
-        $total_liquido_bordero += $valor_liquido;
+        $total_liquido_bordero += $valor_presente;
 
         $titulos_formatados[] = [
             'ordem' => str_pad($ordem++, 2, '0', STR_PAD_LEFT),
-            'numero' => $t['numero_documento'] ?: $t['id'],
+            'numero' => $numero_titulo,
             'tipo' => $t['tipo_recebivel'] ?? 'DUPLICATA',
             'sacado_nome' => $t['sacado_nome'],
             'sacado_documento' => $t['sacado_documento'],
             'data_emissao' => !empty($t['data_emissao']) ? date('d/m/Y', strtotime($t['data_emissao'])) : date('d/m/Y'),
             'data_vencimento' => date('d/m/Y', strtotime($t['data_vencimento'])),
             'valor_face' => number_format($valor_face, 2, ',', '.'),
-            'valor_liquido' => number_format($valor_liquido, 2, ',', '.'),
-            'valor_presente' => number_format($valor_liquido, 2, ',', '.'),
+            'valor_liquido' => number_format($valor_presente, 2, ',', '.'),
+            'valor_presente' => number_format($valor_presente, 2, ',', '.'),
             'juros' => number_format($juros, 2, ',', '.')
         ];
     }
 
+    $total_desagio_bordero = $total_face_bordero - $total_liquido_bordero;
+
+    // Construir cronograma dinamicamente
+    $cronograma = [];
+    $saldo_devedor_atual = $total_face_bordero;
+    $data_primeiro_vencimento = null;
+
+    foreach ($titulos_formatados as $i => $t) {
+        $valor_parcela_num = (float) str_replace(['.', ','], ['', '.'], $t['valor_face']);
+        $valor_amortizacao_num = (float) str_replace(['.', ','], ['', '.'], $t['valor_liquido']);
+        $valor_juros_num = (float) str_replace(['.', ','], ['', '.'], $t['juros']);
+        
+        $saldo_devedor_atual -= $valor_parcela_num;
+        if ($saldo_devedor_atual < 0.01) $saldo_devedor_atual = 0; // Prevenir imprecisão de float
+
+        if ($i === 0) {
+            $data_primeiro_vencimento = $t['data_vencimento'];
+        }
+
+        $cronograma[] = [
+            'numero' => $i + 1,
+            'data_vencimento' => $t['data_vencimento'],
+            'valor_parcela' => number_format($valor_parcela_num, 2, ',', '.'),
+            'valor_amortizacao' => number_format($valor_amortizacao_num, 2, ',', '.'),
+            'valor_juros' => number_format($valor_juros_num, 2, ',', '.'),
+            'saldo_devedor' => number_format($saldo_devedor_atual, 2, ',', '.')
+        ];
+    }
+
+    $num_parcelas_count = count($titulos_formatados);
+    $periodicidade = $num_parcelas_count === 1 ? 'única' : 'variável';
+    $valor_parcela_texto = $num_parcelas_count === 1 ? number_format($total_face_bordero, 2, ',', '.') : 'Variável (conforme cronograma)';
+    $valor_parcela_extenso_texto = $num_parcelas_count === 1 ? $extenso->converter($total_face_bordero) : 'Variável';
+
     // Carregar configuração
     $config_file = __DIR__ . '/config.json';
     $config = file_exists($config_file) ? json_decode(file_get_contents($config_file), true) : [];
+    $parteContrato = montarParteContrato($operacao, $porte_cliente);
+    
+    // Adicionar propriedade conjuge_assina
+    $parteContrato['conjuge_assina'] = $parteContrato['casado'] && $conjuge_assina;
 
     // Preparar Data para Mustache
     $data = [
         'titulos' => $titulos_formatados,
         'credor' => [
             'representante' => [
-                'nome' => 'Cris Weiser', // Placeholder, ideal buscar da conf da ESC
+                'nome' => $config['empresa_representante_nome'] ?? '',
                 'nacionalidade' => 'brasileiro(a)',
                 'estado_civil' => 'casado(a)',
-                'rg' => '12.345.678-9',
-                'cpf' => '123.456.789-00'
+                'rg' => '-',
+                'cpf' => $config['empresa_representante_cpf'] ?? ''
             ],
             'conta' => [
                 'banco' => $config['conta_banco'] ?? '',
@@ -248,45 +440,11 @@ function gerarContrato($pdo, $operacao_id) {
                 'titular' => $config['conta_titular'] ?? '',
                 'documento' => $config['conta_documento'] ?? ''
             ],
-            'email' => 'contato@acmempresa.com.br',
-            'whatsapp' => '(19) 99999-9999'
+            'endereco_completo' => $config['empresa_endereco'] ?? '',
+            'email' => normalizarCampoContrato($config['empresa_email'] ?? '', 'Não informado'),
+            'whatsapp' => normalizarCampoContrato($config['empresa_whatsapp'] ?? '', 'Não informado')
         ],
-        'cedente' => [
-            'pessoa_juridica' => in_array($operacao['tipo_pessoa'], ['PJ', 'JURIDICA']),
-            'razao_social' => !empty($operacao['empresa']) ? $operacao['empresa'] : ($operacao['cedente_nome'] ?? ''),
-            'descricao_juridica' => 'pessoa jurídica de direito privado',
-            'cnpj' => !empty($operacao['cedente_cnpj']) ? $operacao['cedente_cnpj'] : (!empty($operacao['cedente_cpf']) ? $operacao['cedente_cpf'] : ($operacao['cedente_documento_principal'] ?? '')),
-            'nome_completo' => $operacao['cedente_nome'] ?? '',
-            'nacionalidade' => 'brasileiro(a)',
-            'estado_civil' => 'Solteiro(a)',
-            'profissao' => 'Empresário',
-            'rg' => '-',
-            'cpf' => !empty($operacao['cedente_cpf']) ? $operacao['cedente_cpf'] : (!empty($operacao['cedente_cnpj']) ? $operacao['cedente_cnpj'] : ($operacao['cedente_documento_principal'] ?? '')),
-            'endereco_completo' => ($operacao['cedente_endereco'] ?? '') . ', ' . ($operacao['cedente_cidade'] ?? '') . ' - ' . ($operacao['cedente_estado'] ?? ''),
-            'email' => $operacao['email'] ?? '',
-            'whatsapp' => $operacao['whatsapp'] ?? '',
-            'casado' => !empty($operacao['casado']) && $operacao['casado'] == 1,
-            'conjuge' => [
-                'nome' => $operacao['conjuge_nome'] ?? '',
-                'cpf' => $operacao['conjuge_cpf'] ?? ''
-            ],
-            'conta' => [
-                'banco' => $operacao['conta_banco'] ?? '',
-                'agencia' => $operacao['conta_agencia'] ?? '',
-                'numero' => $operacao['conta_numero'] ?? '',
-                'tipo' => $operacao['conta_tipo'] ?? '',
-                'pix' => $operacao['conta_pix'] ?? ''
-            ],
-            'representante' => [
-                'nome' => !empty($operacao['representante_nome']) ? $operacao['representante_nome'] : ($operacao['cedente_nome'] ?? ''),
-                'nacionalidade' => !empty($operacao['representante_nacionalidade']) ? $operacao['representante_nacionalidade'] : 'brasileiro(a)',
-                'estado_civil' => !empty($operacao['representante_estado_civil']) ? $operacao['representante_estado_civil'] : 'Solteiro(a)',
-                'profissao' => !empty($operacao['representante_profissao']) ? $operacao['representante_profissao'] : 'Empresário',
-                'rg' => !empty($operacao['representante_rg']) ? $operacao['representante_rg'] : '-',
-                'cpf' => !empty($operacao['representante_cpf']) ? $operacao['representante_cpf'] : ($operacao['cedente_cpf'] ?? ''),
-                'endereco' => !empty($operacao['representante_endereco']) ? $operacao['representante_endereco'] : ($operacao['cedente_endereco'] ?? '')
-            ]
-        ],
+        'cedente' => $parteContrato,
         'contrato_mae' => [
             'id' => $operacao_id,
             'local' => 'Piracicaba/SP',
@@ -299,44 +457,16 @@ function gerarContrato($pdo, $operacao_id) {
             'total_face' => number_format($total_face_bordero, 2, ',', '.'),
             'total_juros' => number_format($total_juros_bordero, 2, ',', '.'),
             'total_liquido' => number_format($total_liquido_bordero, 2, ',', '.'),
+            'valor_liquido' => number_format($total_liquido_bordero, 2, ',', '.'),
             'total_titulos' => count($titulos),
             'taxa_desagio' => number_format($taxa_mensal * 100, 2, ',', '.'),
-            'total_desagio' => number_format($total_original_calc - $total_presente_calc, 2, ',', '.'),
+            'total_desagio' => number_format($total_desagio_bordero, 2, ',', '.'),
             'prazo_medio' => number_format($operacao['media_dias_pond_calc'] ?? 0, 0, '', ''),
             'tarifas' => number_format(($operacao['iof_total_calc'] ?? 0) + ($operacao['tarifas'] ?? 0), 2, ',', '.'),
-            'valor_liquido_extenso' => $extenso->converter($total_liquido_pago_calc),
+            'valor_liquido_extenso' => $extenso->converter($total_liquido_bordero),
             'forma_pagamento' => 'Transferência Bancária (PIX)'
         ],
-        'devedor' => [
-            'razao_social' => !empty($operacao['empresa']) ? $operacao['empresa'] : ($operacao['cedente_nome'] ?? ''),
-            'descricao_juridica' => 'pessoa jurídica de direito privado',
-            'cnpj' => !empty($operacao['cedente_cnpj']) ? $operacao['cedente_cnpj'] : (!empty($operacao['cedente_cpf']) ? $operacao['cedente_cpf'] : ($operacao['cedente_documento_principal'] ?? '')),
-            'porte' => $porte_cliente,
-            'endereco_completo' => ($operacao['cedente_endereco'] ?? '') . ', ' . ($operacao['cedente_cidade'] ?? '') . ' - ' . ($operacao['cedente_estado'] ?? ''),
-            'email' => $operacao['email'] ?? '',
-            'whatsapp' => $operacao['whatsapp'] ?? '',
-            'casado' => !empty($operacao['casado']) && $operacao['casado'] == 1,
-            'conjuge' => [
-                'nome' => $operacao['conjuge_nome'] ?? '',
-                'cpf' => $operacao['conjuge_cpf'] ?? ''
-            ],
-            'conta' => [
-                'banco' => $operacao['conta_banco'] ?? '',
-                'agencia' => $operacao['conta_agencia'] ?? '',
-                'numero' => $operacao['conta_numero'] ?? '',
-                'tipo' => $operacao['conta_tipo'] ?? '',
-                'pix' => $operacao['conta_pix'] ?? ''
-            ],
-            'representante' => [
-                'nome' => !empty($operacao['representante_nome']) ? $operacao['representante_nome'] : ($operacao['cedente_nome'] ?? ''),
-                'nacionalidade' => !empty($operacao['representante_nacionalidade']) ? $operacao['representante_nacionalidade'] : 'brasileiro(a)',
-                'estado_civil' => !empty($operacao['representante_estado_civil']) ? $operacao['representante_estado_civil'] : 'Solteiro(a)',
-                'profissao' => !empty($operacao['representante_profissao']) ? $operacao['representante_profissao'] : 'Empresário',
-                'rg' => !empty($operacao['representante_rg']) ? $operacao['representante_rg'] : '-',
-                'cpf' => !empty($operacao['representante_cpf']) ? $operacao['representante_cpf'] : ($operacao['cedente_cpf'] ?? ''),
-                'endereco' => !empty($operacao['representante_endereco']) ? $operacao['representante_endereco'] : ($operacao['cedente_endereco'] ?? '')
-            ]
-        ],
+        'devedor' => $parteContrato,
         'avalista' => [
             'nome' => $avalista_nome,
             'nacionalidade' => $avalista_nacionalidade,
@@ -345,8 +475,8 @@ function gerarContrato($pdo, $operacao_id) {
             'rg' => $avalista_rg,
             'cpf' => $avalista_cpf,
             'endereco_completo' => $avalista_endereco,
-            'email' => $avalista_email,
-            'whatsapp' => $avalista_whatsapp,
+            'email' => normalizarCampoContrato($avalista_email ?? '', 'Não informado'),
+            'whatsapp' => normalizarCampoContrato($avalista_whatsapp ?? '', 'Não informado'),
             'casado' => in_array($avalista_estado_civil, ['Casado(a)', 'União Estável']),
             'regime_casamento' => $avalista_regime_casamento,
             'conjuge' => [
@@ -362,22 +492,22 @@ function gerarContrato($pdo, $operacao_id) {
             'valor_principal_extenso' => $extenso->converter($total_liquido_pago_calc),
             'forma_liberacao' => 'Transferência Bancária (PIX)',
             'comprovante_liberacao' => '',
-            'valor_total_devido' => number_format($total_original_calc, 2, ',', '.'),
-            'valor_total_devido_extenso' => $extenso->converter($total_original_calc),
-            'num_parcelas' => '1',
-            'num_parcelas_extenso' => 'uma',
-            'periodicidade' => 'única',
-            'valor_parcela' => number_format($total_original_calc, 2, ',', '.'),
-            'valor_parcela_extenso' => $extenso->converter($total_original_calc),
-            'data_primeiro_vencimento' => date('d/m/Y', strtotime('+30 days')), // Simples placeholder
+            'valor_total_devido' => number_format($total_face_bordero, 2, ',', '.'),
+            'valor_total_devido_extenso' => $extenso->converter($total_face_bordero),
+            'num_parcelas' => $num_parcelas_count,
+            'num_parcelas_extenso' => $extenso->converter($num_parcelas_count),
+            'periodicidade' => $periodicidade,
+            'valor_parcela' => $valor_parcela_texto,
+            'valor_parcela_extenso' => $valor_parcela_extenso_texto,
+            'data_primeiro_vencimento' => $data_primeiro_vencimento ?? date('d/m/Y'),
             'forma_pagamento' => 'Transferência Bancária (PIX)',
             'taxa_juros_mensal' => number_format($taxa_mensal * 100, 2, ',', '.'),
             'taxa_juros_mensal_extenso' => $extenso->converter($taxa_mensal * 100),
             'taxa_juros_anual' => number_format((pow(1 + $taxa_mensal, 12) - 1) * 100, 2, ',', '.'),
             'taxa_juros_anual_extenso' => $extenso->converter((pow(1 + $taxa_mensal, 12) - 1) * 100),
             'cet' => number_format($taxa_mensal * 100 + 0.1, 2, ',', '.'),
-            'total_juros' => number_format($total_original_calc - $total_liquido_pago_calc, 2, ',', '.'),
-            'sistema_amortizacao' => 'Pagamento Único no Vencimento',
+            'total_juros' => number_format($total_face_bordero - $total_liquido_pago_calc, 2, ',', '.'),
+            'sistema_amortizacao' => $num_parcelas_count === 1 ? 'Pagamento Único no Vencimento' : 'Pagamento Variável',
             'num_vias' => '2',
             'num_vias_extenso' => 'duas'
         ],
@@ -397,46 +527,35 @@ function gerarContrato($pdo, $operacao_id) {
             'valor_avaliacao_extenso' => $extenso->converter($veiculo_valor_avaliacao)
         ],
         'testemunhas' => [
-            ['nome' => 'Testemunha 1', 'cpf' => '000.000.000-00'],
-            ['nome' => 'Testemunha 2', 'cpf' => '111.111.111-11']
+            ['nome' => '________________________________________________', 'cpf' => '_______________________'],
+            ['nome' => '________________________________________________', 'cpf' => '_______________________']
         ],
-        'cronograma' => [
-            [
-                'numero' => 1,
-                'data_vencimento' => date('d/m/Y', strtotime('+30 days')),
-                'valor_parcela' => number_format($total_original_calc, 2, ',', '.'),
-                'valor_amortizacao' => number_format($total_liquido_pago_calc, 2, ',', '.'),
-                'valor_juros' => number_format($total_original_calc - $total_liquido_pago_calc, 2, ',', '.'),
-                'saldo_devedor' => '0,00'
-            ]
-        ]
+        'cronograma' => $cronograma
     ];
 
     // Determinar o template a usar
-    $tem_veiculo = ($tem_garantia === 'com_veiculo_com_avalista' || $tem_garantia === 'com_veiculo_sem_avalista');
-    $tem_avalista = ($tem_garantia === 'com_veiculo_com_avalista' || $tem_garantia === 'sem_veiculo_com_avalista');
-
     if ($natureza === 'EMPRESTIMO') {
-        $templatePath = '_contratos/02_template_contrato_mutuo.md';
-    } else {
         if ($tem_veiculo && $tem_avalista) {
             $templatePath = '_contratos/contrato_1_com_veiculo_com_avalista.md';
         } elseif (!$tem_veiculo && !$tem_avalista) {
             $templatePath = '_contratos/contrato_2_sem_veiculo_sem_avalista.md';
         } elseif ($tem_veiculo && !$tem_avalista) {
             $templatePath = '_contratos/contrato_3_com_veiculo_sem_avalista.md';
-        } else { // !$tem_veiculo && $tem_avalista
+        } else {
             $templatePath = '_contratos/contrato_4_sem_veiculo_com_avalista.md';
         }
 
-        // Fallback legado caso os novos não existam
         if (!file_exists($templatePath)) {
-            if (file_exists('_contratos/03_template_cessao_bordero.md')) {
-                $templatePath = '_contratos/03_template_cessao_bordero.md';
+            if (file_exists('_contratos/02_template_contrato_mutuo.md')) {
+                $templatePath = '_contratos/02_template_contrato_mutuo.md';
             } else {
                 $templatePath = '_contratos/template.md';
             }
         }
+    } else {
+        $templatePath = file_exists('_contratos/03_template_cessao_bordero.md')
+            ? '_contratos/03_template_cessao_bordero.md'
+            : '_contratos/template.md';
     }
     
     if (!file_exists($templatePath)) {
@@ -529,7 +648,7 @@ function gerarContrato($pdo, $operacao_id) {
         if ($tem_veiculo) {
             $stmt = $pdo->prepare("
                 INSERT INTO operation_vehicles (
-                    operation_id, marca, modelo, ano_fab, ano_mod, cor, placa, renavam, valor_avaliacao, chassi, municipio_registro, uf
+                    operation_id, marca, modelo, ano_fab, ano_mod, cor, placa, renavam, valor_avaliacao, chassi, municipio_emplacamento, uf
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([

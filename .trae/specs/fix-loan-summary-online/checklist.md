@@ -1,0 +1,5 @@
+- [x] O resumo da simulação volta a preencher os indicadores ao informar os dados do empréstimo
+- [x] O comportamento fica consistente entre `localhost` e versão online
+- [x] A correção não quebra os modos `Descobrir Parcela`, `Descobrir Taxa de Juros` e `Descobrir Valor do Empréstimo`
+- [x] A interface pode manter o resumo visível sem impedir a atualização funcional dos valores
+- [x] `index.php` passa em verificação de sintaxe após a correção

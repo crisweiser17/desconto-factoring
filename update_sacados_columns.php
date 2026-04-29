@@ -3,7 +3,6 @@ require_once 'db_connection.php';
 
 $queries = [
     "ALTER TABLE sacados ADD COLUMN porte ENUM('MEI','ME','EPP','MEDIO','GRANDE','PF') NULL",
-    "ALTER TABLE sacados ADD COLUMN possui_cnpj_mei TINYINT(1) DEFAULT 0",
     "ALTER TABLE sacados ADD COLUMN representante_nome VARCHAR(255)",
     "ALTER TABLE sacados ADD COLUMN representante_cpf VARCHAR(14)",
     "ALTER TABLE sacados ADD COLUMN representante_rg VARCHAR(30)",
