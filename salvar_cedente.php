@@ -1,6 +1,7 @@
 <?php
 require_once 'auth_check.php';
 require_once 'db_connection.php';
+require_once 'functions.php';
 
 $cedenteId = isset($_POST['id']) ? (int)$_POST['id'] : null;
 $empresa = trim($_POST['empresa'] ?? '');
