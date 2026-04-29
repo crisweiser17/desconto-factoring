@@ -128,9 +128,9 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                             <label for="porte" class="form-label">Porte <span class="text-danger">*</span></label>
                             <select class="form-select" id="porte" name="porte" required>
                                 <option value="" <?php echo empty($cedente['porte']) ? 'selected' : ''; ?>>Selecione...</option>
-                                <option value="MEI" <?php echo ($cedente['porte'] ?? '') == 'MEI' ? 'selected' : ''; ?>>MEI</option>
-                                <option value="ME" <?php echo ($cedente['porte'] ?? '') == 'ME' ? 'selected' : ''; ?>>ME</option>
-                                <option value="EPP" <?php echo ($cedente['porte'] ?? '') == 'EPP' ? 'selected' : ''; ?>>EPP</option>
+                                <option value="MEI" <?php echo ($cedente['porte'] ?? '') == 'MEI' ? 'selected' : ''; ?>>MEI → até R$ 81 mil</option>
+                                <option value="ME" <?php echo ($cedente['porte'] ?? '') == 'ME' ? 'selected' : ''; ?>>ME → até R$ 360 mil</option>
+                                <option value="EPP" <?php echo ($cedente['porte'] ?? '') == 'EPP' ? 'selected' : ''; ?>>EPP → até R$ 4,8 milhões</option>
                                 <option value="MEDIO" <?php echo ($cedente['porte'] ?? '') == 'MEDIO' ? 'selected' : ''; ?>>Médio</option>
                                 <option value="GRANDE" <?php echo ($cedente['porte'] ?? '') == 'GRANDE' ? 'selected' : ''; ?>>Grande</option>
                             </select>

@@ -1,0 +1,7 @@
+- [x] O script `installer.php` exibe corretamente que o sistema já está instalado e não tenta criar um banco novamente se `db_connection.php` existir.
+- [x] O script `installer.php` possui um botão ou link para o `update.php`.
+- [x] O script `update.php` exige o arquivo de conexão `db_connection.php` e roda no banco ativo atual.
+- [x] O script `update.php` executa `CREATE TABLE IF NOT EXISTS` para as novas tabelas sem falhar caso elas já existam (ex: `contract_templates`, `despesas`, `distribuicao_lucros`, etc).
+- [x] O script `update.php` executa `ALTER TABLE ADD COLUMN` para tabelas como `operacoes`, `cedentes`, `sacados` e captura graciosamente erros 1060 (coluna já existente).
+- [x] O script `update.php` finaliza a execução mostrando um log claro do que foi executado, o que foi ignorado e sem quebrar o sistema.
+- [x] A resposta ao usuário menciona explicitamente que o banco de dados utilizado é o MySQL.

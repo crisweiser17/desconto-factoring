@@ -1,6 +1,49 @@
 <?php
 // installer.php - Script Interativo para instalação do banco de dados
 
+// Verifica se o sistema já está instalado
+if (file_exists(__DIR__ . '/db_connection.php')) {
+?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instalador do Sistema</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .install-container { max-width: 600px; margin: 50px auto; }
+        .card-header { background-color: #007cba; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container install-container">
+        <div class="card shadow-sm">
+            <div class="card-header text-center py-3">
+                <h2 class="h4 mb-0"><i class="bi bi-shield-check"></i> Instalação Concluída</h2>
+            </div>
+            <div class="card-body p-5 text-center">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                <h3 class="mt-3">Sistema já instalado</h3>
+                <p class="text-muted mt-3 mb-4">O arquivo de conexão com o banco de dados já existe. A instalação inicial não pode ser refeita para proteger seus dados.</p>
+                <div class="d-grid gap-3">
+                    <a href="update.php" class="btn btn-primary btn-lg"><i class="bi bi-arrow-clockwise"></i> Atualizar Banco de Dados</a>
+                    <a href="index.php" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-in-right"></i> Ir para o Login</a>
+                </div>
+            </div>
+            <div class="card-footer text-center text-muted py-3">
+                <small>&copy; <?php echo date('Y'); ?> Factor System. Todos os direitos reservados.</small>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+<?php
+    exit;
+}
+
 set_time_limit(300); // 5 minutos de timeout
 ini_set('memory_limit', '512M');
 

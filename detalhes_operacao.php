@@ -1053,11 +1053,11 @@ if ($operacao && !isset($error_message)) {
                                         ?>
                                         <select class="form-select" name="porte_cliente" id="modalPorteCliente" required>
                                             <option value="">Selecione...</option>
-                                            <option value="MEI" <?php echo $porteAtual === 'MEI' ? 'selected' : ''; ?>>MEI</option>
-                                            <option value="ME" <?php echo $porteAtual === 'ME' ? 'selected' : ''; ?>>ME</option>
-                                            <option value="EPP" <?php echo $porteAtual === 'EPP' ? 'selected' : ''; ?>>EPP</option>
+                                            <option value="MEI" <?php echo $porteAtual === 'MEI' ? 'selected' : ''; ?>>MEI → até R$ 81 mil</option>
+                                            <option value="ME" <?php echo $porteAtual === 'ME' ? 'selected' : ''; ?>>ME → até R$ 360 mil</option>
+                                            <option value="EPP" <?php echo $porteAtual === 'EPP' ? 'selected' : ''; ?>>EPP → até R$ 4,8 milhões</option>
                                         </select>
-                                        <div class="form-text text-muted small"><i class="bi bi-info-circle"></i> Nota: LTDA é a Natureza Jurídica. Escolha o porte correspondente (ME, EPP). LC 167 restringe a MEI, ME e EPP.</div>
+
                                     </div>
                                     <div class="col-md-12" id="garantiaToggleSection" style="display: none;">
                                         <div class="row g-3">

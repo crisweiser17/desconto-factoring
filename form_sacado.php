@@ -140,9 +140,9 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
                             <label for="porte" class="form-label">Porte</label>
                             <select class="form-select" id="porte" name="porte">
                                 <option value="">Selecione...</option>
-                                <option value="MEI" <?php echo ($sacado['porte'] ?? '') == 'MEI' ? 'selected' : ''; ?>>MEI</option>
-                                <option value="ME" <?php echo ($sacado['porte'] ?? '') == 'ME' ? 'selected' : ''; ?>>ME</option>
-                                <option value="EPP" <?php echo ($sacado['porte'] ?? '') == 'EPP' ? 'selected' : ''; ?>>EPP</option>
+                                <option value="MEI" <?php echo ($sacado['porte'] ?? '') == 'MEI' ? 'selected' : ''; ?>>MEI → até R$ 81 mil</option>
+                                <option value="ME" <?php echo ($sacado['porte'] ?? '') == 'ME' ? 'selected' : ''; ?>>ME → até R$ 360 mil</option>
+                                <option value="EPP" <?php echo ($sacado['porte'] ?? '') == 'EPP' ? 'selected' : ''; ?>>EPP → até R$ 4,8 milhões</option>
                                 <option value="MEDIO" <?php echo ($sacado['porte'] ?? '') == 'MEDIO' ? 'selected' : ''; ?>>Médio</option>
                                 <option value="GRANDE" <?php echo ($sacado['porte'] ?? '') == 'GRANDE' ? 'selected' : ''; ?>>Grande</option>
                                 <option value="PF" <?php echo ($sacado['porte'] ?? '') == 'PF' ? 'selected' : ''; ?>>Pessoa Física</option>
