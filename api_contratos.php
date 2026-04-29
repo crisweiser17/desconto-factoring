@@ -91,15 +91,37 @@ function normalizarCampoContrato($value, $default = '') {
 }
 
 function montarEnderecoContrato(array $operacao) {
-    $logradouro = normalizarCampoContrato($operacao['cedente_endereco'] ?? '');
+    $logradouro = normalizarCampoContrato($operacao['cedente_logradouro'] ?? '');
+    $numero = normalizarCampoContrato($operacao['cedente_numero'] ?? '');
+    $complemento = normalizarCampoContrato($operacao['cedente_complemento'] ?? '');
+    $bairro = normalizarCampoContrato($operacao['cedente_bairro'] ?? '');
     $cidade = normalizarCampoContrato($operacao['cedente_cidade'] ?? '');
     $estado = normalizarCampoContrato($operacao['cedente_estado'] ?? '');
-
-    if ($logradouro !== '' && $cidade !== '' && $estado !== '') {
-        return $logradouro . ', ' . $cidade . ' - ' . $estado;
+    $cep = normalizarCampoContrato($operacao['cedente_cep'] ?? '');
+    
+    // Se logradouro foi preenchido, montar endereço completo estruturado
+    if ($logradouro !== '') {
+        $endereco = $logradouro;
+        if ($numero !== '') $endereco .= ', ' . $numero;
+        else $endereco .= ', S/N';
+        
+        if ($complemento !== '') $endereco .= ' - ' . $complemento;
+        if ($bairro !== '') $endereco .= ', ' . $bairro;
+        if ($cidade !== '') $endereco .= ', ' . $cidade;
+        if ($estado !== '') $endereco .= ' - ' . $estado;
+        if ($cep !== '') $endereco .= ', CEP: ' . $cep;
+        
+        return $endereco;
     }
 
-    $partes = array_values(array_filter([$logradouro, $cidade, $estado], static function ($parte) {
+    // Fallback: usar o campo de texto livre se as partes estiverem vazias
+    $endereco_livre = normalizarCampoContrato($operacao['cedente_endereco'] ?? '');
+    
+    if ($endereco_livre !== '' && $cidade !== '' && $estado !== '') {
+        return $endereco_livre . ', ' . $cidade . ' - ' . $estado;
+    }
+
+    $partes = array_values(array_filter([$endereco_livre, $cidade, $estado], static function ($parte) {
         return $parte !== '';
     }));
 
@@ -256,7 +278,8 @@ function gerarContrato($pdo, $operacao_id) {
             SELECT s.id as sacado_id, s.nome as cedente_nome, s.documento_principal as cedente_documento_principal, s.cpf as cedente_cpf, s.cnpj as cedente_cnpj, s.endereco as cedente_endereco, 
                    s.cidade as cedente_cidade, s.estado as cedente_estado, s.tipo_pessoa, s.empresa,
                    s.representante_nome, s.representante_cpf, s.representante_rg, s.representante_estado_civil, s.representante_profissao, s.representante_nacionalidade, s.representante_endereco,
-                   s.casado, s.conjuge_nome, s.conjuge_cpf, s.conta_banco, s.conta_agencia, s.conta_numero, s.conta_tipo, s.conta_pix, s.email, s.whatsapp
+                   s.casado, s.conjuge_nome, s.conjuge_cpf, s.conta_banco, s.conta_agencia, s.conta_numero, s.conta_tipo, s.conta_pix, s.email, s.whatsapp,
+                   s.logradouro as cedente_logradouro, s.numero as cedente_numero, s.complemento as cedente_complemento, s.bairro as cedente_bairro, s.cep as cedente_cep
             FROM recebiveis r
             JOIN sacados s ON r.sacado_id = s.id
             WHERE r.operacao_id = ?
@@ -273,7 +296,8 @@ function gerarContrato($pdo, $operacao_id) {
             SELECT c.nome as cedente_nome, c.documento_principal as cedente_documento_principal, c.cpf as cedente_cpf, c.cnpj as cedente_cnpj, c.endereco as cedente_endereco, 
                    c.cidade as cedente_cidade, c.estado as cedente_estado, c.tipo_pessoa, c.empresa,
                    c.representante_nome, c.representante_cpf, c.representante_rg, c.representante_estado_civil, c.representante_profissao, c.representante_nacionalidade, c.representante_endereco,
-                   c.casado, c.conjuge_nome, c.conjuge_cpf, c.conta_banco, c.conta_agencia, c.conta_numero, c.conta_tipo, c.conta_pix, c.email, c.whatsapp
+                   c.casado, c.conjuge_nome, c.conjuge_cpf, c.conta_banco, c.conta_agencia, c.conta_numero, c.conta_tipo, c.conta_pix, c.email, c.whatsapp,
+                   c.logradouro as cedente_logradouro, c.numero as cedente_numero, c.complemento as cedente_complemento, c.bairro as cedente_bairro, c.cep as cedente_cep
             FROM cedentes c
             WHERE c.id = ?
         ");
