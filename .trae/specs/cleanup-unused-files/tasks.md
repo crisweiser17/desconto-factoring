@@ -1,0 +1,88 @@
+# Tasks
+- [x] Task 1: Criar pasta `_lixo/` na raiz do projeto
+- [x] Task 2: Mover arquivos de backup SQL e dumps para `_lixo/`
+  - [x] SubTask 2.1: Mover `backup_completo_20250826_215909.sql`
+  - [x] SubTask 2.2: Mover `backup_factor_20250826_195453.sql`
+  - [x] SubTask 2.3: Mover `banco_dump.sql.s`
+- [x] Task 3: Mover scripts de migração/atualização antigos para `_lixo/`
+  - [x] SubTask 3.1: Mover `update_db_add_contract_fields.php`
+  - [x] SubTask 3.2: Mover `update_db_sacados_cedentes.php`
+  - [x] SubTask 3.3: Mover `update_db_usuarios.php`
+  - [x] SubTask 3.4: Mover `update_docs.php`
+  - [x] SubTask 3.5: Mover `update_sacados_columns.php`
+  - [x] SubTask 3.6: Mover `update_v2.php`
+  - [x] SubTask 3.7: Mover `update_v3.php`
+  - [x] SubTask 3.8: Mover `atualizar_banco.php`
+  - [x] SubTask 3.9: Mover `atualizar_status.php`
+  - [x] SubTask 3.10: Mover `migrate_db.php`
+  - [x] SubTask 3.11: Mover `migrate_db_socios.php`
+  - [x] SubTask 3.12: Mover `install_fechamento.php`
+  - [x] SubTask 3.13: Mover `db_despesas_migration.php`
+  - [x] SubTask 3.14: Mover `db_distribuicao_lucros_migration.php`
+  - [x] SubTask 3.15: Mover `corrigir_estrutura_banco.php`
+  - [x] SubTask 3.16: Mover `corrigir_data_operacao.sql`
+  - [x] SubTask 3.17: Mover `corrigir_operacao_51.sql`
+  - [x] SubTask 3.18: Mover `adicionar_sacado_id_recebiveis.php`
+  - [x] SubTask 3.19: Mover `adicionar_dados_bancarios_cedente.sql`
+  - [x] SubTask 3.20: Mover `adicionar_fatura_nota_fiscal.sql`
+  - [x] SubTask 3.21: Mover `adicionar_garantia_operacao.sql`
+  - [x] SubTask 3.22: Mover `adicionar_tipo_operacao.sql`
+  - [x] SubTask 3.23: Mover `adicionar_tipo_recebivel.sql`
+  - [x] SubTask 3.24: Mover `alterar_enum_recebiveis.sql`
+  - [x] SubTask 3.25: Mover `criar_tabela_arquivos.sql`
+  - [x] SubTask 3.26: Mover `setup_contratos.php`
+  - [x] SubTask 3.27: Mover `setup_contratos_full.php`
+- [x] Task 4: Mover arquivos de teste e debug para `_lixo/`
+  - [x] SubTask 4.1: Mover `test.php`
+  - [x] SubTask 4.2: Mover `test.txt`
+  - [x] SubTask 4.3: Mover `test_cond.php`
+  - [x] SubTask 4.4: Mover `test_db_path.php`
+  - [x] SubTask 4.5: Mover `test_extenso.php`
+  - [x] SubTask 4.6: Mover `test_extenso2.php`
+  - [x] SubTask 4.7: Mover `test_financeMath.js`
+  - [x] SubTask 4.8: Mover `test_insert_sacado.php`
+  - [x] SubTask 4.9: Mover `test_mustache.php`
+  - [x] SubTask 4.10: Mover `testar_email.php`
+  - [x] SubTask 4.11: Mover `teste_query_sacados.php`
+  - [x] SubTask 4.12: Mover `teste_sistema_arquivos.php`
+  - [x] SubTask 4.13: Mover `debug_erro_sid.php`
+  - [x] SubTask 4.14: Mover `diagnostico_banco.php`
+  - [x] SubTask 4.15: Mover `diagnostico_local.php`
+  - [x] SubTask 4.16: Mover `check_db.php`
+  - [x] SubTask 4.17: Mover `check_schema.php`
+  - [x] SubTask 4.18: Mover `get_schema.php`
+- [x] Task 5: Mover scripts utilitários de uso único para `_lixo/`
+  - [x] SubTask 5.1: Mover `fix_all.php`
+  - [x] SubTask 5.2: Mover `fix_all.py`
+  - [x] SubTask 5.3: Mover `fix_form.php`
+  - [x] SubTask 5.4: Mover `fix_index.py`
+  - [x] SubTask 5.5: Mover `fix_mustache.php`
+  - [x] SubTask 5.6: Mover `fix_signatures.php`
+  - [x] SubTask 5.7: Mover `fix_slashes.php`
+  - [x] SubTask 5.8: Mover `fix_testemunhas.php`
+  - [x] SubTask 5.9: Mover `convert_alpine.py`
+  - [x] SubTask 5.10: Mover `replace_tables.py`
+  - [x] SubTask 5.11: Mover `replace_tables2.py`
+  - [x] SubTask 5.12: Mover `clean_menu.php`
+  - [x] SubTask 5.13: Mover `clean_salvar.php`
+  - [x] SubTask 5.14: Mover `clean_visualizar.php`
+  - [x] SubTask 5.15: Mover `clean_visualizar2.php`
+  - [x] SubTask 5.16: Mover `remove_fisica_js.php`
+  - [x] SubTask 5.17: Mover `remove_pf_conjuge.php`
+  - [x] SubTask 5.18: Mover `remove_possui_cnpj_mei.php`
+- [x] Task 6: Mover backups de arquivos PHP para `_lixo/`
+  - [x] SubTask 6.1: Mover `index.php.old`
+  - [x] SubTask 6.2: Mover `index.php.backup_bootstrap`
+  - [x] SubTask 6.3: Mover `detalhes_operacao.php.old`
+  - [x] SubTask 6.4: Mover `db_connection_o.php`
+- [x] Task 7: Verificar se há outros arquivos órfãos e mover se necessário
+- [x] Task 8: Validar que o sistema ainda funciona após a limpeza
+
+# Task Dependencies
+- [Task 2] depends on [Task 1]
+- [Task 3] depends on [Task 1]
+- [Task 4] depends on [Task 1]
+- [Task 5] depends on [Task 1]
+- [Task 6] depends on [Task 1]
+- [Task 7] depends on [Task 2, 3, 4, 5, 6]
+- [Task 8] depends on [Task 7]

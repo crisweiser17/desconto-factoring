@@ -1,0 +1,8 @@
+- [x] Pasta `_lixo/` criada na raiz do projeto
+- [x] Arquivos de backup SQL movidos para `_lixo/`
+- [x] Scripts de migração/atualização antigos movidos para `_lixo/`
+- [x] Arquivos de teste e debug movidos para `_lixo/`
+- [x] Scripts utilitários de uso único movidos para `_lixo/`
+- [x] Backups de arquivos PHP (`.old`, `.backup_bootstrap`) movidos para `_lixo/`
+- [x] Arquivos essenciais do sistema permanecem na raiz
+- [x] Sistema continua funcionando após a limpeza
