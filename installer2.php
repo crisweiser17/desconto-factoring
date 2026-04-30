@@ -150,7 +150,7 @@ CREATE TABLE `despesas` (
   `data_despesa` date NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `distribuicao_lucros` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -159,7 +159,7 @@ CREATE TABLE `distribuicao_lucros` (
   `data` date NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `generated_contracts` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -256,7 +256,7 @@ CREATE TABLE `operacao_documentos` (
   PRIMARY KEY (`id`),
   KEY `operacao_id` (`operacao_id`),
   CONSTRAINT `operacao_documentos_ibfk_1` FOREIGN KEY (`operacao_id`) REFERENCES `operacoes` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `operacoes` (
   `id` int NOT NULL AUTO_INCREMENT,
