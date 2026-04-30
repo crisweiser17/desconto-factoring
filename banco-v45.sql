@@ -11,8 +11,8 @@ USE `rfqkezvjge`;
 
 SET NAMES utf8mb4;
 
-DROP TABLE IF EXISTS `cedentes`;
-CREATE TABLE `cedentes` (
+DROP TABLE IF EXISTS `clientes`;
+CREATE TABLE `clientes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(255) NOT NULL,
   `email` varchar(255) DEFAULT NULL,
@@ -41,25 +41,25 @@ CREATE TABLE `cedentes` (
   KEY `idx_empresa` (`empresa`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `cedentes` (`id`, `nome`, `email`, `telefone`, `tipo_pessoa`, `documento_principal`, `documento_secundario`, `cpf`, `cnpj`, `documento_socio`, `empresa`, `endereco`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `data_cadastro`) VALUES
+INSERT INTO `clientes` (`id`, `nome`, `email`, `telefone`, `tipo_pessoa`, `documento_principal`, `documento_secundario`, `cpf`, `cnpj`, `documento_socio`, `empresa`, `endereco`, `cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `data_cadastro`) VALUES
 (3,	'All Terra Terraplenagem',	'administrativo@allterraplenagem.com.br',	'(19) 99986-0107',	'JURIDICA',	'49915558000196',	NULL,	NULL,	NULL,	NULL,	'All Terra Terraplenagem',	'',	'13423-190',	'Avenida Doutor Alexandre Guimarães dos Santos',	'303',	'',	'Dois Córregos',	'Piracicaba',	'SP',	'2025-04-05 11:57:09'),
 (14,	'Cristian Weiser',	'cristianweiser@gmail.com',	'(19) 99898-9999',	'JURIDICA',	'00000000000000',	NULL,	NULL,	NULL,	NULL,	'CRISWEISER',	'Avenida Dona Léddia, 1700',	'13405-235',	'Avenida Dona Lídia',	'1700',	'',	'Vila Rezende',	'Piracicaba',	'SP',	'2025-04-06 15:11:09'),
 (16,	'C. V. BONASSOLI SOLUCOES',	'caiobonassoli@gmail.com',	'(15) 99821-1200',	'JURIDICA',	'35258176000122',	NULL,	NULL,	NULL,	NULL,	'C. V. BONASSOLI SOLUCOES',	'Rua Sophia Dias, R. Carlos Menk, 711 (end alternativo)',	'18460-017',	'Rua Frei Caneca',	'1328',	'',	'Centro',	'Itararé',	'SP',	'2025-08-15 13:52:47');
 
-DROP TABLE IF EXISTS `cedentes_socios`;
-CREATE TABLE `cedentes_socios` (
+DROP TABLE IF EXISTS `clientes_socios`;
+CREATE TABLE `clientes_socios` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `cedente_id` int(11) DEFAULT NULL,
+  `cliente_id` int(11) DEFAULT NULL,
   `nome` varchar(255) NOT NULL,
   `cpf` varchar(14) NOT NULL,
   `data_cadastro` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `idx_sacado_id` (`cedente_id`),
+  KEY `idx_sacado_id` (`cliente_id`),
   KEY `idx_cpf` (`cpf`),
-  CONSTRAINT `fk_cedentes_socios_cedente` FOREIGN KEY (`cedente_id`) REFERENCES `cedentes` (`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_clientes_socios_cliente` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `cedentes_socios` (`id`, `cedente_id`, `nome`, `cpf`, `data_cadastro`) VALUES
+INSERT INTO `clientes_socios` (`id`, `cliente_id`, `nome`, `cpf`, `data_cadastro`) VALUES
 (3,	3,	'Bruno Tedesco',	'12345678901',	'2025-08-05 14:03:57'),
 (4,	14,	'Cristian Weiser',	'22723140822',	'2025-08-05 14:41:08'),
 (5,	16,	'MARIANA OLIVEIRA BONASSOLI',	'33863057848',	'2025-08-15 13:52:47'),
@@ -126,7 +126,7 @@ INSERT INTO `operacao_arquivos` (`id`, `operacao_id`, `nome_original`, `nome_arq
 DROP TABLE IF EXISTS `operacoes`;
 CREATE TABLE `operacoes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `cedente_id` int(11) DEFAULT NULL,
+  `cliente_id` int(11) DEFAULT NULL,
   `taxa_mensal` decimal(10,4) NOT NULL,
   `data_operacao` datetime DEFAULT NULL,
   `data_base_calculo` date DEFAULT NULL,
@@ -143,11 +143,11 @@ CREATE TABLE `operacoes` (
   `notas` text DEFAULT NULL,
   `valor_total_compensacao` decimal(15,2) DEFAULT 0.00 COMMENT 'Valor total das compensações aplicadas nesta operação',
   PRIMARY KEY (`id`),
-  KEY `fk_operacao_sacado` (`cedente_id`),
-  CONSTRAINT `fk_operacoes_cedente` FOREIGN KEY (`cedente_id`) REFERENCES `cedentes` (`id`)
+  KEY `fk_operacao_sacado` (`cliente_id`),
+  CONSTRAINT `fk_operacoes_cliente` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `operacoes` (`id`, `cedente_id`, `taxa_mensal`, `data_operacao`, `data_base_calculo`, `tipo_pagamento`, `total_original_calc`, `total_presente_calc`, `iof_total_calc`, `total_liquido_pago_calc`, `incorre_custo_iof`, `cobrar_iof_cliente`, `total_lucro_liquido_calc`, `media_dias_pond_calc`, `notas`, `valor_total_compensacao`) VALUES
+INSERT INTO `operacoes` (`id`, `cliente_id`, `taxa_mensal`, `data_operacao`, `data_base_calculo`, `tipo_pagamento`, `total_original_calc`, `total_presente_calc`, `iof_total_calc`, `total_liquido_pago_calc`, `incorre_custo_iof`, `cobrar_iof_cliente`, `total_lucro_liquido_calc`, `media_dias_pond_calc`, `notas`, `valor_total_compensacao`) VALUES
 (17,	3,	0.0500,	'2025-02-28 00:00:00',	'2025-02-28',	'indireto',	25000.00,	23720.45,	161.63,	23558.82,	0,	1,	1441.18,	33,	'',	0.00),
 (20,	3,	0.0400,	'2025-01-22 00:00:00',	'2025-01-22',	'cheque',	110250.00,	91208.33,	1743.44,	89464.88,	0,	1,	20785.12,	147,	'arredondando',	0.00),
 (21,	3,	0.0502,	'2025-03-25 00:00:00',	'2025-03-25',	'indireto',	60000.00,	55658.84,	454.32,	55204.52,	0,	1,	4795.48,	46,	'fatura 60k',	0.00),
