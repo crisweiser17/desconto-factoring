@@ -1,0 +1,3 @@
+- [x] O documento de módulos do sistema foi criado e contém a descrição e resumo de todos os módulos.
+- [x] O documento de contratos descreve adequadamente todos os tipos de contratos disponíveis.
+- [x] A lista completa de variáveis presentes nos contratos foi documentada com sucesso.

@@ -1,0 +1,7 @@
+- [x] Dropdown `#titular_selecao` foi removido do formulário.
+- [x] Campo `#conta_titular` está configurado como `readonly`.
+- [x] Campo `#conta_documento` está configurado como `readonly`.
+- [x] Campo `#conta_titular` copia dinamicamente o valor de `#empresa`.
+- [x] Campo `#conta_documento` copia dinamicamente o valor de `#documento_principal`.
+- [x] A sincronização ocorre ao digitar e também na carga inicial (modo de edição).
+- [x] A seleção de representante continua permitindo escolher qualquer um dos sócios da lista.

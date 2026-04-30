@@ -1,0 +1,6 @@
+- [x] O inventário dos contratos ativos identifica todas as ocorrências hardcoded de dados configuráveis da credora e da conta de recebimento.
+- [x] O `api_contratos.php` expõe os campos necessários para eliminar hardcodes de razão social, documento e dados bancários da credora.
+- [x] Os templates ativos de antecipação, mútuo e nota promissória usam variáveis Mustache no lugar de dados fixos da credora.
+- [x] Os blocos de pagamento usam `credor.conta.*` para titular e documento, sem nome/CNPJ fixos no Markdown.
+- [x] A geração dos contratos continua funcionando após as substituições, sem campos vazios ou regressões visuais.
+- [x] A validação final inclui checagem de sintaxe, revisão dos PDFs gerados e preview local do fluxo impactado.

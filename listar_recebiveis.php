@@ -8,6 +8,7 @@ error_reporting(E_ALL); // Descomente para reportar todos os tipos de erros
 
 require_once 'db_connection.php'; // Conexão $pdo
 require_once 'funcoes_compensacao.php';
+require_once 'funcoes_calculo_central.php';
 require_once 'functions.php'; // Funções auxiliares
 
 // --- Configurações e Parâmetros ---
@@ -158,8 +159,8 @@ try {
     $countSql = "SELECT COUNT(r.id)
                  FROM recebiveis r
                  LEFT JOIN operacoes o ON r.operacao_id = o.id
-                 LEFT JOIN cedentes s ON o.cedente_id = s.id
-                 LEFT JOIN sacados sac ON r.sacado_id = sac.id
+                 LEFT JOIN clientes s ON o.cedente_id = s.id
+                 LEFT JOIN clientes sac ON r.sacado_id = sac.id
                  $whereSql";
     $stmtCount = $pdo->prepare($countSql);
     $stmtCount->execute($params_count);
@@ -187,13 +188,13 @@ if ($page > $total_pages) {
 // --- Query para Buscar os Dados da Página Atual ---
 $recebiveis = []; // Inicializa
 try {
-    $sql = "SELECT r.*, o.data_operacao, o.tipo_pagamento, o.tipo_operacao, r.tipo_recebivel, s.empresa AS cedente_nome,
+    $sql = "SELECT r.*, o.data_operacao, o.tipo_pagamento, o.tipo_operacao, r.tipo_recebivel, COALESCE(s.empresa, s.nome, sac.empresa, sac.nome) AS cedente_nome,
                    sac.empresa AS sacado_nome,
                    COALESCE(SUM(c.valor_compensado), 0) as total_compensado
             FROM recebiveis r
             LEFT JOIN operacoes o ON r.operacao_id = o.id
-            LEFT JOIN cedentes s ON o.cedente_id = s.id
-            LEFT JOIN sacados sac ON r.sacado_id = sac.id
+            LEFT JOIN clientes s ON o.cedente_id = s.id
+            LEFT JOIN clientes sac ON r.sacado_id = sac.id
             LEFT JOIN compensacoes c ON r.id = c.recebivel_compensado_id
             $whereSql
             GROUP BY r.id, r.operacao_id, r.valor_original, r.data_vencimento, r.status,
@@ -669,23 +670,36 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                                 <td class="text-center"><?php echo htmlspecialchars($r['tipo_recebivel'] ?? 'N/A'); ?></td>
                                 <td class="text-center"><?php echo formatHtmlDate($r['data_vencimento']); ?></td>
                                 <td class="text-center"><?php echo htmlspecialchars($dias_p_vencimento); ?></td> <td class="text-end valor-col">
-                                    <div><?php echo formatHtmlCurrency($r['valor_original']); ?></div>
+                                    <?php 
+                                    $valor_original = $r['valor_original'];
+                                    if ($dias_p_vencimento < 0 && $r['status_real'] !== 'Recebido' && $r['status_real'] !== 'Compensado' && $r['status_real'] !== 'Totalmente Compensado') {
+                                        $calc = calcularValorCorrigido($valor_original, $r['data_vencimento']);
+                                        $valor_exibicao = $calc['valor_corrigido'];
+                                        echo '<div><span class="text-decoration-line-through text-muted small">' . formatHtmlCurrency($valor_original) . '</span></div>';
+                                        echo '<div class="text-danger fw-bold" title="Atraso de ' . $calc['dias_atraso'] . ' dias. Juros: ' . formatHtmlCurrency($calc['valor_juros']) . ' / Multa: ' . formatHtmlCurrency($calc['valor_multa']) . '">' . formatHtmlCurrency($valor_exibicao) . ' <i class="bi bi-info-circle small"></i></div>';
+                                    } else {
+                                        $valor_exibicao = $valor_original;
+                                        echo '<div>' . formatHtmlCurrency($valor_original) . '</div>';
+                                    }
+                                    ?>
                                     <?php if ($r['total_compensado'] > 0): ?>
                                         <small class="text-muted">Saldo: <?php echo formatHtmlCurrency($r['saldo_disponivel']); ?></small>
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-center status-cell"><?php echo formatHtmlStatus($r, $r['data_recebimento'] ?? null); ?></td>
                                 <td class="text-center actions-cell acoes-col">
-                                    <?php if ($r['status_real'] === 'Em Aberto'): ?>
-                                        <button class="btn btn-success action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Recebido" title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
+                                    <?php 
+                                    $btn_data_attrs = 'data-id="' . $r['id'] . '" data-status="Recebido" data-valor-original="' . $valor_original . '" data-valor-corrigido="' . $valor_exibicao . '"'; 
+                                    if ($r['status_real'] === 'Em Aberto'): ?>
+                                        <button class="btn btn-success action-btn update-status-btn" <?php echo $btn_data_attrs; ?> title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
                                         <button class="btn btn-danger action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Problema" title="Marcar com Problema"><i class="bi bi-exclamation-triangle-fill"></i></button>
                                     <?php elseif ($r['status_real'] === 'Problema'): ?>
-                                        <button class="btn btn-success action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Recebido" title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
+                                        <button class="btn btn-success action-btn update-status-btn" <?php echo $btn_data_attrs; ?> title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
                                         <button class="btn btn-secondary action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Em Aberto" title="Reverter para Em Aberto"><i class="bi bi-arrow-counterclockwise"></i></button>
                                     <?php elseif ($r['status_real'] === 'Recebido'): ?>
                                         <button class="btn btn-secondary action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Em Aberto" title="Reverter para Em Aberto"><i class="bi bi-arrow-counterclockwise"></i></button>
                                     <?php elseif ($r['status_real'] === 'Parcialmente Compensado'): ?>
-                                        <button class="btn btn-success action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Recebido" title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
+                                        <button class="btn btn-success action-btn update-status-btn" <?php echo $btn_data_attrs; ?> title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
                                         <button class="btn btn-danger action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Problema" title="Marcar com Problema"><i class="bi bi-exclamation-triangle-fill"></i></button>
                                     <?php endif; ?>
                                     <a href="detalhes_operacao.php?id=<?php echo htmlspecialchars($r['operacao_id']); ?>" class="btn btn-primary action-btn" title="Visualizar Operação"><i class="bi bi-eye"></i></a>
@@ -722,45 +736,110 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                 </table>
             </div>
 
-            <?php if ($total_pages > 1): ?>
-                 <nav aria-label="Paginação Recebíveis">
-                    <ul class="pagination justify-content-center">
-                        <?php $baseUrl = "?" . http_build_query($current_filters_for_pagination); ?>
-                        <li class="page-item <?php echo ((int)$page <= 1) ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="<?php echo $baseUrl . '&page=' . ((int)$page - 1); ?>">&laquo;</a>
-                        </li>
-                        <?php
-                            $start_page = max(1, (int)$page - 2);
-                            $end_page = min((int)$total_pages, (int)$page + 2);
-                            if ((int)$page <= 3) $end_page = min((int)$total_pages, 5);
-                            if ((int)$page >= ((int)$total_pages - 2)) $start_page = max(1, ((int)$total_pages - 4));
+            <?php if ($total_results > 0): ?>
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-3 mb-4 gap-3">
+                <div class="text-muted small">
+                    Total: <?php echo (int)$total_results; ?> recebíve<?php echo (int)$total_results == 1 ? 'l' : 'is'; ?>
+                    <?php if ($total_pages > 1): ?>
+                        | Página <?php echo (int)$page; ?> de <?php echo (int)$total_pages; ?>
+                    <?php endif; ?>
+                </div>
 
-                            if ($start_page > 1) {
-                                echo '<li class="page-item"><a class="page-link" href="' . $baseUrl . '&page=1">1</a></li>';
-                                if ($start_page > 2) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                            }
-                            for ($i = (int)$start_page; $i <= (int)$end_page; $i++):
-                        ?>
-                            <li class="page-item <?php echo ((int)$i == (int)$page) ? 'active' : ''; ?>">
-                                <a class="page-link" href="<?php echo $baseUrl . '&page=' . (int)$i; ?>"><?php echo (int)$i; ?></a>
+                <?php if ($total_pages > 1): ?>
+                <div>
+                    <nav aria-label="Paginação Recebíveis">
+                        <ul class="pagination mb-0">
+                            <?php $baseUrl = "?" . http_build_query($current_filters_for_pagination); ?>
+                            <li class="page-item <?php echo ((int)$page <= 1) ? 'disabled' : ''; ?>">
+                                <a class="page-link" href="<?php echo $baseUrl . '&page=' . ((int)$page - 1); ?>">&laquo;</a>
                             </li>
-                        <?php endfor;
-                            if ((int)$end_page < (int)$total_pages) {
-                                if ((int)$end_page < ((int)$total_pages - 1)) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                                echo '<li class="page-item"><a class="page-link" href="' . $baseUrl . '&page=' . (int)$total_pages . '">' . (int)$total_pages . '</a></li>';
-                             }
-                        ?>
-                        <li class="page-item <?php echo ((int)$page >= (int)$total_pages) ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="<?php echo $baseUrl . '&page=' . ((int)$page + 1); ?>">&raquo;</a>
-                        </li>
-                    </ul>
-                </nav>
-                <p class="text-center text-muted">Página <?php echo (int)$page; ?> de <?php echo (int)$total_pages; ?> (Total: <?php echo (int)$total_results; ?> recebíve<?php echo (int)$total_results == 1 ? 'l' : 'is'; ?>)</p>
-            <?php elseif($total_results > 0): ?>
-                <p class="text-center text-muted">Total: <?php echo (int)$total_results; ?> recebíve<?php echo (int)$total_results == 1 ? 'l' : 'is'; ?></p>
+                            <?php
+                                $start_page = max(1, (int)$page - 2);
+                                $end_page = min((int)$total_pages, (int)$page + 2);
+                                if ((int)$page <= 3) $end_page = min((int)$total_pages, 5);
+                                if ((int)$page >= ((int)$total_pages - 2)) $start_page = max(1, ((int)$total_pages - 4));
+
+                                if ($start_page > 1) {
+                                    echo '<li class="page-item"><a class="page-link" href="' . $baseUrl . '&page=1">1</a></li>';
+                                    if ($start_page > 2) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                                }
+                                for ($i = (int)$start_page; $i <= (int)$end_page; $i++):
+                            ?>
+                                <li class="page-item <?php echo ((int)$i == (int)$page) ? 'active' : ''; ?>">
+                                    <a class="page-link" href="<?php echo $baseUrl . '&page=' . (int)$i; ?>"><?php echo (int)$i; ?></a>
+                                </li>
+                            <?php endfor;
+                                if ((int)$end_page < (int)$total_pages) {
+                                    if ((int)$end_page < ((int)$total_pages - 1)) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                                    echo '<li class="page-item"><a class="page-link" href="' . $baseUrl . '&page=' . (int)$total_pages . '">' . (int)$total_pages . '</a></li>';
+                                 }
+                            ?>
+                            <li class="page-item <?php echo ((int)$page >= (int)$total_pages) ? 'disabled' : ''; ?>">
+                                <a class="page-link" href="<?php echo $baseUrl . '&page=' . ((int)$page + 1); ?>">&raquo;</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                <?php endif; ?>
+
+                <div class="d-flex align-items-center">
+                    <label for="per_page_bottom" class="me-2 small text-muted text-nowrap">Itens/Página:</label>
+                    <?php 
+                    $filters_without_per_page = $current_filters_for_links;
+                    unset($filters_without_per_page['per_page']);
+                    $base_url_for_per_page = '?' . http_build_query($filters_without_per_page);
+                    if (!empty($filters_without_per_page)) {
+                        $base_url_for_per_page .= '&';
+                    }
+                    ?>
+                    <select id="per_page_bottom" class="form-select form-select-sm" style="width: auto;" onchange="window.location.href='<?php echo $base_url_for_per_page; ?>per_page=' + this.value">
+                        <?php foreach ($items_per_page_options as $option): ?>
+                            <option value="<?php echo $option; ?>" <?php echo ($items_per_page == $option) ? 'selected' : ''; ?>><?php echo $option; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
             <?php endif; ?>
 
         <?php endif; ?>
+    </div>
+
+    <!-- Modal Recebimento -->
+    <div class="modal fade" id="modalRecebimento" tabindex="-1" aria-labelledby="modalRecebimentoLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalRecebimentoLabel">Confirmar Recebimento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="modal_recebivel_id">
+                    <input type="hidden" id="modal_new_status">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Valor Original:</label>
+                        <input type="text" class="form-control" id="modal_valor_original" readonly disabled>
+                    </div>
+                    
+                    <div class="mb-3" id="div_valor_corrigido">
+                        <label class="form-label text-danger">Valor Corrigido (com Juros e Mora):</label>
+                        <input type="text" class="form-control text-danger fw-bold" id="modal_valor_corrigido" readonly disabled>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Valor Recebido:</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" step="0.01" min="0" class="form-control" id="modal_valor_recebido" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btnConfirmarRecebimento">Confirmar Recebimento</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -769,6 +848,67 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
 document.addEventListener('DOMContentLoaded', function () {
     const feedbackDiv = document.getElementById('status-feedback');
     const tableBody = document.querySelector('.table tbody');
+    const modalRecebimento = new bootstrap.Modal(document.getElementById('modalRecebimento'));
+    const btnConfirmar = document.getElementById('btnConfirmarRecebimento');
+
+    function performStatusUpdate(recebivelId, newStatus, valorRecebido = null) {
+        const row = document.getElementById('recebivel-row-' + recebivelId);
+        if (!row) {
+            console.error('Elemento da linha não encontrado:', 'recebivel-row-' + recebivelId);
+            return;
+        }
+
+        const statusCell = row.querySelector('.status-cell');
+        const actionsCell = row.querySelector('.actions-cell');
+        if (!statusCell || !actionsCell) {
+             console.error('Célula de status ou ações não encontrada na linha:', row);
+            return;
+        }
+
+        // Mostra feedback inicial
+        feedbackDiv.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Atualizando...</span></div> Atualizando status...';
+        feedbackDiv.className = 'alert alert-info';
+        
+        let bodyParams = 'id=' + encodeURIComponent(recebivelId) + '&status=' + encodeURIComponent(newStatus);
+        if (valorRecebido !== null) {
+            bodyParams += '&valor_recebido=' + encodeURIComponent(valorRecebido);
+        }
+
+        fetch('atualizar_status.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: bodyParams
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Erro HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const closeButtonHtml = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+
+             if (data.success && typeof data.newStatusHtml !== 'undefined' && typeof data.newActionsHtml !== 'undefined' && typeof data.newRowClass !== 'undefined') {
+                statusCell.innerHTML = data.newStatusHtml;
+                actionsCell.innerHTML = data.newActionsHtml;
+                row.className = data.newRowClass;
+                feedbackDiv.innerHTML = `Status do recebível ${recebivelId} atualizado para ${newStatus}. ${closeButtonHtml}`;
+                feedbackDiv.className = 'alert alert-success alert-dismissible fade show';
+            } else {
+                feedbackDiv.innerHTML = `Erro ao atualizar status: ${data.message || 'Dados de resposta incompletos ou falha no servidor.'} ${closeButtonHtml}`;
+                feedbackDiv.className = 'alert alert-danger alert-dismissible fade show';
+            }
+        })
+        .catch(error => {
+            console.error('Erro no catch:', error);
+            const closeButtonHtml = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+            feedbackDiv.innerHTML = `Erro na comunicação ou processamento da resposta. Ver Console (F12). [${error.message}] ${closeButtonHtml}`;
+            feedbackDiv.className = 'alert alert-danger alert-dismissible fade show';
+        });
+    }
 
     if (tableBody) {
         tableBody.addEventListener('click', function(event) {
@@ -777,57 +917,47 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const recebivelId = button.dataset.id;
             const newStatus = button.dataset.status;
-            const row = document.getElementById('recebivel-row-' + recebivelId);
-            if (!row) {
-                console.error('Elemento da linha não encontrado:', 'recebivel-row-' + recebivelId);
-                return;
+            
+            if (newStatus === 'Recebido') {
+                const valorOriginal = button.dataset.valorOriginal;
+                const valorCorrigido = button.dataset.valorCorrigido;
+                
+                if (valorOriginal && valorCorrigido) {
+                    document.getElementById('modal_recebivel_id').value = recebivelId;
+                    document.getElementById('modal_new_status').value = newStatus;
+                    document.getElementById('modal_valor_original').value = 'R$ ' + parseFloat(valorOriginal).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    
+                    if (parseFloat(valorCorrigido) > parseFloat(valorOriginal)) {
+                        document.getElementById('div_valor_corrigido').style.display = 'block';
+                        document.getElementById('modal_valor_corrigido').value = 'R$ ' + parseFloat(valorCorrigido).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    } else {
+                        document.getElementById('div_valor_corrigido').style.display = 'none';
+                    }
+                    
+                    document.getElementById('modal_valor_recebido').value = parseFloat(valorCorrigido).toFixed(2);
+                    
+                    modalRecebimento.show();
+                    return;
+                }
             }
 
-            const statusCell = row.querySelector('.status-cell');
-            const actionsCell = row.querySelector('.actions-cell');
-            if (!statusCell || !actionsCell) {
-                 console.error('Célula de status ou ações não encontrada na linha:', row);
+            performStatusUpdate(recebivelId, newStatus);
+        });
+    }
+    
+    if (btnConfirmar) {
+        btnConfirmar.addEventListener('click', function() {
+            const recebivelId = document.getElementById('modal_recebivel_id').value;
+            const newStatus = document.getElementById('modal_new_status').value;
+            const valorRecebido = document.getElementById('modal_valor_recebido').value;
+            
+            if (!valorRecebido || parseFloat(valorRecebido) < 0) {
+                alert('Por favor, informe um valor recebido válido.');
                 return;
             }
-
-            // Mostra feedback inicial
-            feedbackDiv.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Atualizando...</span></div> Atualizando status...';
-            feedbackDiv.className = 'alert alert-info';
-
-            fetch('atualizar_status.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: 'id=' + encodeURIComponent(recebivelId) + '&status=' + encodeURIComponent(newStatus)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro HTTP ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                const closeButtonHtml = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
-
-                 if (data.success && typeof data.newStatusHtml !== 'undefined' && typeof data.newActionsHtml !== 'undefined' && typeof data.newRowClass !== 'undefined') {
-                    statusCell.innerHTML = data.newStatusHtml;
-                    actionsCell.innerHTML = data.newActionsHtml;
-                    row.className = data.newRowClass;
-                    feedbackDiv.innerHTML = `Status do recebível ${recebivelId} atualizado para ${newStatus}. ${closeButtonHtml}`;
-                    feedbackDiv.className = 'alert alert-success alert-dismissible fade show';
-                } else {
-                    feedbackDiv.innerHTML = `Erro ao atualizar status: ${data.message || 'Dados de resposta incompletos ou falha no servidor.'} ${closeButtonHtml}`;
-                    feedbackDiv.className = 'alert alert-danger alert-dismissible fade show';
-                }
-            })
-            .catch(error => {
-                console.error('Erro no catch:', error);
-                const closeButtonHtml = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
-                feedbackDiv.innerHTML = `Erro na comunicação ou processamento da resposta. Ver Console (F12). [${error.message}] ${closeButtonHtml}`;
-                feedbackDiv.className = 'alert alert-danger alert-dismissible fade show';
-            });
+            
+            modalRecebimento.hide();
+            performStatusUpdate(recebivelId, newStatus, valorRecebido);
         });
     }
 });

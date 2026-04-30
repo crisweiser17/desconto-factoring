@@ -1,0 +1,10 @@
+- [x] O modal "Gerar Contratos" exibe a pergunta sobre o tipo da garantia somente quando a operação é de mútuo e a garantia está marcada como existente.
+- [x] O modal permite escolher entre `Veículo` e `Outro bem móvel`.
+- [x] Quando `Outro bem móvel` é selecionado, o frontend não força o fluxo específico de veículo.
+- [x] Quando `Avalista = Sim`, os campos `Nome Completo` e `CPF` do avalista tornam-se obrigatórios.
+- [x] Quando `Avalista = Não`, o modal não bloqueia a geração do contrato por falta de dados do avalista.
+- [x] O backend `api_contratos.php` recebe e interpreta corretamente o subtipo da garantia.
+- [x] O sistema usa `_contratos/02e_template_mutuo_com_garantia_bem.md` para bem móvel sem avalista.
+- [x] O sistema usa `_contratos/02f_template_mutuo_com_garantia_bem_e_aval.md` para bem móvel com avalista.
+- [x] Os fluxos já existentes de garantia por veículo continuam usando os templates corretos e não sofrem regressão.
+- [x] A geração do contrato foi testada nos cenários de veículo/bem móvel com e sem avalista, incluindo a validação mínima de nome e CPF do avalista.

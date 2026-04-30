@@ -141,7 +141,7 @@ $total_results = 0;
 try {
     $countSql = "SELECT COUNT(DISTINCT o.id)
                  FROM operacoes o
-                 LEFT JOIN cedentes s ON o.cedente_id = s.id
+                 LEFT JOIN clientes s ON o.cedente_id = s.id
                  $whereSql";
     $stmtCount = $pdo->prepare($countSql);
     $stmtCount->execute($params_count);
@@ -167,7 +167,7 @@ if (!isset($error_message_count)) { // Só busca dados se contagem funcionou
                     o.total_original_calc,
                     o.total_liquido_pago_calc,
                     o.total_lucro_liquido_calc,
-                    COALESCE(s.empresa, (SELECT sac.empresa FROM recebiveis r2 JOIN sacados sac ON r2.sacado_id = sac.id WHERE r2.operacao_id = o.id LIMIT 1)) AS cedente_nome,
+                    COALESCE(s.empresa, s.nome, (SELECT COALESCE(sac.empresa, sac.nome) FROM recebiveis r2 JOIN clientes sac ON r2.sacado_id = sac.id WHERE r2.operacao_id = o.id LIMIT 1)) AS cedente_nome,
                     AVG(DATEDIFF(r.data_vencimento, o.data_operacao)) AS media_dias_operacao,
                     -- Lógica para determinar o status da operação
                     CASE
@@ -193,8 +193,7 @@ if (!isset($error_message_count)) { // Só busca dados se contagem funcionou
                     o.data_operacao AS data_base_calculo
                 FROM
                     operacoes o
-                LEFT JOIN
-                    cedentes s ON o.cedente_id = s.id
+                LEFT JOIN clientes s ON o.cedente_id = s.id
                 LEFT JOIN
                     recebiveis r ON o.id = r.operacao_id
                 $whereSql
@@ -307,7 +306,7 @@ function formatHtmlCurrency($value) {
 // --- Buscar lista de cedentes para o filtro ---
 $cedentes_list = [];
 try {
-    $stmt_sacados = $pdo->query("SELECT id, empresa as nome FROM cedentes ORDER BY empresa");
+    $stmt_sacados = $pdo->query("SELECT id, empresa as nome FROM clientes ORDER BY empresa");
     $cedentes_list = $stmt_sacados->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     // Em caso de erro, continua sem os sacados
@@ -462,9 +461,9 @@ try {
                         <div class="row g-3">
                             <!-- Filtro por Sacado -->
                             <div class="col-md-3">
-                                <label for="filter_cedente" class="form-label">Cedente</label>
+                                <label for="filter_cedente" class="form-label">Cliente</label>
                                 <select class="form-select" id="filter_cedente" name="filter_cedente">
-                                    <option value="">Todos os sacados</option>
+                                    <option value="">Todos os clientes</option>
                                     <?php foreach ($cedentes_list as $cedente): ?>
                                         <option value="<?php echo $cedente['id']; ?>" <?php echo ($filter_cedente == $cedente['id']) ? 'selected' : ''; ?>>
                                             <?php echo htmlspecialchars($cedente['nome']); ?>

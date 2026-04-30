@@ -5,6 +5,8 @@
 header('Content-Type: application/json');
 
 require_once 'db_connection.php';
+require_once 'funcoes_calculo_central.php';
+require_once 'functions.php';
 
 // --- Funções de Formatação e Estilo (Incluídas diretamente) ---
 if (!function_exists('formatHtmlStatus')) {
@@ -89,6 +91,7 @@ if (!isset($_POST['id']) || !isset($_POST['status']) || !is_numeric($_POST['id']
 // Dados
 $recebivel_id = (int)$_POST['id'];
 $new_status = trim($_POST['status']);
+$valor_recebido = isset($_POST['valor_recebido']) && is_numeric($_POST['valor_recebido']) ? (float)$_POST['valor_recebido'] : null;
 $allowed_statuses = ['Em Aberto', 'Recebido', 'Problema', 'Parcialmente Compensado'];
 
 // Valida Status
@@ -100,45 +103,85 @@ if (!in_array($new_status, $allowed_statuses)) {
 
 // Tenta atualizar
 try {
+    $pdo->beginTransaction();
+
     // Se o status for "Recebido", também atualiza a data_recebimento para a data atual
     if ($new_status === 'Recebido') {
-        $sql = "UPDATE recebiveis SET status = :status, data_recebimento = CURDATE() WHERE id = :id";
+        $sql = "UPDATE recebiveis SET status = :status, data_recebimento = CURDATE(), valor_recebido = :valor_recebido WHERE id = :id";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':status', $new_status, PDO::PARAM_STR);
+        $stmt->bindParam(':valor_recebido', $valor_recebido, PDO::PARAM_STR);
+        $stmt->bindParam(':id', $recebivel_id, PDO::PARAM_INT);
     } else {
-        // Se não for "Recebido", limpa a data_recebimento (caso estava marcado como recebido antes)
-        $sql = "UPDATE recebiveis SET status = :status, data_recebimento = NULL WHERE id = :id";
+        // Se não for "Recebido", limpa a data_recebimento e o valor_recebido
+        $sql = "UPDATE recebiveis SET status = :status, data_recebimento = NULL, valor_recebido = NULL WHERE id = :id";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':status', $new_status, PDO::PARAM_STR);
+        $stmt->bindParam(':id', $recebivel_id, PDO::PARAM_INT);
     }
     
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindParam(':status', $new_status, PDO::PARAM_STR);
-    $stmt->bindParam(':id', $recebivel_id, PDO::PARAM_INT);
     $success = $stmt->execute();
 
     if ($success && $stmt->rowCount() > 0) {
         // Buscar a data de recebimento atualizada, operacao_id e data_vencimento para mostrar no status/ações e atualizar cor da linha
-        $stmt_data = $pdo->prepare("SELECT data_recebimento, operacao_id, data_vencimento FROM recebiveis WHERE id = :id");
+        $stmt_data = $pdo->prepare("SELECT data_recebimento, operacao_id, data_vencimento, valor_original, valor_recebido FROM recebiveis WHERE id = :id");
         $stmt_data->bindParam(':id', $recebivel_id, PDO::PARAM_INT);
         $stmt_data->execute();
         $result = $stmt_data->fetch(PDO::FETCH_ASSOC);
         $data_recebimento = $result['data_recebimento'] ?? null;
         $operacao_id = $result['operacao_id'] ?? null;
         $data_vencimento = $result['data_vencimento'] ?? null;
+        $valor_original = (float)($result['valor_original'] ?? 0);
+        $valor_pago = (float)($result['valor_recebido'] ?? 0);
+        
+        // Recalcular totais da operação se houver valor extra (juros/mora)
+        if ($operacao_id) {
+            $delta_lucro = 0;
+            if ($new_status === 'Recebido') {
+                $old_valor = $valor_pago > 0 ? $valor_pago : $valor_original;
+                $novo_valor = $valor_recebido !== null ? $valor_recebido : $valor_original;
+                $delta_lucro = $novo_valor - $old_valor;
+            } else {
+                // Revertendo status para Em Aberto/Problema
+                if ($valor_pago > $valor_original) {
+                    $delta_lucro = -($valor_pago - $valor_original);
+                }
+            }
+            
+            if ($delta_lucro != 0) {
+                $stmt_op = $pdo->prepare("UPDATE operacoes SET total_lucro_liquido_calc = total_lucro_liquido_calc + :delta WHERE id = :op_id");
+                $stmt_op->execute([':delta' => $delta_lucro, ':op_id' => $operacao_id]);
+            }
+        }
+        
+        $pdo->commit();
         
         // Sucesso
         $newStatusHtml = formatHtmlStatus($new_status, $data_recebimento);
         ob_start();
+        
+        $dias_p_vencimento = calcularDiasParaVencimento($data_vencimento);
+        $valor_exibicao = $valor_original;
+        if ($dias_p_vencimento < 0 && $new_status !== 'Recebido' && $new_status !== 'Compensado' && $new_status !== 'Totalmente Compensado') {
+            $calc = calcularValorCorrigido($valor_original, $data_vencimento);
+            $valor_exibicao = $calc['valor_corrigido'];
+        }
+        
+        $btn_data_attrs = 'data-id="' . $recebivel_id . '" data-status="Recebido" data-valor-original="' . $valor_original . '" data-valor-corrigido="' . $valor_exibicao . '"';
+
         if ($new_status === 'Em Aberto') {
             ?>
-            <button class="btn btn-success action-btn update-status-btn" data-id="<?php echo $recebivel_id; ?>" data-status="Recebido" title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-success action-btn update-status-btn" <?php echo $btn_data_attrs; ?> title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
             <button class="btn btn-danger action-btn update-status-btn" data-id="<?php echo $recebivel_id; ?>" data-status="Problema" title="Marcar com Problema"><i class="bi bi-exclamation-triangle-fill"></i></button>
             <?php
         } elseif ($new_status === 'Parcialmente Compensado') {
             ?>
-            <button class="btn btn-success action-btn update-status-btn" data-id="<?php echo $recebivel_id; ?>" data-status="Recebido" title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-success action-btn update-status-btn" <?php echo $btn_data_attrs; ?> title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
             <button class="btn btn-danger action-btn update-status-btn" data-id="<?php echo $recebivel_id; ?>" data-status="Problema" title="Marcar com Problema"><i class="bi bi-exclamation-triangle-fill"></i></button>
             <?php
         } elseif ($new_status === 'Problema') {
             ?>
-            <button class="btn btn-success action-btn update-status-btn" data-id="<?php echo $recebivel_id; ?>" data-status="Recebido" title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-success action-btn update-status-btn" <?php echo $btn_data_attrs; ?> title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
             <button class="btn btn-secondary action-btn update-status-btn" data-id="<?php echo $recebivel_id; ?>" data-status="Em Aberto" title="Reverter para Em Aberto"><i class="bi bi-arrow-counterclockwise"></i></button>
             <?php
         } elseif ($new_status === 'Recebido') {
@@ -162,14 +205,18 @@ try {
 
     } elseif ($success && $stmt->rowCount() == 0) {
          $response['message'] = 'Nenhuma linha afetada (ID ' . $recebivel_id . ' não encontrado ou status já era ' . htmlspecialchars($new_status) . ').';
+         $pdo->rollBack();
     } else {
         $response['message'] = 'Falha ao executar UPDATE.';
+        $pdo->rollBack();
     }
 
 } catch (PDOException $e) {
+     if ($pdo->inTransaction()) { $pdo->rollBack(); }
      error_log("PDO Error: " . $e->getMessage());
      $response['message'] = 'Erro no Banco de Dados (PDO).';
 } catch (Exception $e) {
+     if ($pdo->inTransaction()) { $pdo->rollBack(); }
      error_log("General Error: " . $e->getMessage());
      $response['message'] = 'Erro Geral no Servidor.';
 }

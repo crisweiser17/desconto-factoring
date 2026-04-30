@@ -22,7 +22,7 @@ try {
     // 1. Buscar a operação e o cedente
     $sql_op = "SELECT o.id, o.data_operacao, c.nome as cedente_nome, c.documento_principal as cedente_cnpj
                FROM operacoes o
-               JOIN cedentes c ON o.cedente_id = c.id
+               JOIN clientes c ON o.cedente_id = c.id
                WHERE o.id = :operacao_id";
     $stmt_op = $pdo->prepare($sql_op);
     $stmt_op->bindParam(':operacao_id', $operacao_id, PDO::PARAM_INT);
@@ -38,7 +38,7 @@ try {
     $sql_rec = "SELECT r.id as recebivel_id, r.valor_original, r.data_vencimento,
                        s.id as sacado_id, s.nome as sacado_nome, s.documento_principal as sacado_cnpj, s.email as sacado_email
                 FROM recebiveis r
-                JOIN sacados s ON r.sacado_id = s.id
+                JOIN clientes s ON r.sacado_id = s.id
                 WHERE r.operacao_id = :operacao_id";
     $stmt_rec = $pdo->prepare($sql_rec);
     $stmt_rec->bindParam(':operacao_id', $operacao_id, PDO::PARAM_INT);

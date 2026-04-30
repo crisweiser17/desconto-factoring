@@ -17,9 +17,10 @@ $error_message = null;
 
 try {
     // Buscar operação
-    $sql_op = "SELECT o.*, c.empresa AS cedente_nome 
+    $sql_op = "SELECT o.*, 
+                      COALESCE(c.empresa, c.nome, (SELECT COALESCE(sac.empresa, sac.nome) FROM recebiveis r2 JOIN clientes sac ON r2.sacado_id = sac.id WHERE r2.operacao_id = o.id LIMIT 1)) AS cedente_nome 
                FROM operacoes o 
-               LEFT JOIN cedentes c ON o.cedente_id = c.id 
+               LEFT JOIN clientes c ON o.cedente_id = c.id 
                WHERE o.id = :id";
     $stmt_op = $pdo->prepare($sql_op);
     $stmt_op->bindParam(':id', $operacao_id, PDO::PARAM_INT);
@@ -34,7 +35,7 @@ try {
     // Buscar recebíveis da operação
     $sql_rec = "SELECT r.*, s.empresa as sacado_nome 
                 FROM recebiveis r 
-                LEFT JOIN sacados s ON r.sacado_id = s.id 
+                LEFT JOIN clientes s ON r.sacado_id = s.id 
                 WHERE r.operacao_id = :operacao_id 
                 ORDER BY r.data_vencimento ASC";
     $stmt_rec = $pdo->prepare($sql_rec);
@@ -43,7 +44,7 @@ try {
     $recebiveis = $stmt_rec->fetchAll(PDO::FETCH_ASSOC);
     
     // Buscar lista de sacados para os selects
-    $stmt_sacados = $pdo->query("SELECT id, empresa as nome FROM sacados ORDER BY empresa ASC");
+    $stmt_sacados = $pdo->query("SELECT id, empresa as nome FROM clientes ORDER BY empresa ASC");
     $sacados = $stmt_sacados->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (PDOException $e) {
@@ -142,8 +143,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label"><strong>Cedente:</strong></label>
-                                    <div class="form-control-plaintext"><?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'N/A'); ?></div>
+                                    <label class="form-label"><strong><?php echo (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') ? 'Tomador do Empréstimo:' : 'Cedente:'; ?></strong></label>
+                                    <?php
+                                    $linkClienteId = $operacao['cedente_id'] ?? null;
+                                    if (!$linkClienteId && isset($recebiveis) && count($recebiveis) > 0) {
+                                        $linkClienteId = $recebiveis[0]['sacado_id'] ?? null;
+                                    }
+                                    ?>
+                                    <div class="form-control-plaintext">
+                                        <?php if ($linkClienteId): ?>
+                                            <a href="visualizar_cliente.php?id=<?php echo htmlspecialchars($linkClienteId); ?>" title="Ver Perfil" class="text-decoration-none fw-semibold">
+                                                <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'N/A'); ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'N/A'); ?>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -175,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <select id="tipo_pagamento" name="tipo_pagamento" class="form-select" required>
                                         <option value="direto" <?php echo ($operacao['tipo_pagamento'] === 'direto') ? 'selected' : ''; ?>>Pagamento Direto (Devedor Notificado)</option>
                                         <option value="escrow" <?php echo ($operacao['tipo_pagamento'] === 'escrow') ? 'selected' : ''; ?>>Pagamento via Conta Escrow</option>
-                                        <option value="indireto" <?php echo ($operacao['tipo_pagamento'] === 'indireto') ? 'selected' : ''; ?>>Pagamento Indireto (Repasse via Cedente)</option>
+                                        <option value="indireto" <?php echo ($operacao['tipo_pagamento'] === 'indireto') ? 'selected' : ''; ?>><?php echo (($operacao['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') ? 'Pagamento Indireto (Repasse via Tomador)' : 'Pagamento Indireto (Repasse via Cedente)'; ?></option>
                                     </select>
                                 </div>
                             </div>

@@ -85,7 +85,7 @@ try {
                    s.empresa as cedente_nome, s.telefone as sacado_telefone
             FROM recebiveis r
             JOIN operacoes o ON r.operacao_id = o.id
-            JOIN cedentes s ON o.cedente_id = s.id
+            JOIN clientes s ON o.cedente_id = s.id
             WHERE r.data_vencimento = :hoje AND r.status = 'Em Aberto'"; // <<< Verifique se 'Em Aberto' é o status correto
 
     $stmt = $pdo->prepare($sql);

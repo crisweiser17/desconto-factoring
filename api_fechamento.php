@@ -57,8 +57,8 @@ try {
             COALESCE(s.empresa, c.empresa, 'Não informado') as pagador_nome
         FROM recebiveis r
         JOIN operacoes o ON r.operacao_id = o.id
-        LEFT JOIN sacados s ON r.sacado_id = s.id
-        LEFT JOIN cedentes c ON o.cedente_id = c.id
+        LEFT JOIN clientes s ON r.sacado_id = s.id
+        LEFT JOIN clientes c ON o.cedente_id = c.id
         WHERE r.status IN ('Problema', 'Em Aberto')
           AND r.data_vencimento < CURDATE()
           AND MONTH(r.data_vencimento) = ?

@@ -263,4 +263,63 @@ function validarTaxa($taxa, $min = 0, $max = 1) {
     return is_numeric($taxa) && $taxa >= $min && $taxa <= $max;
 }
 
+/**
+ * Calcula o valor corrigido de um título vencido
+ * @param float $valor_original Valor original do título
+ * @param string $data_vencimento Data de vencimento (Y-m-d)
+ * @param array $config_taxas Configurações de taxa de juros e multa (opcional)
+ * @return array Dados calculados [valor_corrigido, dias_atraso, valor_juros, valor_multa]
+ */
+function calcularValorCorrigido($valor_original, $data_vencimento, $config_taxas = null) {
+    if ($config_taxas === null) {
+        $config_path = __DIR__ . '/config.json';
+        if (file_exists($config_path)) {
+            $config = json_decode(file_get_contents($config_path), true);
+            $config_taxas = [
+                'taxa_juros_atraso' => $config['taxa_juros_atraso'] ?? 1.00,
+                'taxa_multa_atraso' => $config['taxa_multa_atraso'] ?? 2.00
+            ];
+        } else {
+            $config_taxas = [
+                'taxa_juros_atraso' => 1.00,
+                'taxa_multa_atraso' => 2.00
+            ];
+        }
+    }
+    
+    $hoje = new DateTime('today');
+    $vencimento = new DateTime($data_vencimento);
+    $vencimento->setTime(0, 0, 0);
+    
+    $valor_juros = 0;
+    $valor_multa = 0;
+    $dias_atraso = 0;
+    
+    if ($vencimento < $hoje) {
+        $interval = $vencimento->diff($hoje);
+        $dias_atraso = $interval->days;
+        
+        $taxa_juros_mensal = $config_taxas['taxa_juros_atraso'] / 100;
+        $taxa_multa = $config_taxas['taxa_multa_atraso'] / 100;
+        
+        // Juros pro-rata die simples
+        $taxa_juros_diaria = $taxa_juros_mensal / 30;
+        $valor_juros = $valor_original * $taxa_juros_diaria * $dias_atraso;
+        
+        // Multa
+        $valor_multa = $valor_original * $taxa_multa;
+    }
+    
+    $valor_corrigido = $valor_original + $valor_juros + $valor_multa;
+    
+    return [
+        'valor_corrigido' => round($valor_corrigido, 2),
+        'dias_atraso' => $dias_atraso,
+        'valor_juros' => round($valor_juros, 2),
+        'valor_multa' => round($valor_multa, 2),
+        'taxa_juros_mensal_aplicada' => $config_taxas['taxa_juros_atraso'],
+        'taxa_multa_aplicada' => $config_taxas['taxa_multa_atraso']
+    ];
+}
+
 ?>

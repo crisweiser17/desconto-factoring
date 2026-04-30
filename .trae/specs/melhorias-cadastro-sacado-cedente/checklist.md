@@ -1,0 +1,16 @@
+- [x] Script de atualização do banco de dados executado e campos `anotacoes` (TEXT) e `conta_pix_tipo` (VARCHAR) adicionados com sucesso nas tabelas `sacados` e `cedentes`.
+- [x] `salvar_sacado.php` modificado para salvar `anotacoes` e `conta_pix_tipo`.
+- [x] `salvar_sacado.php` com override em Pessoa Física (`representante_nome = empresa`, `representante_cpf = documento_principal`).
+- [x] `salvar_cedente.php` atualizado para receber `tipo_pessoa` (removido JURIDICA fixo) e incluir as colunas `representante_*` na query de INSERT/UPDATE.
+- [x] `salvar_cedente.php` modificado para salvar `anotacoes` e `conta_pix_tipo`, com o mesmo override de PF que `salvar_sacado.php`.
+- [x] `form_sacado.php` com "Anotações" em "Dados da Empresa".
+- [x] `form_cedente.php` com "Anotações" em "Dados da Empresa".
+- [x] `form_cedente.php` com "Tipo de Pessoa" como dropdown visível (não mais hidden).
+- [x] Seção "Sócios da Empresa" movida para logo após "Dados da Empresa" em `form_sacado.php`.
+- [x] Seção "Sócios da Empresa" movida para logo após "Dados da Empresa" em `form_cedente.php`.
+- [x] Seção "Dados Bancários" com campo dropdown `conta_pix_tipo` em ambos formulários.
+- [x] Seção "Dados Bancários" com seleção de titular via dropdown preenchendo os campos de titular e documento dinamicamente em ambos formulários.
+- [x] Seção "Dados do Representante" (PJ) preenchida através de um dropdown de seleção de sócios, com campos readonly sendo populados.
+- [x] Seção "Dados do Representante" oculta se `tipo_pessoa` for "Pessoa Física".
+- [x] `visualizar_sacado.php` exibe Anotações e Tipo de PIX.
+- [x] `visualizar_cedente.php` exibe Anotações, Tipo de PIX e Tipo de Pessoa.

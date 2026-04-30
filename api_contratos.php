@@ -131,10 +131,10 @@ function montarEnderecoContrato(array $operacao) {
 function montarParteContrato(array $operacao, $porteCliente = '') {
     $tipoPessoa = strtoupper((string) ($operacao['tipo_pessoa'] ?? ''));
     $pessoaJuridica = in_array($tipoPessoa, ['PJ', 'JURIDICA'], true);
-    $documentoPrincipal = normalizarCampoContrato($operacao['cedente_documento_principal'] ?? '');
-    $cpf = normalizarCampoContrato($operacao['cedente_cpf'] ?? '', $documentoPrincipal);
-    $cnpj = normalizarCampoContrato($operacao['cedente_cnpj'] ?? '', $documentoPrincipal);
-    $nomeCompleto = normalizarCampoContrato($operacao['cedente_nome'] ?? '');
+    $documentoPrincipal = normalizarCampoContrato($operacao['cedente_documento_principal'] ?? $operacao['sacado_documento_principal'] ?? '');
+    $cpf = normalizarCampoContrato($operacao['cedente_cpf'] ?? $operacao['sacado_cpf'] ?? '', $documentoPrincipal);
+    $cnpj = normalizarCampoContrato($operacao['cedente_cnpj'] ?? $operacao['sacado_cnpj'] ?? '', $documentoPrincipal);
+    $nomeCompleto = normalizarCampoContrato($operacao['cedente_nome'] ?? $operacao['sacado_nome'] ?? '');
     $razaoSocial = normalizarCampoContrato($operacao['empresa'] ?? '', $nomeCompleto);
     $nomeExibicao = $pessoaJuridica ? $razaoSocial : $nomeCompleto;
     $documento = $pessoaJuridica ? $cnpj : $cpf;
@@ -170,10 +170,14 @@ function montarParteContrato(array $operacao, $porteCliente = '') {
         'endereco_completo' => $enderecoCompleto,
         'email' => normalizarCampoContrato($operacao['email'] ?? '', 'Não informado'),
         'whatsapp' => normalizarCampoContrato($operacao['whatsapp'] ?? '', 'Não informado'),
-        'casado' => !empty($operacao['casado']) && (int) $operacao['casado'] === 1,
+        'casado' => in_array(
+            normalizarCampoContrato($operacao['estado_civil'] ?? '', 'Solteiro(a)'),
+            ['Casado(a)'],
+            true
+        ),
         'conjuge' => [
-            'nome' => normalizarCampoContrato($operacao['conjuge_nome'] ?? ''),
-            'cpf' => normalizarCampoContrato($operacao['conjuge_cpf'] ?? '')
+            'nome' => '',
+            'cpf' => ''
         ],
         'conta' => [
             'banco' => normalizarCampoContrato($operacao['conta_banco'] ?? ''),
@@ -196,6 +200,39 @@ function montarParteContrato(array $operacao, $porteCliente = '') {
     ];
 }
 
+function validarDadosBancariosCedenteAntecipacao(array $cedente, array $conta) {
+    $camposObrigatorios = [
+        'banco' => 'Banco',
+        'agencia' => 'Agência',
+        'numero' => 'Conta',
+        'tipo' => 'Tipo de conta'
+    ];
+
+    $camposFaltantes = [];
+    foreach ($camposObrigatorios as $chave => $label) {
+        if (normalizarCampoContrato($conta[$chave] ?? '') === '') {
+            $camposFaltantes[] = $label;
+        }
+    }
+
+    if ($camposFaltantes === []) {
+        return;
+    }
+
+    $nomeCedente = normalizarCampoContrato(
+        $cedente['nome_exibicao'] ?? '',
+        normalizarCampoContrato($cedente['razao_social'] ?? '', normalizarCampoContrato($cedente['nome_completo'] ?? '', 'informado na operação'))
+    );
+
+    throw new Exception(
+        'Não foi possível gerar o contrato de antecipação porque faltam dados bancários obrigatórios do cedente ' .
+        $nomeCedente .
+        ': ' .
+        implode(', ', $camposFaltantes) .
+        '. Atualize o cadastro do cedente e tente novamente.'
+    );
+}
+
 function gerarContrato($pdo, $operacao_id) {
     // Pegar dados do POST
     $natureza = $_POST['natureza'] ?? '';
@@ -203,10 +240,12 @@ function gerarContrato($pdo, $operacao_id) {
     $tem_garantia_legado = $_POST['tem_garantia'] ?? null;
     $tem_garantia_real_flag = $_POST['tem_garantia_real'] ?? null;
     $tem_avalista_flag = $_POST['tem_avalista'] ?? null;
+    $tipo_garantia = normalizarCampoContrato($_POST['tipo_garantia'] ?? 'veiculo', 'veiculo');
     $conjuge_assina_flag = $_POST['conjuge_assina'] ?? null;
     $conjuge_assina = parseBooleanContratoFlag($conjuge_assina_flag);
 
     $tem_veiculo = null;
+    $tem_bem_movel = false;
     $tem_avalista = null;
 
     if ($tem_garantia_real_flag !== null) {
@@ -232,7 +271,20 @@ function gerarContrato($pdo, $operacao_id) {
 
     if ($natureza !== 'EMPRESTIMO') {
         $tem_veiculo = false;
+        $tem_bem_movel = false;
         $tem_avalista = false;
+        $tipo_garantia = '';
+    } else {
+        if (!in_array($tipo_garantia, ['veiculo', 'bem_movel'], true)) {
+            $tipo_garantia = 'veiculo';
+        }
+
+        if ($tipo_garantia === 'bem_movel' && parseBooleanContratoFlag($tem_garantia_real_flag)) {
+            $tem_bem_movel = true;
+            $tem_veiculo = false;
+        } else {
+            $tem_bem_movel = false;
+        }
     }
     
     // Avalista
@@ -248,6 +300,14 @@ function gerarContrato($pdo, $operacao_id) {
     $avalista_conjuge_cpf = $_POST['avalista_conjuge_cpf'] ?? '';
     $avalista_email = $_POST['avalista_email'] ?? '';
     $avalista_whatsapp = $_POST['avalista_whatsapp'] ?? '';
+
+    // Bem móvel
+    $bem_tipo = $_POST['bem_tipo'] ?? '';
+    $bem_descricao_detalhada = $_POST['bem_descricao_detalhada'] ?? '';
+    $bem_identificadores = $_POST['bem_identificadores'] ?? '';
+    $bem_local_guarda = $_POST['bem_local_guarda'] ?? '';
+    $bem_documentos_origem = $_POST['bem_documentos_origem'] ?? '';
+    $bem_valor_avaliacao = !empty($_POST['bem_valor_avaliacao']) ? (float)$_POST['bem_valor_avaliacao'] : 0;
     
     // Veiculo
     $veiculo_marca = $_POST['veiculo_marca'] ?? '';
@@ -262,6 +322,30 @@ function gerarContrato($pdo, $operacao_id) {
     $veiculo_municipio_registro = $_POST['veiculo_municipio_registro'] ?? '';
     $veiculo_uf = $_POST['veiculo_uf'] ?? '';
 
+    if ($tem_avalista) {
+        if (trim($avalista_nome) === '' || trim($avalista_cpf) === '') {
+            throw new Exception("Informe pelo menos nome completo e CPF do avalista para gerar o contrato com avalista.");
+        }
+
+        $avalista_nacionalidade = normalizarCampoContrato($avalista_nacionalidade, 'brasileiro(a)');
+        $avalista_estado_civil = normalizarCampoContrato($avalista_estado_civil, 'Solteiro(a)');
+        $avalista_profissao = normalizarCampoContrato($avalista_profissao, 'não informado');
+        $avalista_rg = normalizarCampoContrato($avalista_rg, 'não informado');
+        $avalista_endereco = normalizarCampoContrato($avalista_endereco, 'não informado');
+    }
+
+    if ($tem_bem_movel) {
+        if (
+            trim($bem_tipo) === '' ||
+            trim($bem_descricao_detalhada) === '' ||
+            trim($bem_identificadores) === '' ||
+            trim($bem_local_guarda) === '' ||
+            $bem_valor_avaliacao <= 0
+        ) {
+            throw new Exception("Preencha os dados principais do bem móvel oferecido em garantia.");
+        }
+    }
+
     // Fetch operacao details
     $stmt = $pdo->prepare("SELECT * FROM operacoes WHERE id = ?");
     $stmt->execute([$operacao_id]);
@@ -275,13 +359,13 @@ function gerarContrato($pdo, $operacao_id) {
     if (($operacao['tipo_operacao'] ?? 'antecipacao') === 'emprestimo') {
         // Para Empréstimo, o Devedor é o Sacado
         $stmtSacado = $pdo->prepare("
-            SELECT s.id as sacado_id, s.nome as cedente_nome, s.documento_principal as cedente_documento_principal, s.cpf as cedente_cpf, s.cnpj as cedente_cnpj, s.endereco as cedente_endereco, 
+            SELECT s.nome as sacado_nome, s.documento_principal as sacado_documento_principal, s.cpf as sacado_cpf, s.cnpj as sacado_cnpj, s.endereco as sacado_endereco, 
                    s.cidade as cedente_cidade, s.estado as cedente_estado, s.tipo_pessoa, s.empresa,
                    s.representante_nome, s.representante_cpf, s.representante_rg, s.representante_estado_civil, s.representante_profissao, s.representante_nacionalidade, s.representante_endereco,
-                   s.casado, s.conjuge_nome, s.conjuge_cpf, s.conta_banco, s.conta_agencia, s.conta_numero, s.conta_tipo, s.conta_pix, s.email, s.whatsapp,
+                   s.conta_banco, s.conta_agencia, s.conta_numero, s.conta_tipo, s.conta_pix, s.email, s.whatsapp,
                    s.logradouro as cedente_logradouro, s.numero as cedente_numero, s.complemento as cedente_complemento, s.bairro as cedente_bairro, s.cep as cedente_cep
             FROM recebiveis r
-            JOIN sacados s ON r.sacado_id = s.id
+            JOIN clientes s ON r.sacado_id = s.id
             WHERE r.operacao_id = ?
             LIMIT 1
         ");
@@ -292,20 +376,26 @@ function gerarContrato($pdo, $operacao_id) {
         }
     } else {
         // Para Antecipação, o Devedor/Cedente é o Cedente
+        if (empty($operacao['cedente_id'])) {
+            throw new Exception("Não foi possível gerar o contrato de antecipação porque a operação não possui cedente vinculado.");
+        }
+
         $stmtCedente = $pdo->prepare("
             SELECT c.nome as cedente_nome, c.documento_principal as cedente_documento_principal, c.cpf as cedente_cpf, c.cnpj as cedente_cnpj, c.endereco as cedente_endereco, 
                    c.cidade as cedente_cidade, c.estado as cedente_estado, c.tipo_pessoa, c.empresa,
                    c.representante_nome, c.representante_cpf, c.representante_rg, c.representante_estado_civil, c.representante_profissao, c.representante_nacionalidade, c.representante_endereco,
-                   c.casado, c.conjuge_nome, c.conjuge_cpf, c.conta_banco, c.conta_agencia, c.conta_numero, c.conta_tipo, c.conta_pix, c.email, c.whatsapp,
+                   c.conta_banco, c.conta_agencia, c.conta_numero, c.conta_tipo, c.conta_pix, c.email, c.whatsapp,
                    c.logradouro as cedente_logradouro, c.numero as cedente_numero, c.complemento as cedente_complemento, c.bairro as cedente_bairro, c.cep as cedente_cep
-            FROM cedentes c
+            FROM clientes c
             WHERE c.id = ?
         ");
         $stmtCedente->execute([$operacao['cedente_id']]);
         $cedente = $stmtCedente->fetch(PDO::FETCH_ASSOC);
-        if ($cedente) {
-            $operacao = array_merge($operacao, $cedente);
+        if (!$cedente) {
+            throw new Exception("Não foi possível localizar o cadastro do cedente vinculado a esta operação.");
         }
+
+        $operacao = array_merge($operacao, $cedente);
     }
     
     // Regra 2: Validação de Tomador
@@ -319,7 +409,7 @@ function gerarContrato($pdo, $operacao_id) {
         }
     } else if ($natureza === 'DESCONTO') {
         // Validar títulos (sacado distinto do cedente)
-        $stmtTitulos = $pdo->prepare("SELECT COUNT(*) FROM recebiveis WHERE operacao_id = ? AND sacado_id != (SELECT id FROM sacados WHERE empresa = ? OR empresa = ? LIMIT 1)");
+        $stmtTitulos = $pdo->prepare("SELECT COUNT(*) FROM recebiveis WHERE operacao_id = ? AND sacado_id != (SELECT id FROM clientes WHERE empresa = ? OR empresa = ? LIMIT 1)");
         $stmtTitulos->execute([$operacao_id, $operacao['empresa'], $operacao['cedente_nome']]);
         $titulosValidos = $stmtTitulos->fetchColumn();
         
@@ -350,7 +440,7 @@ function gerarContrato($pdo, $operacao_id) {
     $stmtTitulosList = $pdo->prepare("
         SELECT r.*, s.nome as sacado_nome, s.documento_principal as sacado_documento 
         FROM recebiveis r 
-        LEFT JOIN sacados s ON r.sacado_id = s.id 
+        LEFT JOIN clientes s ON r.sacado_id = s.id 
         WHERE r.operacao_id = ?
     ");
     $stmtTitulosList->execute([$operacao_id]);
@@ -408,6 +498,7 @@ function gerarContrato($pdo, $operacao_id) {
     $cronograma = [];
     $saldo_devedor_atual = $total_face_bordero;
     $data_primeiro_vencimento = null;
+    $data_vencimento_ultima_parcela = null;
 
     foreach ($titulos_formatados as $i => $t) {
         $valor_parcela_num = (float) str_replace(['.', ','], ['', '.'], $t['valor_face']);
@@ -420,6 +511,8 @@ function gerarContrato($pdo, $operacao_id) {
         if ($i === 0) {
             $data_primeiro_vencimento = $t['data_vencimento'];
         }
+        
+        $data_vencimento_ultima_parcela = $t['data_vencimento'];
 
         $cronograma[] = [
             'numero' => $i + 1,
@@ -431,6 +524,22 @@ function gerarContrato($pdo, $operacao_id) {
         ];
     }
 
+    $data_vencimento_extenso = '';
+    if ($data_vencimento_ultima_parcela) {
+        $parts = explode('/', $data_vencimento_ultima_parcela);
+        if (count($parts) === 3) {
+            $dia = (int)$parts[0];
+            $mes = (int)$parts[1];
+            $ano = (int)$parts[2];
+            $dia_extenso = trim(str_replace([' reais', ' real'], '', $extenso->converter($dia)));
+            if ($dia === 1) {
+                $dia_extenso = 'primeiro';
+            }
+            $ano_extenso = trim(str_replace([' reais', ' real'], '', $extenso->converter($ano)));
+            $data_vencimento_extenso = $dia_extenso . ' de ' . $meses[$mes] . ' de ' . $ano_extenso;
+        }
+    }
+
     $num_parcelas_count = count($titulos_formatados);
     $periodicidade = $num_parcelas_count === 1 ? 'única' : 'variável';
     $valor_parcela_texto = $num_parcelas_count === 1 ? number_format($total_face_bordero, 2, ',', '.') : 'Variável (conforme cronograma)';
@@ -439,15 +548,45 @@ function gerarContrato($pdo, $operacao_id) {
     // Carregar configuração
     $config_file = __DIR__ . '/config.json';
     $config = file_exists($config_file) ? json_decode(file_get_contents($config_file), true) : [];
+    $credorRazaoSocial = normalizarCampoContrato(
+        $config['empresa_razao_social'] ?? '',
+        normalizarCampoContrato($config['conta_titular'] ?? '', normalizarCampoContrato($config['app_name'] ?? ''))
+    );
+    $credorDocumento = normalizarCampoContrato(
+        $config['empresa_documento'] ?? '',
+        normalizarCampoContrato($config['conta_documento'] ?? '')
+    );
+    $credorContaTitular = normalizarCampoContrato($config['conta_titular'] ?? '', $credorRazaoSocial);
+    $credorContaDocumento = normalizarCampoContrato($config['conta_documento'] ?? '', $credorDocumento);
     $parteContrato = montarParteContrato($operacao, $porte_cliente);
+    $tarifas_operacionais = (float)($operacao['iof_total_calc'] ?? 0) + (float)($operacao['tarifas'] ?? 0);
+    $resumoFinanceiroAntecipacao = [
+        'total_titulos' => count($titulos),
+        'total_face' => number_format($total_face_bordero, 2, ',', '.'),
+        'taxa_desagio_mensal' => number_format($taxa_mensal * 100, 2, ',', '.'),
+        'taxa_desagio_mensal_extenso' => $extenso->converter($taxa_mensal * 100),
+        'prazo_medio' => number_format($operacao['media_dias_pond_calc'] ?? 0, 0, '', ''),
+        'total_desagio' => number_format($total_desagio_bordero, 2, ',', '.'),
+        'tarifas' => number_format($tarifas_operacionais, 2, ',', '.'),
+        'possui_tarifas' => abs($tarifas_operacionais) > 0.00001,
+        'valor_liquido' => number_format($total_liquido_bordero, 2, ',', '.'),
+        'valor_liquido_extenso' => $extenso->converter($total_liquido_bordero),
+        'forma_pagamento' => 'Transferência Bancária (PIX)'
+    ];
+
+    if (!$is_emprestimo_operacao) {
+        validarDadosBancariosCedenteAntecipacao($parteContrato, $parteContrato['conta'] ?? []);
+    }
     
     // Adicionar propriedade conjuge_assina
-    $parteContrato['conjuge_assina'] = $parteContrato['casado'] && $conjuge_assina;
+    $parteContrato['conjuge_assina'] = $conjuge_assina;
 
     // Preparar Data para Mustache
     $data = [
         'titulos' => $titulos_formatados,
         'credor' => [
+            'razao_social' => $credorRazaoSocial,
+            'documento' => $credorDocumento,
             'representante' => [
                 'nome' => $config['empresa_representante_nome'] ?? '',
                 'nacionalidade' => 'brasileiro(a)',
@@ -461,8 +600,8 @@ function gerarContrato($pdo, $operacao_id) {
                 'numero' => $config['conta_numero'] ?? '',
                 'tipo' => $config['conta_tipo'] ?? '',
                 'pix' => $config['conta_pix'] ?? '',
-                'titular' => $config['conta_titular'] ?? '',
-                'documento' => $config['conta_documento'] ?? ''
+                'titular' => $credorContaTitular,
+                'documento' => $credorContaDocumento
             ],
             'endereco_completo' => $config['empresa_endereco'] ?? '',
             'email' => normalizarCampoContrato($config['empresa_email'] ?? '', 'Não informado'),
@@ -486,7 +625,7 @@ function gerarContrato($pdo, $operacao_id) {
             'taxa_desagio' => number_format($taxa_mensal * 100, 2, ',', '.'),
             'total_desagio' => number_format($total_desagio_bordero, 2, ',', '.'),
             'prazo_medio' => number_format($operacao['media_dias_pond_calc'] ?? 0, 0, '', ''),
-            'tarifas' => number_format(($operacao['iof_total_calc'] ?? 0) + ($operacao['tarifas'] ?? 0), 2, ',', '.'),
+            'tarifas' => number_format($tarifas_operacionais, 2, ',', '.'),
             'valor_liquido_extenso' => $extenso->converter($total_liquido_bordero),
             'forma_pagamento' => 'Transferência Bancária (PIX)'
         ],
@@ -530,11 +669,15 @@ function gerarContrato($pdo, $operacao_id) {
             'taxa_juros_anual' => number_format((pow(1 + $taxa_mensal, 12) - 1) * 100, 2, ',', '.'),
             'taxa_juros_anual_extenso' => $extenso->converter((pow(1 + $taxa_mensal, 12) - 1) * 100),
             'cet' => number_format($taxa_mensal * 100 + 0.1, 2, ',', '.'),
+            'taxa_juros_atraso' => number_format($config['taxa_juros_atraso'] ?? 1.00, 2, ',', '.'),
+            'taxa_juros_atraso_extenso' => $extenso->converter($config['taxa_juros_atraso'] ?? 1.00),
+            'taxa_multa_atraso' => number_format($config['taxa_multa_atraso'] ?? 2.00, 2, ',', '.'),
+            'taxa_multa_atraso_extenso' => $extenso->converter($config['taxa_multa_atraso'] ?? 2.00),
             'total_juros' => number_format($total_face_bordero - $total_liquido_pago_calc, 2, ',', '.'),
             'sistema_amortizacao' => $num_parcelas_count === 1 ? 'Pagamento Único no Vencimento' : 'Pagamento Variável',
             'num_vias' => '2',
             'num_vias_extenso' => 'duas'
-        ],
+        ] + $resumoFinanceiroAntecipacao,
         'veiculo' => [
             'marca' => $veiculo_marca,
             'modelo' => $veiculo_modelo,
@@ -550,35 +693,49 @@ function gerarContrato($pdo, $operacao_id) {
             'valor_avaliacao' => number_format($veiculo_valor_avaliacao, 2, ',', '.'),
             'valor_avaliacao_extenso' => $extenso->converter($veiculo_valor_avaliacao)
         ],
+        'bem' => [
+            'tipo' => $bem_tipo,
+            'descricao_detalhada' => $bem_descricao_detalhada,
+            'identificadores' => $bem_identificadores,
+            'local_guarda' => $bem_local_guarda,
+            'documentos_origem' => $bem_documentos_origem,
+            'valor_avaliacao' => number_format($bem_valor_avaliacao, 2, ',', '.'),
+            'valor_avaliacao_extenso' => $extenso->converter($bem_valor_avaliacao)
+        ],
         'testemunhas' => [
             ['nome' => '________________________________________________', 'cpf' => '_______________________'],
             ['nome' => '________________________________________________', 'cpf' => '_______________________']
         ],
-        'cronograma' => $cronograma
+        'cronograma' => $cronograma,
+        'np' => [
+            'numero' => '01/01',
+            'vencimento' => $data_vencimento_ultima_parcela,
+            'data_vencimento_extenso' => $data_vencimento_extenso
+        ]
     ];
 
     // Determinar o template a usar
     if ($natureza === 'EMPRESTIMO') {
-        if ($tem_veiculo && $tem_avalista) {
-            $templatePath = '_contratos/contrato_1_com_veiculo_com_avalista.md';
+        if ($tem_bem_movel && $tem_avalista) {
+            $templatePath = '_contratos/02f_template_mutuo_com_garantia_bem_e_aval.md';
+        } elseif ($tem_bem_movel && !$tem_avalista) {
+            $templatePath = '_contratos/02e_template_mutuo_com_garantia_bem.md';
+        } elseif ($tem_veiculo && $tem_avalista) {
+            $templatePath = '_contratos/02d_template_mutuo_com_garantia_e_aval.md';
         } elseif (!$tem_veiculo && !$tem_avalista) {
-            $templatePath = '_contratos/contrato_2_sem_veiculo_sem_avalista.md';
+            $templatePath = '_contratos/02a_template_mutuo_simples.md';
         } elseif ($tem_veiculo && !$tem_avalista) {
-            $templatePath = '_contratos/contrato_3_com_veiculo_sem_avalista.md';
+            $templatePath = '_contratos/02c_template_mutuo_com_garantia.md';
         } else {
-            $templatePath = '_contratos/contrato_4_sem_veiculo_com_avalista.md';
+            $templatePath = '_contratos/02b_template_mutuo_com_aval.md';
         }
 
         if (!file_exists($templatePath)) {
-            if (file_exists('_contratos/02_template_contrato_mutuo.md')) {
-                $templatePath = '_contratos/02_template_contrato_mutuo.md';
-            } else {
-                $templatePath = '_contratos/template.md';
-            }
+            $templatePath = '_contratos/template.md';
         }
     } else {
-        $templatePath = file_exists('_contratos/03_template_cessao_bordero.md')
-            ? '_contratos/03_template_cessao_bordero.md'
+        $templatePath = file_exists('_contratos/01_template_antecipacao_recebiveis.md')
+            ? '_contratos/01_template_antecipacao_recebiveis.md'
             : '_contratos/template.md';
     }
     
@@ -587,6 +744,16 @@ function gerarContrato($pdo, $operacao_id) {
     }
 
     $markdownTemplate = file_get_contents($templatePath);
+    $markdownTemplate = preg_replace('/^.*?\n---\n+/s', '', $markdownTemplate, 1);
+
+    if ($natureza === 'EMPRESTIMO') {
+        $npTemplatePath = '_contratos/03_template_nota_promissoria.md';
+        if (file_exists($npTemplatePath)) {
+            $npTemplate = file_get_contents($npTemplatePath);
+            $npTemplate = preg_replace('/^.*?\n---\n+/s', '', $npTemplate, 1);
+            $markdownTemplate .= "\n\n<div style=\"page-break-before: always;\"></div>\n\n" . $npTemplate;
+        }
+    }
 
     // Render with Mustache
     $m = new Mustache_Engine;
@@ -604,6 +771,43 @@ function gerarContrato($pdo, $operacao_id) {
         p { margin-bottom: 10px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         th, td { border: 1px solid #000; padding: 5px; text-align: center; }
+        
+        /* Estilos específicos da Nota Promissória */
+        .np-header { 
+            text-align: center; 
+            font-size: 20pt; 
+            font-weight: bold; 
+            letter-spacing: 3px; 
+            margin-bottom: 20px; 
+            border-bottom: 2px solid #000; 
+            padding-bottom: 10px; 
+        }
+        
+        .np-valor { 
+            text-align: center; 
+            font-size: 16pt; 
+            font-weight: bold; 
+            margin: 20px 0; 
+            padding: 10px; 
+            border: 2px solid #000; 
+        }
+        
+        .np-texto { 
+            text-align: justify; 
+            text-indent: 2cm; 
+            margin: 15px 0; 
+        }
+        
+        .np-assinatura { 
+            margin-top: 60px; 
+            text-align: center; 
+        }
+        
+        .np-linha-assinatura { 
+            border-top: 1px solid #000; 
+            width: 70%; 
+            margin: 0 auto 5px auto; 
+        }
     </style>
     " . $htmlContent;
 
@@ -623,7 +827,7 @@ function gerarContrato($pdo, $operacao_id) {
     ]);
     
     // Configurar rodapé com numeração de páginas
-    $mpdf->SetFooter('ACM Empresa Simples de Crédito LTDA||Página {PAGENO} de {nbpg}');
+    $mpdf->SetFooter($credorRazaoSocial . '||Página {PAGENO} de {nbpg}');
     
     $mpdf->WriteHTML($html);
     
@@ -650,12 +854,12 @@ function gerarContrato($pdo, $operacao_id) {
         if (!empty($porte_cliente)) {
             if (($operacao['tipo_operacao'] ?? 'antecipacao') === 'emprestimo') {
                 if (!empty($operacao['sacado_id'])) {
-                    $stmtUpdateSac = $pdo->prepare("UPDATE sacados SET porte = ? WHERE id = ?");
+                    $stmtUpdateSac = $pdo->prepare("UPDATE clientes SET porte = ? WHERE id = ?");
                     $stmtUpdateSac->execute([$porte_cliente, $operacao['sacado_id']]);
                 }
             } else {
                 if (!empty($operacao['cedente_id'])) {
-                    $stmtUpdateCed = $pdo->prepare("UPDATE cedentes SET porte = ? WHERE id = ?");
+                    $stmtUpdateCed = $pdo->prepare("UPDATE clientes SET porte = ? WHERE id = ?");
                     $stmtUpdateCed->execute([$porte_cliente, $operacao['cedente_id']]);
                 }
             }

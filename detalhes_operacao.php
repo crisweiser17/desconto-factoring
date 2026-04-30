@@ -126,13 +126,13 @@ $error_message = null;
 try {
     $sql_op = "SELECT
                    o.*,
-                   COALESCE(s.empresa, (SELECT sac.empresa FROM recebiveis r2 JOIN sacados sac ON r2.sacado_id = sac.id WHERE r2.operacao_id = o.id LIMIT 1)) AS cedente_nome,
+                   COALESCE(s.empresa, s.nome, (SELECT COALESCE(sac.empresa, sac.nome) FROM recebiveis r2 JOIN clientes sac ON r2.sacado_id = sac.id WHERE r2.operacao_id = o.id LIMIT 1)) AS cedente_nome,
                    s.empresa AS sacado_empresa,
+                   s.representante_estado_civil AS cedente_representante_estado_civil,
                    o.cedente_id
                FROM
                    operacoes o
-               LEFT JOIN
-                   cedentes s ON o.cedente_id = s.id
+               LEFT JOIN clientes s ON o.cedente_id = s.id
                WHERE
                    o.id = :id";
     $stmt_op = $pdo->prepare($sql_op);
@@ -164,9 +164,9 @@ $chartDataRaw = []; // Armazena todos os pontos de dados por mês/tipo
 
 if ($operacao && !isset($error_message)) {
     try {
-        $sql_rec = "SELECT r.*, s.empresa as sacado_nome, r.sacado_id
+        $sql_rec = "SELECT r.*, s.empresa as sacado_nome, r.sacado_id, s.representante_estado_civil as sacado_representante_estado_civil
                    FROM recebiveis r
-                   LEFT JOIN sacados s ON r.sacado_id = s.id
+                   LEFT JOIN clientes s ON r.sacado_id = s.id
                    WHERE r.operacao_id = :operacao_id
                    ORDER BY r.data_vencimento ASC";
         $stmt_rec = $pdo->prepare($sql_rec);
@@ -499,19 +499,19 @@ if ($operacao && !isset($error_message)) {
                             <strong class="text-muted d-block mb-1"><?php echo $labelParteOperacao; ?></strong>
                             <div class="fs-6">
                                 <?php if ($operacao['cedente_id']): ?>
-                                    <a href="visualizar_cedente.php?id=<?php echo $operacao['cedente_id']; ?>" title="Ver Perfil" class="text-decoration-none fw-semibold">
+                                    <a href="visualizar_cliente.php?id=<?php echo $operacao['cedente_id']; ?>" title="Ver Perfil" class="text-decoration-none fw-semibold">
                                         <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'Desconhecido'); ?>
                                     </a>
                                 <?php else: ?>
                                     <!-- Fallback para sacado se cedente não existir, com link para o sacado caso possível -->
                                     <?php
                                     $sacadoIdParaLink = null;
-                                    if (isset($recebiveis) && count($recebiveis) > 0) {
-                                        $sacadoIdParaLink = $recebiveis[0]['sacado_id'] ?? null;
+                                    if (isset($recebiveis_db) && count($recebiveis_db) > 0) {
+                                        $sacadoIdParaLink = $recebiveis_db[0]['sacado_id'] ?? null;
                                     }
                                     ?>
                                     <?php if ($sacadoIdParaLink): ?>
-                                        <a href="visualizar_sacado.php?id=<?php echo $sacadoIdParaLink; ?>" title="Ver Perfil" class="text-decoration-none fw-semibold">
+                                        <a href="visualizar_cliente.php?id=<?php echo $sacadoIdParaLink; ?>" title="Ver Perfil" class="text-decoration-none fw-semibold">
                                             <?php echo htmlspecialchars($operacao['cedente_nome'] ?? 'N/A'); ?>
                                         </a>
                                     <?php else: ?>
@@ -624,14 +624,19 @@ if ($operacao && !isset($error_message)) {
                         </div>
                         <?php endif; ?>
                         <?php endif; ?>
-                        <div class="col-md-6">
-                            <strong class="text-muted d-block mb-1"><?php echo $labelValorLiberado; ?></strong>
-                             <div class="fs-5 text-primary fw-bold"><?php echo formatHtmlCurrency($totalLiquidoPagoCalculado); ?></div>
+                        
+                        <!-- Totais Finais agrupados na direita -->
+                        <div class="col-md-6 offset-md-6 border-top pt-3 mt-3">
+                            <div class="mb-3">
+                                <strong class="text-muted d-block mb-1"><?php echo $labelValorLiberado; ?></strong>
+                                <div class="fs-5 text-primary fw-bold"><?php echo formatHtmlCurrency($totalLiquidoPagoCalculado); ?></div>
+                            </div>
+                            <div>
+                                <strong class="text-muted d-block mb-1"><?php echo $labelResultadoLiquido; ?></strong>
+                                <div class="fs-5 text-success fw-bold"><?php echo formatHtmlCurrency($totalLucroLiquidoCalculado); ?> <small class="text-muted fs-6">(<?php echo number_format($percentualLucroLiquido, 2, ',', '.') . '%'; ?>)</small></div>
+                            </div>
                         </div>
-                         <div class="col-md-6">
-                            <strong class="text-muted d-block mb-1"><?php echo $labelResultadoLiquido; ?></strong>
-                             <div class="fs-5 text-success fw-bold"><?php echo formatHtmlCurrency($totalLucroLiquidoCalculado); ?> <small class="text-muted fs-6">(<?php echo number_format($percentualLucroLiquido, 2, ',', '.') . '%'; ?>)</small></div>
-                        </div>
+
                         <div class="col-md-12 mt-4">
                             <strong class="text-muted d-block mb-2">Observações:</strong>
                             <div class="p-3 bg-light border rounded">
@@ -778,7 +783,7 @@ if ($operacao && !isset($error_message)) {
                                     <td class="text-center"><?php echo formatHtmlDate($r['data_vencimento']); ?></td>
                                     <td class="text-center">
                                         <?php if ($r['sacado_id']): ?>
-                                            <a href="visualizar_sacado.php?id=<?php echo $r['sacado_id']; ?>" title="Ver/Editar Sacado">
+                                            <a href="visualizar_cliente.php?id=<?php echo $r['sacado_id']; ?>" title="Ver/Editar Sacado">
                                                 <?php echo htmlspecialchars($r['sacado_nome'] ?? 'Desconhecido'); ?>
                                             </a>
                                         <?php else: ?>
@@ -786,20 +791,35 @@ if ($operacao && !isset($error_message)) {
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center"><?php echo htmlspecialchars($r['tipo_recebivel'] ?? 'N/A'); ?></td>
-                                    <td class="text-end"><?php echo formatHtmlCurrency($r['valor_original']); ?></td>
+                                    <td class="text-end">
+                                        <?php 
+                                        $valor_original = $r['valor_original'];
+                                        if ($dias_para_vencimento < 0 && $r['status'] !== 'Recebido' && $r['status'] !== 'Compensado' && $r['status'] !== 'Totalmente Compensado') {
+                                            $calc = calcularValorCorrigido($valor_original, $r['data_vencimento']);
+                                            $valor_exibicao = $calc['valor_corrigido'];
+                                            echo '<div><span class="text-decoration-line-through text-muted small">' . formatHtmlCurrency($valor_original) . '</span></div>';
+                                            echo '<div class="text-danger fw-bold" title="Atraso de ' . $calc['dias_atraso'] . ' dias. Juros: ' . formatHtmlCurrency($calc['valor_juros']) . ' / Multa: ' . formatHtmlCurrency($calc['valor_multa']) . '">' . formatHtmlCurrency($valor_exibicao) . ' <i class="bi bi-info-circle small"></i></div>';
+                                        } else {
+                                            $valor_exibicao = $valor_original;
+                                            echo '<div>' . formatHtmlCurrency($valor_original) . '</div>';
+                                        }
+                                        ?>
+                                    </td>
                                     <td class="text-center"><?php echo htmlspecialchars($dias_para_vencimento); ?></td>
                                     <td class="text-end"><?php echo formatHtmlCurrency($valor_liquido_recebido_item); ?></td>
                                     <td class="text-end"><?php echo formatHtmlCurrency($lucro_atual_recebivel); ?></td>
                                     <td class="text-center status-cell"><?php echo formatHtmlStatus($r['status'], $r['data_recebimento'] ?? null, $saldo_aberto, $operacao_compensadora); ?></td>
                                     <td class="text-center actions-cell">
-                                        <?php if ($r['status'] === 'Em Aberto'): ?>
-                                            <button class="btn btn-success action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Recebido" title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
+                                        <?php 
+                                        $btn_data_attrs = 'data-id="' . $r['id'] . '" data-status="Recebido" data-valor-original="' . $valor_original . '" data-valor-corrigido="' . $valor_exibicao . '"'; 
+                                        if ($r['status'] === 'Em Aberto'): ?>
+                                            <button class="btn btn-success action-btn update-status-btn" <?php echo $btn_data_attrs; ?> title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
                                             <button class="btn btn-danger action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Problema" title="Marcar com Problema"><i class="bi bi-exclamation-triangle-fill"></i></button>
                                         <?php elseif ($r['status'] === 'Parcialmente Compensado'): ?>
-                                            <button class="btn btn-success action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Recebido" title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
+                                            <button class="btn btn-success action-btn update-status-btn" <?php echo $btn_data_attrs; ?> title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
                                             <button class="btn btn-danger action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Problema" title="Marcar com Problema"><i class="bi bi-exclamation-triangle-fill"></i></button>
                                         <?php elseif ($r['status'] === 'Problema'): ?>
-                                            <button class="btn btn-success action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Recebido" title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
+                                            <button class="btn btn-success action-btn update-status-btn" <?php echo $btn_data_attrs; ?> title="Marcar como Recebido"><i class="bi bi-check-lg"></i></button>
                                             <button class="btn btn-secondary action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Em Aberto" title="Reverter para Em Aberto"><i class="bi bi-arrow-counterclockwise"></i></button>
                                         <?php elseif ($r['status'] === 'Recebido'): ?>
                                             <button class="btn btn-secondary action-btn update-status-btn" data-id="<?php echo $r['id']; ?>" data-status="Em Aberto" title="Reverter para Em Aberto"><i class="bi bi-arrow-counterclockwise"></i></button>
@@ -1014,6 +1034,17 @@ if ($operacao && !isset($error_message)) {
                 </div>
             </div>
 
+            <?php
+            // Determinar o estado civil do devedor para controle do campo "Cônjuge vai Assinar?"
+            $devedorEstadoCivil = '';
+            if ($isEmprestimo && !empty($recebiveis_db)) {
+                $devedorEstadoCivil = $recebiveis_db[0]['sacado_representante_estado_civil'] ?? '';
+            } elseif (!$isEmprestimo && !empty($operacao['cedente_id'])) {
+                $devedorEstadoCivil = $operacao['cedente_representante_estado_civil'] ?? '';
+            }
+            $devedorEhCasado = in_array($devedorEstadoCivil, ['Casado(a)'], true);
+            ?>
+
             <!-- Modal para Gerar Contratos -->
             <div class="modal fade" id="modalGerarContrato" tabindex="-1" aria-labelledby="modalGerarContratoLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -1045,7 +1076,7 @@ if ($operacao && !isset($error_message)) {
                                             $porteAtual = '';
                                             if ($operacao['cedente_id']) {
                                                 try {
-                                                    $stmt_ced = $pdo->prepare("SELECT porte FROM cedentes WHERE id = ?");
+                                                    $stmt_ced = $pdo->prepare("SELECT porte FROM clientes WHERE id = ?");
                                                     $stmt_ced->execute([$operacao['cedente_id']]);
                                                     $porteAtual = $stmt_ced->fetchColumn();
                                                 } catch (Exception $e) {}
@@ -1062,13 +1093,20 @@ if ($operacao && !isset($error_message)) {
                                     <div class="col-md-12" id="garantiaToggleSection" style="display: none;">
                                         <div class="row g-3">
                                             <div class="col-md-4">
-                                                <label class="form-label fw-bold d-block">O empréstimo tem garantia real?</label>
+                                                <label class="form-label fw-bold d-block">Cliente ofereceu garantia?</label>
                                                 <div class="btn-group w-100" role="group" aria-label="Garantia real">
                                                     <input type="radio" class="btn-check" name="tem_garantia_real" id="modalTemGarantiaRealSim" value="1">
                                                     <label class="btn btn-outline-primary" for="modalTemGarantiaRealSim">Sim</label>
                                                     <input type="radio" class="btn-check" name="tem_garantia_real" id="modalTemGarantiaRealNao" value="0" checked>
                                                     <label class="btn btn-outline-primary" for="modalTemGarantiaRealNao">Não</label>
                                                 </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold d-block">Tipo da Garantia</label>
+                                                <select class="form-select" name="tipo_garantia" id="modalTipoGarantia">
+                                                    <option value="veiculo" selected>Veículo</option>
+                                                    <option value="bem_movel">Outro bem móvel</option>
+                                                </select>
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label fw-bold d-block">O sacado tem avalista?</label>
@@ -1211,6 +1249,37 @@ if ($operacao && !isset($error_message)) {
                                             <div class="col-md-12">
                                                 <label class="form-label">Valor de Avaliação (R$)</label>
                                                 <input type="number" step="0.01" class="form-control req-veiculo" name="veiculo_valor_avaliacao">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Secao Bem Movel -->
+                                    <div id="bemMovelContainer" style="display: none;">
+                                        <h6 class="border-bottom pb-2 mb-3">Dados do Bem Móvel (Garantia Mútuo)</h6>
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Tipo / Categoria</label>
+                                                <input type="text" class="form-control req-bem" name="bem_tipo" placeholder="Máquina, equipamento, mercadoria...">
+                                            </div>
+                                            <div class="col-md-8">
+                                                <label class="form-label">Descrição Detalhada</label>
+                                                <input type="text" class="form-control req-bem" name="bem_descricao_detalhada" placeholder="Descreva o bem oferecido em garantia">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Identificadores Únicos</label>
+                                                <input type="text" class="form-control req-bem" name="bem_identificadores" placeholder="Série, patrimônio, lote, IMEI...">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Local de Guarda</label>
+                                                <input type="text" class="form-control req-bem" name="bem_local_guarda" placeholder="Onde o bem ficará armazenado">
+                                            </div>
+                                            <div class="col-md-8">
+                                                <label class="form-label">Documentos de Origem</label>
+                                                <input type="text" class="form-control" name="bem_documentos_origem" placeholder="Nota fiscal, recibo, contrato de compra...">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Valor de Avaliação (R$)</label>
+                                                <input type="number" step="0.01" class="form-control req-bem" name="bem_valor_avaliacao">
                                             </div>
                                         </div>
                                     </div>
@@ -1606,6 +1675,69 @@ if ($operacao && !isset($error_message)) {
     document.addEventListener('DOMContentLoaded', function () {
         const feedbackDiv = document.getElementById('status-feedback');
         const tableBody = document.getElementById('recebiveis-table-body');
+        const modalRecebimento = new bootstrap.Modal(document.getElementById('modalRecebimento'));
+        const btnConfirmar = document.getElementById('btnConfirmarRecebimento');
+
+        function performStatusUpdate(recebivelId, newStatus, valorRecebido = null) {
+            const row = document.getElementById('recebivel-row-' + recebivelId);
+            if (!row) {
+                console.error('Elemento da linha não encontrado:', 'recebivel-row-' + recebivelId);
+                return;
+            }
+
+            const statusCell = row.querySelector('.status-cell');
+            const actionsCell = row.querySelector('.actions-cell');
+            if (!statusCell || !actionsCell) {
+                 console.error('Célula de status ou ações não encontrada na linha:', row);
+                return;
+            }
+
+            feedbackDiv.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Atualizando...</span></div> Atualizando status...';
+            feedbackDiv.className = 'alert alert-info';
+
+            let bodyParams = 'id=' + encodeURIComponent(recebivelId) + '&status=' + encodeURIComponent(newStatus);
+            if (valorRecebido !== null) {
+                bodyParams += '&valor_recebido=' + encodeURIComponent(valorRecebido);
+            }
+
+            fetch('atualizar_status.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: bodyParams
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const closeButtonHtml = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+
+                 if (data.success && typeof data.newStatusHtml !== 'undefined' && typeof data.newActionsHtml !== 'undefined' && typeof data.newRowClass !== 'undefined') {
+                    statusCell.innerHTML = data.newStatusHtml;
+                    actionsCell.innerHTML = data.newActionsHtml;
+                    row.className = data.newRowClass;
+                    feedbackDiv.innerHTML = `Status do recebível ${recebivelId} atualizado para ${newStatus}. ${closeButtonHtml}`;
+                    feedbackDiv.className = 'alert alert-success alert-dismissible fade show';
+
+                    window.location.reload(); // Recarrega para refletir todos os cálculos atualizados
+
+                } else {
+                    feedbackDiv.innerHTML = `Erro ao atualizar status: ${data.message || 'Dados de resposta incompletos ou falha no servidor.'} ${closeButtonHtml}`;
+                    feedbackDiv.className = 'alert alert-danger alert-dismissible fade show';
+                }
+            })
+            .catch(error => {
+                console.error('Erro no catch:', error);
+                const closeButtonHtml = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                feedbackDiv.innerHTML = `Erro na comunicação ou processamento da resposta. Ver Console (F12). [${error.message}] ${closeButtonHtml}`;
+                feedbackDiv.className = 'alert alert-danger alert-dismissible fade show';
+            });
+        }
 
         if (tableBody) {
             tableBody.addEventListener('click', function(event) {
@@ -1614,59 +1746,47 @@ if ($operacao && !isset($error_message)) {
 
                 const recebivelId = button.dataset.id;
                 const newStatus = button.dataset.status;
-                const row = document.getElementById('recebivel-row-' + recebivelId);
-                if (!row) {
-                    console.error('Elemento da linha não encontrado:', 'recebivel-row-' + recebivelId);
-                    return;
+                
+                if (newStatus === 'Recebido') {
+                    const valorOriginal = button.dataset.valorOriginal;
+                    const valorCorrigido = button.dataset.valorCorrigido;
+                    
+                    if (valorOriginal && valorCorrigido) {
+                        document.getElementById('modal_recebivel_id').value = recebivelId;
+                        document.getElementById('modal_new_status').value = newStatus;
+                        document.getElementById('modal_valor_original').value = 'R$ ' + parseFloat(valorOriginal).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        
+                        if (parseFloat(valorCorrigido) > parseFloat(valorOriginal)) {
+                            document.getElementById('div_valor_corrigido').style.display = 'block';
+                            document.getElementById('modal_valor_corrigido').value = 'R$ ' + parseFloat(valorCorrigido).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        } else {
+                            document.getElementById('div_valor_corrigido').style.display = 'none';
+                        }
+                        
+                        document.getElementById('modal_valor_recebido').value = parseFloat(valorCorrigido).toFixed(2);
+                        
+                        modalRecebimento.show();
+                        return;
+                    }
                 }
 
-                const statusCell = row.querySelector('.status-cell');
-                const actionsCell = row.querySelector('.actions-cell');
-                if (!statusCell || !actionsCell) {
-                     console.error('Célula de status ou ações não encontrada na linha:', row);
+                performStatusUpdate(recebivelId, newStatus);
+            });
+        }
+        
+        if (btnConfirmar) {
+            btnConfirmar.addEventListener('click', function() {
+                const recebivelId = document.getElementById('modal_recebivel_id').value;
+                const newStatus = document.getElementById('modal_new_status').value;
+                const valorRecebido = document.getElementById('modal_valor_recebido').value;
+                
+                if (!valorRecebido || parseFloat(valorRecebido) < 0) {
+                    alert('Por favor, informe um valor recebido válido.');
                     return;
                 }
-
-                feedbackDiv.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Atualizando...</span></div> Atualizando status...';
-                feedbackDiv.className = 'alert alert-info';
-
-                fetch('atualizar_status.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: 'id=' + encodeURIComponent(recebivelId) + '&status=' + encodeURIComponent(newStatus)
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Erro HTTP ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    const closeButtonHtml = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
-
-                     if (data.success && typeof data.newStatusHtml !== 'undefined' && typeof data.newActionsHtml !== 'undefined' && typeof data.newRowClass !== 'undefined') {
-                        statusCell.innerHTML = data.newStatusHtml;
-                        actionsCell.innerHTML = data.newActionsHtml;
-                        row.className = data.newRowClass;
-                        feedbackDiv.innerHTML = `Status do recebível ${recebivelId} atualizado para ${newStatus}. ${closeButtonHtml}`;
-                        feedbackDiv.className = 'alert alert-success alert-dismissible fade show';
-
-                        window.location.reload(); // Recarrega para refletir todos os cálculos atualizados
-
-                    } else {
-                        feedbackDiv.innerHTML = `Erro ao atualizar status: ${data.message || 'Dados de resposta incompletos ou falha no servidor.'} ${closeButtonHtml}`;
-                        feedbackDiv.className = 'alert alert-danger alert-dismissible fade show';
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro no catch:', error);
-                    const closeButtonHtml = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
-                    feedbackDiv.innerHTML = `Erro na comunicação ou processamento da resposta. Ver Console (F12). [${error.message}] ${closeButtonHtml}`;
-                    feedbackDiv.className = 'alert alert-danger alert-dismissible fade show';
-                });
+                
+                modalRecebimento.hide();
+                performStatusUpdate(recebivelId, newStatus, valorRecebido);
             });
         }
 
@@ -2057,6 +2177,44 @@ if ($operacao && !isset($error_message)) {
     });
     </script>
     <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+    <!-- Modal Recebimento -->
+    <div class="modal fade" id="modalRecebimento" tabindex="-1" aria-labelledby="modalRecebimentoLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalRecebimentoLabel">Confirmar Recebimento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="modal_recebivel_id">
+                    <input type="hidden" id="modal_new_status">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Valor Original:</label>
+                        <input type="text" class="form-control" id="modal_valor_original" readonly disabled>
+                    </div>
+                    
+                    <div class="mb-3" id="div_valor_corrigido">
+                        <label class="form-label text-danger">Valor Corrigido (com Juros e Mora):</label>
+                        <input type="text" class="form-control text-danger fw-bold" id="modal_valor_corrigido" readonly disabled>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Valor Recebido:</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" step="0.01" min="0" class="form-control" id="modal_valor_recebido" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btnConfirmarRecebimento">Confirmar Recebimento</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"></script>
     
@@ -2300,7 +2458,26 @@ if ($operacao && !isset($error_message)) {
                 // Trigger change to set initial visibility
                 document.getElementById('modalNatureza').dispatchEvent(new Event('change'));
                 document.getElementById('avalistaEstadoCivil').dispatchEvent(new Event('change'));
+                
+                // Controlar habilitação do campo "Cônjuge vai Assinar?" com base no estado civil do devedor
+                atualizarCampoConjugeAssina();
             });
+        }
+        
+        function atualizarCampoConjugeAssina() {
+            const modalConjugeAssina = document.getElementById('modalConjugeAssina');
+            if (!modalConjugeAssina) return;
+            
+            const devedorEhCasado = <?php echo $devedorEhCasado ? 'true' : 'false'; ?>;
+            
+            if (devedorEhCasado) {
+                modalConjugeAssina.disabled = false;
+                modalConjugeAssina.classList.remove('bg-light');
+            } else {
+                modalConjugeAssina.disabled = true;
+                modalConjugeAssina.classList.add('bg-light');
+                modalConjugeAssina.value = '0';
+            }
         }
         
         // CPF/CNPJ Mask function
@@ -2353,7 +2530,9 @@ if ($operacao && !isset($error_message)) {
         const garantiasContainer = document.getElementById('garantiasContainer');
         const avalistaContainer = document.getElementById('avalistaContainer');
         const veiculoContainer = document.getElementById('veiculoContainer');
+        const bemMovelContainer = document.getElementById('bemMovelContainer');
         const conjugeSection = document.getElementById('conjugeSection');
+        const modalTipoGarantia = document.getElementById('modalTipoGarantia');
         const modalTemGarantiaRealInputs = document.querySelectorAll('input[name="tem_garantia_real"]');
         const modalTemAvalistaInputs = document.querySelectorAll('input[name="tem_avalista"]');
 
@@ -2365,13 +2544,20 @@ if ($operacao && !isset($error_message)) {
         function atualizarCamposEmprestimo() {
             const temGarantiaReal = obterValorRadioSelecionado(modalTemGarantiaRealInputs) === '1';
             const temAvalista = obterValorRadioSelecionado(modalTemAvalistaInputs) === '1';
+            const tipoGarantia = modalTipoGarantia ? modalTipoGarantia.value : 'veiculo';
 
             garantiasContainer.style.display = 'none';
             avalistaContainer.style.display = 'none';
             veiculoContainer.style.display = 'none';
+            bemMovelContainer.style.display = 'none';
 
             avalistaContainer.querySelectorAll('.req-avalista, .req-conjuge').forEach(input => input.required = false);
             veiculoContainer.querySelectorAll('.req-veiculo').forEach(input => input.required = false);
+            bemMovelContainer.querySelectorAll('.req-bem').forEach(input => input.required = false);
+
+            if (modalTipoGarantia) {
+                modalTipoGarantia.disabled = !temGarantiaReal;
+            }
 
             if (temGarantiaReal || temAvalista) {
                 garantiasContainer.style.display = 'block';
@@ -2379,12 +2565,20 @@ if ($operacao && !isset($error_message)) {
 
             if (temAvalista) {
                 avalistaContainer.style.display = 'block';
-                avalistaContainer.querySelectorAll('.req-avalista').forEach(input => input.required = true);
+                const avalistaNome = avalistaContainer.querySelector('input[name="avalista_nome"]');
+                const avalistaCpf = avalistaContainer.querySelector('input[name="avalista_cpf"]');
+                if (avalistaNome) avalistaNome.required = true;
+                if (avalistaCpf) avalistaCpf.required = true;
             }
 
             if (temGarantiaReal) {
-                veiculoContainer.style.display = 'block';
-                veiculoContainer.querySelectorAll('.req-veiculo').forEach(input => input.required = true);
+                if (tipoGarantia === 'bem_movel') {
+                    bemMovelContainer.style.display = 'block';
+                    bemMovelContainer.querySelectorAll('.req-bem').forEach(input => input.required = true);
+                } else {
+                    veiculoContainer.style.display = 'block';
+                    veiculoContainer.querySelectorAll('.req-veiculo').forEach(input => input.required = true);
+                }
             }
 
             document.getElementById('avalistaEstadoCivil').dispatchEvent(new Event('change'));
@@ -2400,13 +2594,17 @@ if ($operacao && !isset($error_message)) {
                 garantiasContainer.style.display = 'none';
                 avalistaContainer.style.display = 'none';
                 veiculoContainer.style.display = 'none';
+                bemMovelContainer.style.display = 'none';
                 conjugeSection.style.display = 'none';
-                garantiasContainer.querySelectorAll('.req-avalista, .req-veiculo, .req-conjuge').forEach(input => input.required = false);
+                garantiasContainer.querySelectorAll('.req-avalista, .req-veiculo, .req-bem, .req-conjuge').forEach(input => input.required = false);
             }
         });
 
         modalTemGarantiaRealInputs.forEach(input => input.addEventListener('change', atualizarCamposEmprestimo));
         modalTemAvalistaInputs.forEach(input => input.addEventListener('change', atualizarCamposEmprestimo));
+        if (modalTipoGarantia) {
+            modalTipoGarantia.addEventListener('change', atualizarCamposEmprestimo);
+        }
 
         document.getElementById('avalistaEstadoCivil').addEventListener('change', function() {
             const isAvalistaVisible = document.getElementById('avalistaContainer').style.display !== 'none';
@@ -2444,9 +2642,11 @@ if ($operacao && !isset($error_message)) {
                 if (naturezaValue === 'EMPRESTIMO') {
                     formData.set('tem_garantia_real', obterValorRadioSelecionado(modalTemGarantiaRealInputs));
                     formData.set('tem_avalista', obterValorRadioSelecionado(modalTemAvalistaInputs));
+                    formData.set('tipo_garantia', modalTipoGarantia ? modalTipoGarantia.value : 'veiculo');
                 } else {
                     formData.set('tem_garantia_real', '0');
                     formData.set('tem_avalista', '0');
+                    formData.set('tipo_garantia', '');
                     formData.set('conjuge_assina', '0');
                 }
 
@@ -2476,6 +2676,13 @@ if ($operacao && !isset($error_message)) {
                     this.disabled = false;
                 });
             });
+        }
+
+        if (modalNatureza.value === 'EMPRESTIMO') {
+            garantiaToggleSection.style.display = 'block';
+            atualizarCamposEmprestimo();
+        } else if (modalTipoGarantia) {
+            modalTipoGarantia.disabled = true;
         }
 
         if (btnAnexarAssinado && inputAnexarAssinado) {

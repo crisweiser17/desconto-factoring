@@ -1,0 +1,7 @@
+- [x] O banco de dados tem a coluna `valor_recebido` na tabela `recebiveis`.
+- [x] É possível configurar Juros e Multa de Atraso em `config.php` (e salvos em `config.json`).
+- [x] As variáveis de contrato referentes ao atraso (`taxa_juros_atraso`, `taxa_multa_atraso`, e extensos) estão disponíveis em `api_contratos.php`.
+- [x] Títulos vencidos na listagem e detalhes mostram o valor original e o valor corrigido de forma clara.
+- [x] Clicar no check (Recebido) de um título vencido abre um modal solicitando o valor pago (já preenchido com o valor corrigido).
+- [x] Confirmar o recebimento no modal atualiza o título para "Recebido" e salva o valor exato recebido no banco de dados.
+- [x] Se o valor recebido for maior que o valor original, o excedente é somado ao lucro da operação e atualizado na tabela `operacoes`.

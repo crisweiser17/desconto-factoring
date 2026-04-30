@@ -1,0 +1,6 @@
+- [x] A tabela da Cláusula 3.2 do contrato de antecipação exibe os valores financeiros corretos da operação
+- [x] Os campos Banco, Agência, Conta e Tipo do cedente aparecem preenchidos na Cláusula 3.3 quando existirem no cadastro
+- [x] A ausência de PIX não apaga os demais dados bancários nem quebra o template
+- [x] A geração do contrato continua funcionando sem regressão para outros templates
+- [x] Os arquivos PHP alterados passam em verificação de sintaxe
+- [x] O fluxo foi validado em preview/local no navegador

@@ -1,0 +1,8 @@
+- [x] Seção "Sócios da Empresa" na parte inferior do `form_sacado.php` removida, garantindo que exista apenas uma seção logo após "Dados da Empresa".
+- [x] Opção "Pessoa Física" removida do dropdown "Porte" no `form_sacado.php` e `form_cedente.php`.
+- [x] Campo "Porte" oculto quando "Tipo de Pessoa" for Física e exibido quando Jurídica.
+- [x] Campos "Nome" e "CPF" do Representante definidos como `readonly` e não preenchíveis manualmente.
+- [x] Campos adicionais do Representante (RG, Nacionalidade, Estado Civil, Profissão, Endereço Completo) ocultos por padrão e exibidos apenas após a seleção de um Sócio no dropdown.
+- [x] Dropdown de seleção de Titular da Conta removido da seção "Dados Bancários".
+- [x] Campos "Titular da Conta" e "CPF/CNPJ do Titular" definidos como `readonly`.
+- [x] Campos "Titular da Conta" e "CPF/CNPJ do Titular" copiados automaticamente a partir de "Razão Social/Nome" e "Documento Principal" respectivamente.

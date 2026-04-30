@@ -1,0 +1,8 @@
+- [x] Empréstimos sem garantia e sem aval usam `02a_template_mutuo_simples.md`
+- [x] Empréstimos com aval usam `02b_template_mutuo_com_aval.md`
+- [x] Empréstimos com garantia de veículo usam `02c_template_mutuo_com_garantia.md`
+- [x] Empréstimos com garantia de veículo e aval usam `02d_template_mutuo_com_garantia_e_aval.md`
+- [x] Cessões de crédito usam `01_template_antecipacao_recebiveis.md`
+- [x] Metadados de instrução no início dos arquivos markdown (até o primeiro `---`) são removidos antes da renderização PDF
+- [x] `03_template_nota_promissoria.md` é anexado automaticamente em todas as operações de empréstimo (mútuo) em uma nova página
+- [x] A Nota Promissória tem as variáveis `np.numero`, `np.vencimento` (data do último título/parcela) e `np.data_vencimento_extenso` populadas corretamente

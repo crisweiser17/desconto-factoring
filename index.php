@@ -26,28 +26,23 @@ $appConfig = readConfig($configFilePath);
 // Usar valores do config para preencher padrões
 $defaultTaxaMensal = $appConfig['default_taxa_mensal'] ?? 5.00;
 
-$cedentes = [];
-$erro_cedentes = null;
-$sacados = [];
-$erro_sacados = null;
+$clientes = [];
+$erro_clientes = null;
 
 try {
-    $stmt = $pdo->query("SELECT id, empresa as nome FROM cedentes ORDER BY empresa ASC");
-    $cedentes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $pdo->query("SELECT id, empresa as nome, documento_principal FROM clientes ORDER BY empresa ASC");
+    $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    error_log("Erro ao buscar Cedentes no DB: " . $e->getMessage());
-    $erro_cedentes = "Erro ao carregar lista de cedentes.";
-    $cedentes = [];
+    error_log("Erro ao buscar Clientes no DB: " . $e->getMessage());
+    $erro_clientes = "Erro ao carregar lista de clientes.";
+    $clientes = [];
 }
 
-try {
-    $stmt = $pdo->query("SELECT id, empresa as nome FROM sacados ORDER BY empresa ASC");
-    $sacados = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    error_log("Erro ao buscar Sacados no DB: " . $e->getMessage());
-    $erro_sacados = "Erro ao carregar lista de sacados.";
-    $sacados = [];
-}
+// Para manter compatibilidade com o HTML existente sem mudar muita coisa
+$cedentes = $clientes;
+$erro_cedentes = $erro_clientes;
+$sacados = $clientes;
+$erro_sacados = $erro_clientes;
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">

@@ -1,0 +1,9 @@
+- [x] Tabela unificada de banco de dados para Pessoas Jurídicas criada/adaptada.
+- [x] Dados antigos de cedentes e sacados migrados para a nova estrutura unificada (se aplicável).
+- [x] Página de cadastro unificada funcional, permitindo cadastrar PJ com Dados da Empresa, Endereço, Sócios, Representante Legal e Dados Bancários.
+- [x] Cadastro de Pessoa Física (PF) totalmente removido do fluxo principal.
+- [x] Operações de Desconto listam a base unificada de PJs para escolha de Cedente e Sacado.
+- [x] Operações de Empréstimo listam a base unificada de PJs para escolha do cliente.
+- [x] Operações são salvas corretamente no banco de dados utilizando os novos IDs unificados.
+- [x] Contratos são gerados corretamente utilizando os dados da tabela unificada.
+- [x] Menus e links antigos (Cedentes, Sacados) substituídos por "Clientes" (ou equivalente) na interface.

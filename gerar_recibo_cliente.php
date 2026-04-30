@@ -83,9 +83,9 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id']) || (int)$_GET['id'] <= 0) {
 
     // 2. Buscar dados da Operação e do Cedente no Banco
     try {
-        $sql_op = "SELECT o.*, s.empresa AS cedente_nome
+        $sql_op = "SELECT o.*, COALESCE(s.empresa, s.nome, (SELECT COALESCE(sac.empresa, sac.nome) FROM recebiveis r2 JOIN clientes sac ON r2.sacado_id = sac.id WHERE r2.operacao_id = o.id LIMIT 1)) AS cedente_nome
                    FROM operacoes o
-                   LEFT JOIN cedentes s ON o.cedente_id = s.id
+                   LEFT JOIN clientes s ON o.cedente_id = s.id
                    WHERE o.id = :id";
         $stmt_op = $pdo->prepare($sql_op);
         $stmt_op->bindParam(':id', $operacao_id, PDO::PARAM_INT);
@@ -326,12 +326,13 @@ if (!empty($compensacao) && !empty($compensacao['temCompensacao']) && $compensac
 if (ob_get_level()) ob_end_clean(); // Limpa buffer antes de output
 
 // Definir nome do arquivo baseado no tipo (simulação ou operação real)
+$isSimulacao = isset($isSimulacao) ? $isSimulacao : false;
 if ($isSimulacao) {
     // Para simulação: simulacao_[nome_do_sacado]
-    $nomeArquivo = 'simulacao_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($cedenteNome)) . '_' . date('Ymd') . '.pdf';
+    $nomeArquivo = 'simulacao_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($cedenteNome ?? '')) . '_' . date('Ymd') . '.pdf';
 } else {
     // Para operação real: recibo_[ID]
-    $nomeArquivo = 'recibo_' . $operacao_id . '_' . date('Ymd') . '.pdf';
+    $nomeArquivo = 'recibo_' . ($operacao_id ?? 'avulso') . '_' . date('Ymd') . '.pdf';
 }
 
 $pdf->Output('D', $nomeArquivo, true);

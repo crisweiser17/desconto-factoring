@@ -1,0 +1,4 @@
+- [x] O bloco condicional `{{#devedor.conjuge_assina}}` do template principal foi ajustado para o formato simples solicitado.
+- [x] Os templates auxiliares de mútuo usam o mesmo padrão visual para a assinatura do cônjuge.
+- [x] O contrato renderiza "Cônjuge:", linha de assinatura, "Nome" e "CPF" sem quebrar o Markdown/PDF.
+- [x] Quando `conjuge_assina` for falso, o bloco continua oculto.

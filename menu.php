@@ -51,8 +51,7 @@ $menuItems = [
             'salvar_cedente.php'
         ],
         'items' => [
-            'listar_sacados.php' => '<i class="bi bi-person-badge"></i> Sacados (Devedores)',
-            'listar_cedentes.php' => '<i class="bi bi-building"></i> Cedentes (Vendedores)'
+            'listar_clientes.php' => '<i class="bi bi-people"></i> Clientes'
         ]
     ],
     // Estrutura para o dropdown de Relatórios

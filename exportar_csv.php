@@ -74,11 +74,11 @@ $whereSql = !empty($whereClauses) ? "WHERE " . implode(" AND ", $whereClauses) :
 // Busca recebíveis com filtros aplicados
 try {
     $sql = "SELECT r.*, o.data_operacao, o.taxa_mensal, o.tipo_pagamento, o.total_liquido_pago_calc as op_total_liquido,
-                   s.empresa AS cedente_nome, sac.empresa AS sacado_nome
+                   COALESCE(s.empresa, s.nome, sac.empresa, sac.nome) AS cedente_nome, COALESCE(sac.empresa, sac.nome) AS sacado_nome
             FROM recebiveis r
             LEFT JOIN operacoes o ON r.operacao_id = o.id
-            LEFT JOIN cedentes s ON o.cedente_id = s.id
-            LEFT JOIN sacados sac ON r.sacado_id = sac.id
+            LEFT JOIN clientes s ON o.cedente_id = s.id
+            LEFT JOIN clientes sac ON r.sacado_id = sac.id
             $whereSql
             ORDER BY r.data_vencimento ASC, r.id ASC";
     

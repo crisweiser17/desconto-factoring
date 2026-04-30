@@ -1,0 +1,3 @@
+- [x] `form_cedente.php` agora possui apenas a opção "Pessoa Jurídica" (via input hidden/readonly).
+- [x] `salvar_cedente.php` define sempre `'JURIDICA'` como `$tipoPessoa`.
+- [x] Não há seção duplicada "Sócios da Empresa" em `form_sacado.php`.

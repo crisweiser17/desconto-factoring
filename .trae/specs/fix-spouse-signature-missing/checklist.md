@@ -1,0 +1,12 @@
+- [x] O campo `representante_estado_civil` em `form_cliente.php` foi alterado de `<input type="text">` para `<select>` com as 5 opções padronizadas.
+- [x] O valor salvo do estado civil é pré-selecionado corretamente no modo de edição.
+- [x] A propriedade `casado` foi adicionada ao array retornado por `montarParteContrato()` em `api_contratos.php`.
+- [x] A propriedade `casado` é definida como `true` apenas quando `estado_civil` é "Casado(a)" ou "União Estável".
+- [x] A lógica `$parteContrato['conjuge_assina'] = $parteContrato['casado'] && $conjuge_assina;` funciona corretamente.
+- [x] O JavaScript em `detalhes_operacao.php` desabilita o campo "Cônjuge vai Assinar?" quando o devedor não é casado/união estável.
+- [x] O campo desabilitado tem fundo cinza (`bg-light`) e valor forçado para "Não".
+- [x] O campo é habilitado normalmente quando o devedor é casado/união estável.
+- [x] Todos os 6 templates de mútuo (`02a` a `02f`) possuem o bloco `{{#devedor.conjuge_assina}}` com layout correto.
+- [x] O bloco de assinatura do cônjuge aparece no PDF quando "Cônjuge vai Assinar? = Sim" e o devedor é casado.
+- [x] O bloco de assinatura do cônjuge NÃO aparece quando o devedor não é casado.
+- [x] Não há erros de sintaxe PHP após as alterações.

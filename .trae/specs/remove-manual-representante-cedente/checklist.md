@@ -1,0 +1,4 @@
+- [x] `form_cedente.php` não tem a opção `<option value="">Outro (Preenchimento Manual)</option>` no HTML original.
+- [x] `form_sacado.php` não tem a opção `<option value="">Outro (Preenchimento Manual)</option>` no HTML original.
+- [x] O JavaScript de `form_cedente.php` agora repopula o campo de representante com `<option value="">Selecione um Sócio...</option>`.
+- [x] O JavaScript de `form_sacado.php` agora repopula o campo de representante com `<option value="">Selecione um Sócio...</option>`.

@@ -97,7 +97,7 @@ try {
             SUM(CASE WHEN r.status IN ('Problema', 'Em Aberto') AND r.data_vencimento < CURDATE() THEN r.valor_original ELSE 0 END) as valor_vencido
         FROM recebiveis r
         JOIN operacoes o ON r.operacao_id = o.id
-        JOIN sacados s ON r.sacado_id = s.id
+        JOIN clientes s ON r.sacado_id = s.id
         WHERE o.tipo_operacao = 'emprestimo'
         GROUP BY s.id, s.empresa
         HAVING valor_em_aberto > 0
@@ -115,7 +115,7 @@ try {
             SUM(CASE WHEN r.status IN ('Problema', 'Em Aberto') AND r.data_vencimento < CURDATE() THEN r.valor_original ELSE 0 END) as valor_vencido
         FROM recebiveis r
         JOIN operacoes o ON r.operacao_id = o.id
-        JOIN cedentes c ON o.cedente_id = c.id
+        JOIN clientes c ON o.cedente_id = c.id
         WHERE o.tipo_operacao = 'antecipacao'
         GROUP BY c.id, c.empresa
         HAVING valor_em_aberto > 0
@@ -133,7 +133,7 @@ try {
             SUM(CASE WHEN r.status IN ('Problema', 'Em Aberto') AND r.data_vencimento < CURDATE() THEN r.valor_original ELSE 0 END) as valor_vencido
         FROM recebiveis r
         JOIN operacoes o ON r.operacao_id = o.id
-        JOIN sacados s ON r.sacado_id = s.id
+        JOIN clientes s ON r.sacado_id = s.id
         WHERE o.tipo_operacao = 'antecipacao'
         GROUP BY s.id, s.empresa
         HAVING valor_em_aberto > 0

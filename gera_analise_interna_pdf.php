@@ -21,16 +21,23 @@ function pdfFormatPercent($value) { return number_format(($value ?? 0) * 100, 2,
 function pdfFormatDate($dateStr) { if(empty($dateStr)) return ''; try { return (new DateTime($dateStr))->format('d/m/Y'); } catch (Exception $e){ return $dateStr; } }
 function pdfFormatSimNao($value) { return $value ? 'Sim' : 'Não'; } // Nova função para Sim/Não
 
+// Função para converter UTF-8 para ISO-8859-1 (FPDF compatibility)
+function pdfText($text) {
+    if (empty($text)) return '';
+    // Converter UTF-8 para ISO-8859-1 para compatibilidade com FPDF, substituindo caracteres não suportados
+    return iconv('UTF-8', 'ISO-8859-1//IGNORE', $text);
+}
+
 // 3. Definição da Classe PDF personalizada
 class PDF extends FPDF {
-    function Header() { $this->SetFont('Arial','B',14); $this->Cell(0,10,utf8_decode('Análise Interna da Operação'),0,1,'C'); $this->Ln(5); }
-    function Footer() { $this->SetY(-15); $this->SetFont('Arial','I',8); $this->Cell(0,10,utf8_decode('Página ').$this->PageNo().'/{nb}',0,0,'C'); }
-    function SectionTitle($label) { $this->SetFont('Arial','B',11); $this->SetFillColor(230,230,230); $this->Cell(0,7,utf8_decode($label),0,1,'L',true); $this->Ln(4); $this->SetFont('Arial','',10); }
+    function Header() { $this->SetFont('Arial','B',14); $this->Cell(0,10,pdfText('Análise Interna da Operação'),0,1,'C'); $this->Ln(5); }
+    function Footer() { $this->SetY(-15); $this->SetFont('Arial','I',8); $this->Cell(0,10,pdfText('Página ').$this->PageNo().'/{nb}',0,0,'C'); }
+    function SectionTitle($label) { $this->SetFont('Arial','B',11); $this->SetFillColor(230,230,230); $this->Cell(0,7,pdfText($label),0,1,'L',true); $this->Ln(4); $this->SetFont('Arial','',10); }
     function ParameterLine($key, $value) {
         $this->SetFont('Arial','B',10);
-        $this->Cell(100, 6, utf8_decode($key.': '), 0, 0, 'L'); // Aumentei de 60 para 100
+        $this->Cell(100, 6, pdfText($key.': '), 0, 0, 'L'); // Aumentei de 60 para 100
         $this->SetFont('Arial','',10);
-        $this->Cell(0, 6, utf8_decode($value), 0, 1, 'L'); // Usar Cell simples em vez de MultiCell
+        $this->Cell(0, 6, pdfText($value), 0, 1, 'L'); // Usar Cell simples em vez de MultiCell
         $this->Ln(1); // Espaçamento mínimo entre linhas
     }
     function BasicTable($header, $data) {
@@ -38,7 +45,7 @@ class PDF extends FPDF {
         $this->SetFont('Arial','B',8);
         $widths = [30, 25, 15, 30, 25, 30, 20];
         for($i=0;$i<count($header);$i++) {
-            $this->Cell($widths[$i],7,utf8_decode($header[$i]),1,0,'C',true);
+            $this->Cell($widths[$i],7,pdfText($header[$i]),1,0,'C',true);
         }
         $this->Ln();
         $this->SetFont('Arial','',8);
@@ -50,7 +57,7 @@ class PDF extends FPDF {
             $this->Cell($widths[3],6,pdfFormatCurrency($row['presente']),'LR',0,'R');
             $this->Cell($widths[4],6,pdfFormatCurrency($row['iof']),'LR',0,'R');
             $this->Cell($widths[5],6,pdfFormatCurrency($row['liquido']),'LR',0,'R');
-            $this->Cell($widths[6],6,utf8_decode($row['status']),'LR',0,'C');
+            $this->Cell($widths[6],6,pdfText($row['status']),'LR',0,'C');
             $this->Ln();
         }
         $this->Cell(array_sum($widths),0,'','T');
@@ -59,7 +66,7 @@ class PDF extends FPDF {
 }
 
 // 4. Receber e Validar dados (simulação ou operação real)
-$operacao_id = isset($_POST['operacao_id']) ? filter_input(INPUT_POST, 'operacao_id', FILTER_VALIDATE_INT) : null;
+$operacao_id = isset($_GET['id']) ? filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT) : (isset($_POST['operacao_id']) ? filter_input(INPUT_POST, 'operacao_id', FILTER_VALIDATE_INT) : null);
 $chartImageData = isset($_POST['chartImageData']) ? $_POST['chartImageData'] : null; // Recebe a imagem do gráfico via POST
 $isSimulacao = false;
 $recebiveis_db = [];
@@ -85,7 +92,7 @@ if (isset($_POST['titulo_valor']) && is_array($_POST['titulo_valor']) && !empty(
     $cedenteNome = 'N/D';
     if ($cedente_id && $cedente_id > 0) {
         try {
-            $stmtSacado = $pdo->prepare("SELECT empresa FROM cedentes WHERE id = :id");
+            $stmtSacado = $pdo->prepare("SELECT empresa FROM clientes WHERE id = :id");
             $stmtSacado->bindParam(':id', $cedente_id, PDO::PARAM_INT);
             $stmtSacado->execute();
             $resultSacado = $stmtSacado->fetch(PDO::FETCH_ASSOC);
@@ -136,7 +143,7 @@ if (isset($_POST['titulo_valor']) && is_array($_POST['titulo_valor']) && !empty(
     // MODO OPERAÇÃO REAL - ID da operação via POST
     try {
         // Buscar dados da operação com todos os campos calculados
-        $stmt_op = $pdo->prepare("SELECT o.*, s.empresa AS cedente_nome FROM operacoes o LEFT JOIN cedentes s ON o.cedente_id = s.id WHERE o.id = :id");
+        $stmt_op = $pdo->prepare("SELECT o.*, COALESCE(s.empresa, s.nome, (SELECT COALESCE(sac.empresa, sac.nome) FROM recebiveis r2 JOIN clientes sac ON r2.sacado_id = sac.id WHERE r2.operacao_id = o.id LIMIT 1)) AS cedente_nome FROM operacoes o LEFT JOIN clientes s ON o.cedente_id = s.id WHERE o.id = :id");
         $stmt_op->bindParam(':id', $operacao_id, PDO::PARAM_INT);
         $stmt_op->execute();
         $operacao = $stmt_op->fetch(PDO::FETCH_ASSOC);
@@ -183,26 +190,29 @@ foreach ($recebiveis_db as $r) {
 }
 
 // Usar função centralizada para calcular totais (IGUAL ao recibo do cliente)
-$totais_calculados = calcularTotaisOperacao(
-    $titulos_para_calculo,
-    $operacao['data_operacao'],
-    $taxaMensal,
-    $cobrarIOFCliente,
-    [] // Compensações serão processadas separadamente
-);
+$totais_calculados = null;
+if (!empty($titulos_para_calculo)) {
+    $totais_calculados = calcularTotaisOperacao(
+        $titulos_para_calculo,
+        $operacao['data_operacao'],
+        $taxaMensal,
+        $cobrarIOFCliente,
+        [] // Compensações serão processadas separadamente
+    );
+}
 
 // Usar valores calculados ou do banco (priorizar banco se disponível)
-$totalOriginal = $totais_calculados['total_original'];
-$totalPresente = ($operacao['total_presente_calc'] > 0) ? (float)$operacao['total_presente_calc'] : $totais_calculados['total_presente'];
-$totalIOF = ($operacao['iof_total_calc'] > 0) ? (float)$operacao['iof_total_calc'] : $totais_calculados['total_iof'];
-$totalLiquidoPago = ($operacao['total_liquido_pago_calc'] > 0) ? (float)$operacao['total_liquido_pago_calc'] : $totais_calculados['total_liquido_pago'];
-$totalLucroLiquido = ($operacao['total_lucro_liquido_calc'] > 0) ? (float)$operacao['total_lucro_liquido_calc'] : $totais_calculados['total_lucro_liquido'];
-$mediaPonderadaDiasNumerico = ($operacao['media_dias_pond_calc'] > 0) ? (int)$operacao['media_dias_pond_calc'] : (int)$totais_calculados['media_dias'];
+$totalOriginal = $totais_calculados ? $totais_calculados['total_original'] : 0;
+$totalPresente = (!empty($operacao['total_presente_calc']) && $operacao['total_presente_calc'] > 0) ? (float)$operacao['total_presente_calc'] : ($totais_calculados ? $totais_calculados['total_presente'] : 0);
+$totalIOF = (!empty($operacao['iof_total_calc']) && $operacao['iof_total_calc'] > 0) ? (float)$operacao['iof_total_calc'] : ($totais_calculados ? $totais_calculados['total_iof'] : 0);
+$totalLiquidoPago = (!empty($operacao['total_liquido_pago_calc']) && $operacao['total_liquido_pago_calc'] > 0) ? (float)$operacao['total_liquido_pago_calc'] : ($totais_calculados ? $totais_calculados['total_liquido_pago'] : 0);
+$totalLucroLiquido = (!empty($operacao['total_lucro_liquido_calc']) && $operacao['total_lucro_liquido_calc'] > 0) ? (float)$operacao['total_lucro_liquido_calc'] : ($totais_calculados ? $totais_calculados['total_lucro_liquido'] : 0);
+$mediaPonderadaDiasNumerico = (!empty($operacao['media_dias_pond_calc']) && $operacao['media_dias_pond_calc'] > 0) ? (int)$operacao['media_dias_pond_calc'] : ($totais_calculados ? (int)$totais_calculados['media_dias'] : 0);
 
 // Verificar compensação detalhada (IGUAL ao recibo do cliente)
 $compensacao = null;
 $custo_antecipacao_total = 0;
-if ($operacao['valor_total_compensacao'] > 0) {
+if (!empty($operacao['valor_total_compensacao']) && $operacao['valor_total_compensacao'] > 0) {
     try {
         $sql_comp = "SELECT SUM(valor_compensado) as total_compensado, SUM(valor_presente_compensacao) as total_presente
                     FROM compensacoes
@@ -370,7 +380,7 @@ $pdf->Ln(5);
 // Notas
 if (!empty($notas)) {
     $pdf->SectionTitle('Observações da Operação');
-    $pdf->MultiCell(0, 5, utf8_decode($notas));
+    $pdf->MultiCell(0, 5, pdfText($notas));
     $pdf->Ln(5);
 }
 
@@ -397,7 +407,7 @@ $custoAntecipacao = (!empty($compensacao) && isset($compensacao['custoAntecipaca
 
 $pdf->SetFont('Arial','B',10);
 $pdf->SetFillColor(255, 255, 200); // Fundo amarelo claro
-$pdf->Cell(100, 8, utf8_decode('Crédito Oferecido ao Cliente: '), 1, 0, 'L', true);
+$pdf->Cell(100, 8, pdfText('Crédito Oferecido ao Cliente: '), 1, 0, 'L', true);
 $pdf->SetFont('Arial','B',10);
 $pdf->Cell(0, 8, pdfFormatCurrency($custoAntecipacao), 1, 1, 'L', true);
 $pdf->SetFillColor(255, 255, 255); // Voltar ao fundo branco
@@ -410,7 +420,7 @@ $pdf->ParameterLine('Total Líquido Pago ao Cliente', pdfFormatCurrency($totalLi
 // DESTACAR O LUCRO CORRETO DA OPERAÇÃO
 $pdf->SetFont('Arial','B',10);
 $pdf->SetFillColor(200, 255, 200); // Fundo verde claro
-$pdf->Cell(100, 8, utf8_decode('Lucro Líquido da Operação: '), 1, 0, 'L', true);
+$pdf->Cell(100, 8, pdfText('Lucro Líquido da Operação: '), 1, 0, 'L', true);
 $pdf->SetFont('Arial','B',10);
 $pdf->Cell(0, 8, pdfFormatCurrency($totalLucroLiquido), 1, 1, 'L', true);
 $pdf->SetFillColor(255, 255, 255); // Voltar ao fundo branco
@@ -438,14 +448,14 @@ if (!empty($compensacao) && $compensacao['temCompensacao']) {
         
         if (!empty($detalhes_compensacao)) {
             $pdf->SetFont('Arial','B',9);
-            $pdf->Cell(0, 6, utf8_decode('Recebíveis Utilizados na Compensação:'), 0, 1, 'L');
+            $pdf->Cell(0, 6, pdfText('Recebíveis Utilizados na Compensação:'), 0, 1, 'L');
             $pdf->Ln(3);
             
             foreach ($detalhes_compensacao as $detalhe) {
                 $pdf->SetFont('Arial','',8);
-                $pdf->Cell(40, 6, utf8_decode('Recebível ID: ' . $detalhe['recebivel_compensado_id']), 0, 0, 'L');
-                $pdf->Cell(50, 6, utf8_decode('Valor: ' . pdfFormatCurrency($detalhe['valor_compensado'])), 0, 0, 'L');
-                $pdf->Cell(0, 6, utf8_decode('Venc.: ' . pdfFormatDate($detalhe['data_vencimento'])), 0, 1, 'L');
+                $pdf->Cell(40, 6, pdfText('Recebível ID: ' . $detalhe['recebivel_compensado_id']), 0, 0, 'L');
+                $pdf->Cell(50, 6, pdfText('Valor: ' . pdfFormatCurrency($detalhe['valor_compensado'])), 0, 0, 'L');
+                $pdf->Cell(0, 6, pdfText('Venc.: ' . pdfFormatDate($detalhe['data_vencimento'])), 0, 1, 'L');
                 $pdf->Ln(1); // Pequeno espaço entre cada item
             }
             $pdf->Ln(3);
@@ -453,14 +463,14 @@ if (!empty($compensacao) && $compensacao['temCompensacao']) {
     } catch (Exception $e) {
         // Em caso de erro, apenas mostrar uma mensagem simples
         $pdf->SetFont('Arial','',8);
-        $pdf->Cell(0, 6, utf8_decode('Detalhes da compensação não disponíveis.'), 0, 1, 'L');
+        $pdf->Cell(0, 6, pdfText('Detalhes da compensação não disponíveis.'), 0, 1, 'L');
         $pdf->Ln(3);
     }
     
     // Explicação do impacto
     $pdf->SetFont('Arial','I',8);
     $pdf->SetTextColor(100, 100, 100);
-    $pdf->MultiCell(0, 4, utf8_decode('* A compensação reduz o valor original dos recebíveis, impactando diretamente o cálculo do crédito oferecido ao cliente.'));
+    $pdf->MultiCell(0, 4, pdfText('* A compensação reduz o valor original dos recebíveis, impactando diretamente o cálculo do crédito oferecido ao cliente.'));
     $pdf->SetTextColor(0, 0, 0);
     $pdf->Ln(2); // Reduzido de 5 para 2
 }
@@ -468,7 +478,7 @@ if (!empty($compensacao) && $compensacao['temCompensacao']) {
 // Adicionar nota sobre fonte dos dados
 $pdf->SetFont('Arial','I',8);
 $pdf->SetTextColor(100, 100, 100);
-$pdf->MultiCell(0, 4, utf8_decode('* Valores extraídos diretamente do banco de dados (centro de verdade do sistema)'));
+$pdf->MultiCell(0, 4, pdfText('* Valores extraídos diretamente do banco de dados (centro de verdade do sistema)'));
 $pdf->SetTextColor(0, 0, 0);
 $pdf->Ln(2); // Reduzido de 5 para 2
 
@@ -503,7 +513,7 @@ if ($chartImagePath && file_exists($chartImagePath)) {
         $yAErr=$pdf->GetY();$mIErr=20;$eRErr=$pdf->GetPageHeight()-$yAErr-$mIErr;
         if($eRErr<15){$pdf->AddPage('P','A4');}
         $pdf->Ln(5);$pdf->SetFont('Arial','I',9);$pdf->SetTextColor(255,0,0);
-        $pdf->MultiCell(0,5,utf8_decode('Erro ao inserir gráfico: '.$imgE->getMessage()));
+        $pdf->MultiCell(0,5,pdfText('Erro ao inserir gráfico: '.$imgE->getMessage()));
         $pdf->SetTextColor(0);
     }
 }
@@ -513,7 +523,7 @@ elseif ($chartImageData && $error) {
     if($eRErr<20){$pdf->AddPage('P','A4');}
     $pdf->SectionTitle('Gráfico - Fluxo de Caixa');$pdf->Ln(5);
     $pdf->SetFont('Arial','I',9);$pdf->SetTextColor(255,0,0);
-    $pdf->MultiCell(0,5,utf8_decode('Gráfico não incluído devido a erro no cálculo: '.htmlspecialchars(str_replace('Erro: ','',$error))));
+    $pdf->MultiCell(0,5,pdfText('Gráfico não incluído devido a erro no cálculo: '.htmlspecialchars(str_replace('Erro: ','',$error))));
     $pdf->SetTextColor(0);
 }
 
@@ -522,13 +532,14 @@ elseif ($chartImageData && $error) {
 if (ob_get_level()) ob_end_clean(); // Limpa qualquer output buffer pendente
 
 // Definir nome do arquivo baseado no tipo (simulação ou operação real)
+$isSimulacao = isset($isSimulacao) ? $isSimulacao : false;
 if ($isSimulacao) {
     // Para simulação: simulacao_[nome_do_sacado]_analise
     $cedenteNome = $operacao['cedente_nome'] ?? 'N_A';
     $nomeArquivo = 'simulacao_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($cedenteNome)) . '_analise_' . date('Ymd') . '.pdf';
 } else {
     // Para operação real: analise_[ID]
-    $nomeArquivo = 'analise_' . $operacao_id . '_' . date('Ymd') . '.pdf';
+    $nomeArquivo = 'analise_' . ($operacao_id ?? 'avulso') . '_' . date('Ymd') . '.pdf';
 }
 
 $pdf->Output('D', $nomeArquivo, true);

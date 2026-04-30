@@ -104,9 +104,9 @@ $cedenteNome = 'N/D';
 if ($cedente_id && $cedente_id > 0) {
     try {
         if ($tipoOperacao === 'emprestimo') {
-            $stmtSacado = $pdo->prepare("SELECT empresa FROM sacados WHERE id = :id"); 
+            $stmtSacado = $pdo->prepare("SELECT empresa FROM clientes WHERE id = :id"); 
         } else {
-            $stmtSacado = $pdo->prepare("SELECT empresa FROM cedentes WHERE id = :id"); 
+            $stmtSacado = $pdo->prepare("SELECT empresa FROM clientes WHERE id = :id"); 
         }
         $stmtSacado->bindParam(':id', $cedente_id, PDO::PARAM_INT);
         $stmtSacado->execute();
@@ -131,7 +131,7 @@ if (!empty($sacadosIds)) {
         $sacadosIdsLimpos = array_filter($sacadosIds, function($id) { return !empty($id) && is_numeric($id); });
         if (!empty($sacadosIdsLimpos)) {
             $placeholders = str_repeat('?,', count($sacadosIdsLimpos) - 1) . '?';
-            $stmtSacados = $pdo->prepare("SELECT id, empresa FROM sacados WHERE id IN ($placeholders)");
+            $stmtSacados = $pdo->prepare("SELECT id, empresa FROM clientes WHERE id IN ($placeholders)");
             $stmtSacados->execute($sacadosIdsLimpos);
             $resultSacados = $stmtSacados->fetchAll(PDO::FETCH_ASSOC);
             foreach ($resultSacados as $sacado) {

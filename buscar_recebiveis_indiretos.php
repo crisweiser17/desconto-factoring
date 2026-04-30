@@ -23,7 +23,7 @@ try {
     error_log("DEBUG: Buscando recebíveis para cedente_id: $cedente_id, check_only: " . ($check_only ? 'true' : 'false'));
     
     // Buscar dados do sacado para debug
-    $stmt_sacado = $pdo->prepare("SELECT id, empresa, documento_principal, tipo_pessoa FROM cedentes WHERE id = :id");
+    $stmt_sacado = $pdo->prepare("SELECT id, empresa, documento_principal, tipo_pessoa FROM clientes WHERE id = :id");
     $stmt_sacado->execute([':id' => $cedente_id]);
     $cedente = $stmt_sacado->fetch(PDO::FETCH_ASSOC);
     

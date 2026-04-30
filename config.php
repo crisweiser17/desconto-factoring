@@ -14,13 +14,17 @@ function readConfig($filePath) {
             "app_name" => "Factoring",
             "app_version" => "5.2 de abril de 2026",
             "default_taxa_mensal" => 5.00,
+            "taxa_juros_atraso" => 1.00,
+            "taxa_multa_atraso" => 2.00,
             "iof_adicional_rate" => 0.0038,
             "iof_diaria_rate" => 0.000082,
             "resend_api_key" => "",
             "resend_from_name" => "Notificações",
             "resend_from_email" => "notificacoes@seudominio.com",
             "email_subject" => "Notificação de Cessão de Crédito - Borderô #[BORDERO_NUMERO]",
-            "email_template" => "## **NOTIFICAÇÃO DE CESSÃO DE CRÉDITO**\n\n**Cedente:** [CEDENTE_NOME] / [CEDENTE_CNPJ]\n**Cessionário:** SUA EMPRESA FACTORING / 00.000.000/0001-00\n**Sacado (Devedor):** [SACADO_NOME] / [SACADO_CNPJ]\n\n---\n\n**Assunto: Cessão de Crédito – Art. 290 do Código Civil**\n\nPrezado(a),\n\nInformamos que os créditos representados pelas duplicatas abaixo foram **cedidos** ao Cessionário acima identificado, por meio de operação de desconto.\n\nNos termos do Art. 290 do Código Civil, esta notificação torna a cessão eficaz perante V.Sa.\n\n---\n\n### **Borderô**\n\nNº: [BORDERO_NUMERO]\nData: [BORDERO_DATA]\nValor Total: [BORDERO_VALOR]\n\n---\n\n### **Títulos Cedidos**\n\n[TABELA_TITULOS]\n\n---\n\n### **Pagamento**\n\nA partir do recebimento desta, **os pagamentos deverão ser feitos exclusivamente ao Cessionário**:\n\nBanco: SEU BANCO\nAgência: 0000\nConta: 00000-0\nFavorecido: SUA EMPRESA FACTORING\nCNPJ: 00.000.000/0001-00\nPIX: sua-chave-pix\n\n---\n\n### **Importante**\n\n* Pagamento ao Cedente após esta notificação **não terá efeito liberatório**.\n* A obrigação de pagamento permanece válida independentemente de concordância com a cessão.\n\n---\n\n**Local e Data:** [CIDADE_DATA]\n\n**Cedente:** _________________________\n\n**Cessionário:** _________________________"
+            "email_template" => "## **NOTIFICAÇÃO DE CESSÃO DE CRÉDITO**\n\n**Cedente:** [CEDENTE_NOME] / [CEDENTE_CNPJ]\n**Cessionário:** SUA EMPRESA FACTORING / 00.000.000/0001-00\n**Sacado (Devedor):** [SACADO_NOME] / [SACADO_CNPJ]\n\n---\n\n**Assunto: Cessão de Crédito – Art. 290 do Código Civil**\n\nPrezado(a),\n\nInformamos que os créditos representados pelas duplicatas abaixo foram **cedidos** ao Cessionário acima identificado, por meio de operação de desconto.\n\nNos termos do Art. 290 do Código Civil, esta notificação torna a cessão eficaz perante V.Sa.\n\n---\n\n### **Borderô**\n\nNº: [BORDERO_NUMERO]\nData: [BORDERO_DATA]\nValor Total: [BORDERO_VALOR]\n\n---\n\n### **Títulos Cedidos**\n\n[TABELA_TITULOS]\n\n---\n\n### **Pagamento**\n\nA partir do recebimento desta, **os pagamentos deverão ser feitos exclusivamente ao Cessionário**:\n\nBanco: SEU BANCO\nAgência: 0000\nConta: 00000-0\nFavorecido: SUA EMPRESA FACTORING\nCNPJ: 00.000.000/0001-00\nPIX: sua-chave-pix\n\n---\n\n### **Importante**\n\n* Pagamento ao Cedente após esta notificação **não terá efeito liberatório**.\n* A obrigação de pagamento permanece válida independentemente de concordância com a cessão.\n\n---\n\n**Local e Data:** [CIDADE_DATA]\n\n**Cedente:** _________________________\n\n**Cessionário:** _________________________",
+            "empresa_razao_social" => "",
+            "empresa_documento" => ""
         ];
         file_put_contents($filePath, json_encode($defaultConfig, JSON_PRETTY_PRINT));
         return $defaultConfig;
@@ -32,6 +36,8 @@ function readConfig($filePath) {
     if (!isset($config['app_name'])) $config['app_name'] = 'Factoring';
     if (!isset($config['app_version'])) $config['app_version'] = '5.2 de abril de 2026';
     if (!isset($config['resend_api_key'])) $config['resend_api_key'] = '';
+    if (!isset($config['taxa_juros_atraso'])) $config['taxa_juros_atraso'] = 1.00;
+    if (!isset($config['taxa_multa_atraso'])) $config['taxa_multa_atraso'] = 2.00;
     if (!isset($config['resend_from_name'])) $config['resend_from_name'] = 'Notificações';
     if (!isset($config['resend_from_email'])) $config['resend_from_email'] = 'notificacoes@seudominio.com';
     if (!isset($config['resend_cc_email'])) $config['resend_cc_email'] = '';
@@ -49,6 +55,8 @@ function readConfig($filePath) {
     if (!isset($config['conta_pix'])) $config['conta_pix'] = '';
     
     // Fallbacks para Dados da Empresa
+    if (!isset($config['empresa_razao_social'])) $config['empresa_razao_social'] = $config['conta_titular'] ?? '';
+    if (!isset($config['empresa_documento'])) $config['empresa_documento'] = $config['conta_documento'] ?? '';
     if (!isset($config['empresa_representante_nome'])) $config['empresa_representante_nome'] = '';
     if (!isset($config['empresa_representante_cpf'])) $config['empresa_representante_cpf'] = '';
     if (!isset($config['empresa_endereco'])) $config['empresa_endereco'] = '';
@@ -63,6 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $newAppName = $_POST['app_name'] ?? 'Factoring';
     $newAppVersion = '5.2 de abril de 2026';
     $newDefaultTaxaMensal = isset($_POST['default_taxa_mensal']) ? (float)$_POST['default_taxa_mensal'] : null;
+    $newTaxaJurosAtraso = isset($_POST['taxa_juros_atraso']) ? (float)$_POST['taxa_juros_atraso'] : null;
+    $newTaxaMultaAtraso = isset($_POST['taxa_multa_atraso']) ? (float)$_POST['taxa_multa_atraso'] : null;
     $newIofAdicionalRate = isset($_POST['iof_adicional_rate']) ? (float)$_POST['iof_adicional_rate'] : null;
     $newIofDiariaRate = isset($_POST['iof_diaria_rate']) ? (float)$_POST['iof_diaria_rate'] : null;
     $newResendApiKey = $_POST['resend_api_key'] ?? '';
@@ -83,6 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $newContaPix = $_POST['conta_pix'] ?? '';
 
     // Dados da Empresa
+    $newEmpresaRazaoSocial = $_POST['empresa_razao_social'] ?? '';
+    $newEmpresaDocumento = $_POST['empresa_documento'] ?? '';
     $newEmpresaRepresentanteNome = $_POST['empresa_representante_nome'] ?? '';
     $newEmpresaRepresentanteCpf = $_POST['empresa_representante_cpf'] ?? '';
     $newEmpresaEndereco = $_POST['empresa_endereco'] ?? '';
@@ -90,12 +102,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $newEmpresaWhatsapp = $_POST['empresa_whatsapp'] ?? '';
 
     if ($newDefaultTaxaMensal !== null && $newIofAdicionalRate !== null && $newIofDiariaRate !== null &&
-        $newDefaultTaxaMensal >= 0 && $newIofAdicionalRate >= 0 && $newIofDiariaRate >= 0) {
+        $newTaxaJurosAtraso !== null && $newTaxaMultaAtraso !== null &&
+        $newDefaultTaxaMensal >= 0 && $newIofAdicionalRate >= 0 && $newIofDiariaRate >= 0 &&
+        $newTaxaJurosAtraso >= 0 && $newTaxaMultaAtraso >= 0) {
 
         $config = [
             "app_name" => $newAppName,
             "app_version" => $newAppVersion,
             "default_taxa_mensal" => $newDefaultTaxaMensal,
+            "taxa_juros_atraso" => $newTaxaJurosAtraso,
+            "taxa_multa_atraso" => $newTaxaMultaAtraso,
             "iof_adicional_rate" => $newIofAdicionalRate,
             "iof_diaria_rate" => $newIofDiariaRate,
             "resend_api_key" => $newResendApiKey,
@@ -112,6 +128,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             "conta_numero" => $newContaNumero,
             "conta_tipo" => $newContaTipo,
             "conta_pix" => $newContaPix,
+            "empresa_razao_social" => $newEmpresaRazaoSocial,
+            "empresa_documento" => $newEmpresaDocumento,
             "empresa_representante_nome" => $newEmpresaRepresentanteNome,
             "empresa_representante_cpf" => $newEmpresaRepresentanteCpf,
             "empresa_endereco" => $newEmpresaEndereco,
@@ -266,6 +284,24 @@ $currentConfig = readConfig($configFilePath);
                             <span class="input-group-text">%</span>
                         </div>
                     </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="taxa_juros_atraso" class="form-label">Taxa de Juros de Mora (% a.m.):</label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" min="0" class="form-control" id="taxa_juros_atraso" name="taxa_juros_atraso" value="<?php echo htmlspecialchars(number_format($currentConfig['taxa_juros_atraso'] ?? 1.00, 2, '.', '')); ?>" required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <small class="text-muted">Cobrado proporcionalmente aos dias de atraso.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="taxa_multa_atraso" class="form-label">Multa de Atraso (%):</label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" min="0" class="form-control" id="taxa_multa_atraso" name="taxa_multa_atraso" value="<?php echo htmlspecialchars(number_format($currentConfig['taxa_multa_atraso'] ?? 2.00, 2, '.', '')); ?>" required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <small class="text-muted">Cobrado uma única vez sobre o valor original em atraso.</small>
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label for="iof_adicional_rate" class="form-label">Taxa de IOF Adicional (decimal, ex: 0.0038 para 0.38%):</label>
                         <input type="number" step="0.000001" min="0" class="form-control" id="iof_adicional_rate" name="iof_adicional_rate" value="<?php echo htmlspecialchars(number_format($currentConfig['iof_adicional_rate'] ?? 0, 6, '.', '')); ?>" required>
@@ -277,6 +313,19 @@ $currentConfig = readConfig($configFilePath);
 
                     <hr class="my-4">
                     <h5 class="mb-3"><i class="bi bi-building"></i> Dados da Empresa</h5>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="empresa_razao_social" class="form-label">Razão Social da Credora:</label>
+                            <input type="text" class="form-control" id="empresa_razao_social" name="empresa_razao_social" value="<?php echo htmlspecialchars($currentConfig['empresa_razao_social'] ?? ''); ?>" placeholder="Sua Empresa Factoring LTDA">
+                            <small class="text-muted">Usado no payload contratual como `credor.razao_social`.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="empresa_documento" class="form-label">CNPJ/CPF da Credora:</label>
+                            <input type="text" class="form-control" id="empresa_documento" name="empresa_documento" value="<?php echo htmlspecialchars($currentConfig['empresa_documento'] ?? ''); ?>" placeholder="00.000.000/0001-00">
+                            <small class="text-muted">Usado no payload contratual como `credor.documento`.</small>
+                        </div>
+                    </div>
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
@@ -404,6 +453,8 @@ $currentConfig = readConfig($configFilePath);
                                 <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[BORDERO_VALOR]">[BORDERO_VALOR]</button>
                                 <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[TABELA_TITULOS]">[TABELA_TITULOS]</button>
                                 <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[CIDADE_DATA]">[CIDADE_DATA]</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[TAXA_JUROS_ATRASO]">[TAXA_JUROS_ATRASO]</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm var-btn" data-var="[TAXA_MULTA_ATRASO]">[TAXA_MULTA_ATRASO]</button>
                             </div>
                         </div>
                         <!-- Container do Quill -->

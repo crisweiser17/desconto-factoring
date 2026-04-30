@@ -1,0 +1,10 @@
+- [x] A Nota Promissória é gerada em página A4 única, em orientação retrato
+- [x] O documento informa expressamente que é emitido em única via
+- [x] O valor exibido usa `operacao.valor_total_devido` e o respectivo valor por extenso
+- [x] O vencimento padrão da NP é `à vista` e a redação do texto não entra em conflito com essa modalidade
+- [x] O beneficiário, o local de emissão, a praça de pagamento e a identificação do emitente saem preenchidos
+- [x] Os requisitos essenciais do art. 75 da LUG permanecem presentes no texto da NP
+- [x] O bloco de assinatura do emitente permanece legível e adequado para assinatura física
+- [x] O bloco de aval continua aparecendo somente quando houver avalista
+- [x] A geração do PDF funciona sem erros de sintaxe PHP ou diagnósticos relevantes nos arquivos alterados
+- [x] O fluxo pode ser validado em preview local com geração real do documento
