@@ -357,16 +357,16 @@ function gerarContrato($pdo, $operacao_id) {
 
     // Identificar de onde vem os dados do Devedor/Cedente (Cedente para Antecipação, Sacado para Empréstimo)
     if (($operacao['tipo_operacao'] ?? 'antecipacao') === 'emprestimo') {
-        // Para Empréstimo, o Devedor é o Sacado
+        // Para Empréstimo, o Devedor é o Cliente (cedente_id)
         $stmtSacado = $pdo->prepare("
-            SELECT s.nome as sacado_nome, s.documento_principal as sacado_documento_principal, s.cpf as sacado_cpf, s.cnpj as sacado_cnpj, s.endereco as sacado_endereco, 
-                   s.cidade as cedente_cidade, s.estado as cedente_estado, s.tipo_pessoa, s.empresa,
-                   s.representante_nome, s.representante_cpf, s.representante_rg, s.representante_estado_civil, s.representante_profissao, s.representante_nacionalidade, s.representante_endereco,
-                   s.conta_banco, s.conta_agencia, s.conta_numero, s.conta_tipo, s.conta_pix, s.email, s.whatsapp,
-                   s.logradouro as cedente_logradouro, s.numero as cedente_numero, s.complemento as cedente_complemento, s.bairro as cedente_bairro, s.cep as cedente_cep
-            FROM recebiveis r
-            JOIN clientes s ON r.sacado_id = s.id
-            WHERE r.operacao_id = ?
+            SELECT c.nome as sacado_nome, c.documento_principal as sacado_documento_principal, c.cpf as sacado_cpf, c.cnpj as sacado_cnpj, c.endereco as sacado_endereco,
+                   c.cidade as cedente_cidade, c.estado as cedente_estado, c.tipo_pessoa, c.empresa,
+                   c.representante_nome, c.representante_cpf, c.representante_rg, c.representante_estado_civil, c.representante_profissao, c.representante_nacionalidade, c.representante_endereco,
+                   c.conta_banco, c.conta_agencia, c.conta_numero, c.conta_tipo, c.conta_pix, c.email, c.whatsapp,
+                   c.logradouro as cedente_logradouro, c.numero as cedente_numero, c.complemento as cedente_complemento, c.bairro as cedente_bairro, c.cep as cedente_cep
+            FROM clientes c
+            JOIN operacoes o ON c.id = o.cedente_id
+            WHERE o.id = ?
             LIMIT 1
         ");
         $stmtSacado->execute([$operacao_id]);
