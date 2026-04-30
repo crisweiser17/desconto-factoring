@@ -2,13 +2,13 @@
 
 **Contrato nº {{operacao.id}}**
 
-Pelo presente **INSTRUMENTO PARTICULAR DE CONTRATO DE MÚTUO FENERATÍCIO** (doravante denominado "CONTRATO"), firmado em {{operacao.local}}, {{operacao.data\_extenso}}, as partes abaixo qualificadas:
+Pelo presente **INSTRUMENTO PARTICULAR DE CONTRATO DE MÚTUO FENERATÍCIO** (doravante denominado "CONTRATO"), firmado em {{operacao.local}}, {{operacao.data_extenso}}, as partes abaixo qualificadas:
 
-**MUTUANTE / CREDORA:**\
-**{{credor.razao\_social}}**, pessoa jurídica de direito privado, constituída sob o regime da Lei Complementar nº 167/2019, inscrita no CNPJ/MF sob o nº **{{credor.documento}}**, com sede em {{credor.endereco\_completo}}, neste ato representada na forma de seu Contrato Social por {{credor.representante.nome}}, {{credor.representante.nacionalidade}}, {{credor.representante.estado\_civil}}, portador(a) da cédula de identidade RG nº {{credor.representante.rg}} e inscrito(a) no CPF/MF sob o nº {{credor.representante.cpf}}, doravante denominada simplesmente **"MUTUANTE"** ou **"CREDORA"**;
+**MUTUANTE / CREDORA:**<br />
+**{{credor.razao_social}}**, pessoa jurídica de direito privado, constituída sob o regime da Lei Complementar nº 167/2019, inscrita no CNPJ/MF sob o nº **{{credor.documento}}**, com sede em {{credor.endereco_completo}}, neste ato representada na forma de seu Contrato Social por {{credor.representante.nome}}, {{credor.representante.nacionalidade}}, {{credor.representante.estado_civil}}, portador(a) da cédula de identidade RG nº {{credor.representante.rg}} e inscrito(a) no CPF/MF sob o nº {{credor.representante.cpf}}, doravante denominada simplesmente **"MUTUANTE"** ou **"CREDORA"**;
 
-**MUTUÁRIO / DEVEDOR:**\
-**{{devedor.razao\_social}}**, {{devedor.descricao\_juridica}}, inscrita no CNPJ/MF sob o nº **{{devedor.cnpj}}**, enquadrada como **{{devedor.porte}}** nos termos da Lei Complementar nº 123/2006, com sede em {{devedor.endereco\_completo}}, neste ato representada por {{devedor.representante.nome}}, {{devedor.representante.nacionalidade}}, {{devedor.representante.estado\_civil}}, {{devedor.representante.profissao}}, portador(a) da cédula de identidade RG nº {{devedor.representante.rg}} e inscrito(a) no CPF/MF sob o nº {{devedor.representante.cpf}}, residente e domiciliado(a) em {{devedor.representante.endereco}}, doravante denominado simplesmente **"MUTUÁRIO"** ou **"DEVEDOR"**;
+**MUTUÁRIO / DEVEDOR:**<br />
+**{{devedor.razao_social}}**, {{devedor.descricao_juridica}}, inscrita no CNPJ/MF sob o nº **{{devedor.cnpj}}**, enquadrada como **{{devedor.porte}}** nos termos da Lei Complementar nº 123/2006, com sede em {{devedor.endereco_completo}}, neste ato representada por {{devedor.representante.nome}}, {{devedor.representante.nacionalidade}}, {{devedor.representante.estado_civil}}, {{devedor.representante.profissao}}, portador(a) da cédula de identidade RG nº {{devedor.representante.rg}} e inscrito(a) no CPF/MF sob o nº {{devedor.representante.cpf}}, residente e domiciliado(a) em {{devedor.representante.endereco}}, doravante denominado simplesmente **"MUTUÁRIO"** ou **"DEVEDOR"**;
 
 Têm entre si justo e contratado o presente Contrato de Mútuo Feneratício, que se regerá pelas cláusulas e condições a seguir estipuladas, em conformidade com os artigos 586 a 592 do Código Civil Brasileiro e com a Lei Complementar nº 167/2019.
 
@@ -30,21 +30,21 @@ Têm entre si justo e contratado o presente Contrato de Mútuo Feneratício, que
 
 ## CLÁUSULA 1ª — DO OBJETO E DO VALOR DO MÚTUO
 
-**1.1.** A MUTUANTE entrega neste ato ao MUTUÁRIO, a título de mútuo feneratício, a quantia de **R$ {{operacao.valor\_principal}}** ({{operacao.valor\_principal\_extenso}}), que o MUTUÁRIO declara receber em sua integralidade, por meio de {{operacao.forma\_liberacao}}, dando por este ato plena, rasa e geral quitação da entrega do capital.
+**1.1.** A MUTUANTE entrega neste ato ao MUTUÁRIO, a título de mútuo feneratício, a quantia de **R$ {{operacao.valor_principal}}** ({{operacao.valor_principal_extenso}}), que o MUTUÁRIO declara receber em sua integralidade, por meio de {{operacao.forma_liberacao}}, dando por este ato plena, rasa e geral quitação da entrega do capital.
 
 **1.2.** O valor ora mutuado será destinado pelo MUTUÁRIO para fomento de sua atividade empresarial, podendo ser aplicado conforme critério exclusivo do MUTUÁRIO, nos limites de seu objeto social.
 
-**1.3.** O valor total da dívida, considerando-se o capital e os encargos pactuados neste Contrato, pago na forma ordinária prevista na Cláusula 2ª, totaliza **R$ {{operacao.valor\_total\_devido}}** ({{operacao.valor\_total\_devido\_extenso}}).
+**1.3.** O valor total da dívida, considerando-se o capital e os encargos pactuados neste Contrato, pago na forma ordinária prevista na Cláusula 2ª, totaliza **R$ {{operacao.valor_total_devido}}** ({{operacao.valor_total_devido_extenso}}).
 
 ***
 
 ## CLÁUSULA 2ª — DO PRAZO E DA FORMA DE PAGAMENTO
 
-**2.1.** O MUTUÁRIO obriga-se a pagar à MUTUANTE o valor mutuado acrescido dos juros remuneratórios pactuados na Cláusula 3ª, em **{{operacao.num\_parcelas}}** ({{operacao.num\_parcelas\_extenso}}) parcelas {{operacao.periodicidade}}, no valor individual de **R$ {{operacao.valor\_parcela}}** ({{operacao.valor\_parcela\_extenso}}) cada uma.
+**2.1.** O MUTUÁRIO obriga-se a pagar à MUTUANTE o valor mutuado acrescido dos juros remuneratórios pactuados na Cláusula 3ª, em **{{operacao.num_parcelas}}** ({{operacao.num_parcelas_extenso}}) parcelas {{operacao.periodicidade}}, no valor individual de **R$ {{operacao.valor_parcela}}** ({{operacao.valor_parcela_extenso}}) cada uma.
 
-**2.2.** A primeira parcela vencerá em **{{operacao.data\_primeiro\_vencimento}}** e as subsequentes em igual dia dos meses seguintes, até a liquidação integral da dívida, conforme cronograma de pagamentos que integra o presente Contrato como **Anexo I**.
+**2.2.** A primeira parcela vencerá em **{{operacao.data_primeiro_vencimento}}** e as subsequentes em igual dia dos meses seguintes, até a liquidação integral da dívida, conforme cronograma de pagamentos que integra o presente Contrato como **Anexo I**.
 
-**2.3.** Os pagamentos deverão ser realizados exclusivamente através de {{operacao.forma\_pagamento}}, de titularidade da MUTUANTE:
+**2.3.** Os pagamentos deverão ser realizados exclusivamente através de {{operacao.forma_pagamento}}, de titularidade da MUTUANTE:
 
 - **Banco:** {{credor.conta.banco}}
 - **Agência:** {{credor.conta.agencia}}
@@ -60,7 +60,7 @@ Têm entre si justo e contratado o presente Contrato de Mútuo Feneratício, que
 
 ## CLÁUSULA 3ª — DOS JUROS REMUNERATÓRIOS
 
-**3.1.** Sobre o valor principal incidirão juros remuneratórios à taxa efetiva de **{{operacao.taxa\_juros\_mensal}}% ({{operacao.taxa\_juros\_mensal\_extenso}} por cento) ao mês**, equivalente à taxa efetiva de **{{operacao.taxa\_juros\_anual}}% ({{operacao.taxa\_juros\_anual\_extenso}} por cento) ao ano**, computados de forma capitalizada, livremente pactuada entre as partes nos termos do art. 591 do Código Civil.
+**3.1.** Sobre o valor principal incidirão juros remuneratórios à taxa efetiva de **{{operacao.taxa_juros_mensal}}% ({{operacao.taxa_juros_mensal_extenso}} por cento) ao mês**, equivalente à taxa efetiva de **{{operacao.taxa_juros_anual}}% ({{operacao.taxa_juros_anual_extenso}} por cento) ao ano**, computados de forma capitalizada, livremente pactuada entre as partes nos termos do art. 591 do Código Civil.
 
 **3.2.** Para fins de transparência e atendimento ao princípio da boa-fé contratual, declaram as partes que o Custo Efetivo Total (CET) da presente operação é de **{{operacao.cet}}% ao mês**, englobando os juros remuneratórios e eventuais encargos operacionais, conforme memória de cálculo no **Anexo I**.
 
@@ -72,9 +72,9 @@ Têm entre si justo e contratado o presente Contrato de Mútuo Feneratício, que
 
 **4.1.** Em caso de atraso no pagamento de qualquer parcela, no todo ou em parte, incidirão sobre o valor em mora os seguintes encargos, cumulativamente:
 
-a) **Multa moratória** não compensatória de **{{operacao.taxa\_multa\_atraso}}% ({{operacao.taxa\_multa\_atraso\_extenso}} por cento)** sobre o valor devido;
+a) **Multa moratória** não compensatória de **{{operacao.taxa_multa_atraso}}% ({{operacao.taxa_multa_atraso_extenso}} por cento)** sobre o valor devido;
 
-b) **Juros de mora** à taxa de **{{operacao.taxa\_juros\_atraso}}% ({{operacao.taxa\_juros\_atraso\_extenso}} por cento) ao mês**, *pro rata die*, a contar da data do vencimento;
+b) **Juros de mora** à taxa de **{{operacao.taxa_juros_atraso}}% ({{operacao.taxa_juros_atraso_extenso}} por cento) ao mês**, *pro rata die*, a contar da data do vencimento;
 
 c) **Correção monetária** pelo Índice Nacional de Preços ao Consumidor Amplo (IPCA), divulgado pelo IBGE, ou, na sua falta, por índice que o venha a substituir;
 
@@ -116,7 +116,7 @@ g) Dissolução, liquidação, cisão ou extinção do MUTUÁRIO.
 
 ## CLÁUSULA 7ª — DA NOTA PROMISSÓRIA VINCULADA
 
-**7.1.** Para conferir maior liquidez e segurança ao crédito ora constituído, o MUTUÁRIO emite, neste ato, em favor da MUTUANTE, **Nota Promissória** no valor de **R$ {{operacao.valor\_total\_devido}}** ({{operacao.valor\_total\_devido\_extenso}}), correspondente ao valor total da dívida, com vencimento à vista, que integra o presente Contrato como **Anexo II**.
+**7.1.** Para conferir maior liquidez e segurança ao crédito ora constituído, o MUTUÁRIO emite, neste ato, em favor da MUTUANTE, **Nota Promissória** no valor de **R$ {{operacao.valor_total_devido}}** ({{operacao.valor_total_devido_extenso}}), correspondente ao valor total da dívida, com vencimento à vista, que integra o presente Contrato como **Anexo II**.
 
 **7.2.** A Nota Promissória vincula-se ao presente Contrato na modalidade **pro solvendo**, ou seja, sua emissão e entrega à MUTUANTE não implicam em novação da dívida, permanecendo válidas e exigíveis todas as obrigações previstas neste Contrato, podendo a MUTUANTE optar por executar o título cambial ou o Contrato, conforme lhe convier.
 
@@ -140,8 +140,8 @@ c) Compartilhar informações da operação com bureaus de crédito e com o Cada
 
 **9.1.** Todas as comunicações entre as partes relativas a este Contrato serão consideradas válidas quando enviadas para os seguintes endereços:
 
-- **MUTUANTE:** {{credor.endereco\_completo}} — E-mail: {{credor.email}} — WhatsApp: {{credor.whatsapp}}
-- **MUTUÁRIO:** {{devedor.endereco\_completo}} — E-mail: {{devedor.email}} — WhatsApp: {{devedor.whatsapp}}
+- **MUTUANTE:** {{credor.endereco_completo}} — E-mail: {{credor.email}} — WhatsApp: {{credor.whatsapp}}
+- **MUTUÁRIO:** {{devedor.endereco_completo}} — E-mail: {{devedor.email}} — WhatsApp: {{devedor.whatsapp}}
 
 **9.2.** Qualquer mudança de endereço ou meio de contato deverá ser comunicada à outra parte por escrito, sob pena de se considerarem válidas as comunicações enviadas aos endereços acima informados.
 
@@ -167,53 +167,45 @@ c) Compartilhar informações da operação com bureaus de crédito e com o Cada
 
 ***
 
-E, por estarem justas e contratadas, as partes firmam o presente Contrato em **{{operacao.num\_vias}} ({{operacao.num\_vias\_extenso}}) vias de igual teor e forma**, na presença de 2 (duas) testemunhas abaixo assinadas.
+E, por estarem justas e contratadas, as partes firmam o presente Contrato em **{{operacao.num_vias}} ({{operacao.num_vias_extenso}}) vias de igual teor e forma**, na presença de 2 (duas) testemunhas abaixo assinadas.
 
-**{{operacao.local}}, {{operacao.data\_extenso}}.**
+**{{operacao.local}}, {{operacao.data_extenso}}.**
 
 ***
 
 ### MUTUANTE:
 
-\
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
-**{{credor.razao\_social}}**\
-CNPJ: {{credor.documento}}\
-p.p.: {{credor.representante.nome}}\
+<br><br><br>____________________________________________________<br>
+**{{credor.razao_social}}**<br />
+CNPJ: {{credor.documento}}<br />
+p.p.: {{credor.representante.nome}}<br />
 CPF: {{credor.representante.cpf}}
 
 ### MUTUÁRIO / DEVEDOR:
 
-\
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
-**{{devedor.razao\_social}}**\
-CNPJ: {{devedor.cnpj}}\
-p.p.: {{devedor.representante.nome}}\
+<br><br><br>____________________________________________________<br>
+**{{devedor.razao_social}}**<br />
+CNPJ: {{devedor.cnpj}}<br />
+p.p.: {{devedor.representante.nome}}<br />
 CPF: {{devedor.representante.cpf}}
 
-{{#devedor.conjuge\_assina}}
+{{#devedor.conjuge_assina}}
 
 ### CÔNJUGE:
 
-Assinatura:
-
-<div style="margin: 12px 0 6px 0; border-bottom: 1px solid #000; width: 100%; height: 18px;"></div>
-
-Nome: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
-CPF:  \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
-\
-{{/devedor.conjuge\_assina}}
+<br><br><br>____________________________________________________<br>
+Nome: _____________________________________ CPF: ________________________
+<br />
+{{/devedor.conjuge_assina}}
 
 ### TESTEMUNHAS:
 
-\
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
-Nome: {{testemunhas.0.nome}}\
+<br><br><br>____________________________________________________<br>
+Nome: {{testemunhas.0.nome}}<br />
 CPF: {{testemunhas.0.cpf}}
 
-\
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
-Nome: {{testemunhas.1.nome}}\
+<br><br><br>____________________________________________________<br>
+Nome: {{testemunhas.1.nome}}<br />
 CPF: {{testemunhas.1.cpf}}
 
 ***
@@ -224,22 +216,22 @@ CPF: {{testemunhas.1.cpf}}
 
 | Dados da Operação            | Valor                                                                          |
 | ---------------------------- | ------------------------------------------------------------------------------ |
-| Capital Mutuado              | R$ {{operacao.valor\_principal}}                                               |
-| Taxa de Juros Remuneratórios | {{operacao.taxa\_juros\_mensal}}% a.m. / {{operacao.taxa\_juros\_anual}}% a.a. |
+| Capital Mutuado              | R$ {{operacao.valor_principal}}                                               |
+| Taxa de Juros Remuneratórios | {{operacao.taxa_juros_mensal}}% a.m. / {{operacao.taxa_juros_anual}}% a.a. |
 | Custo Efetivo Total (CET)    | {{operacao.cet}}% a.m.                                                         |
-| Número de Parcelas           | {{operacao.num\_parcelas}}                                                     |
-| Valor da Parcela             | R$ {{operacao.valor\_parcela}}                                                 |
-| Valor Total da Dívida        | R$ {{operacao.valor\_total\_devido}}                                           |
-| Total de Juros               | R$ {{operacao.total\_juros}}                                                   |
-| Sistema de Amortização       | {{operacao.sistema\_amortizacao}}                                              |
+| Número de Parcelas           | {{operacao.num_parcelas}}                                                     |
+| Valor da Parcela             | R$ {{operacao.valor_parcela}}                                                 |
+| Valor Total da Dívida        | R$ {{operacao.valor_total_devido}}                                           |
+| Total de Juros               | R$ {{operacao.total_juros}}                                                   |
+| Sistema de Amortização       | {{operacao.sistema_amortizacao}}                                              |
 
 ### Cronograma de Vencimentos:
 
 |     Parcela     |  Data de Vencimento  | Valor da Parcela (R$) |       Amortização (R$) |       Juros (R$) | Saldo Devedor (R$) |
 | :-------------: | :------------------: | --------------------: | ---------------------: | ---------------: | -----------------: |
-| {{#cronograma}} |        <br />        |                <br /> |                 <br /> |           <br /> |             <br /> |
-|    {{numero}}   | {{data\_vencimento}} |    {{valor\_parcela}} | {{valor\_amortizacao}} | {{valor\_juros}} | {{saldo\_devedor}} |
-| {{/cronograma}} |        <br />        |                <br /> |                 <br /> |           <br /> |             <br /> |
+{{#cronograma}}
+| {{numero}} | {{data_vencimento}} | {{valor_parcela}} | {{valor_amortizacao}} | {{valor_juros}} | {{saldo_devedor}} |
+{{/cronograma}}
 
 ***
 

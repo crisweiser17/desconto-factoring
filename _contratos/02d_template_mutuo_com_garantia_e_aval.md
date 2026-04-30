@@ -1,29 +1,21 @@
-# Template: Contrato de Mútuo Feneratício com Alienação Fiduciária de Veículo e Aval
-
-**Arquivo:** `templates/mutuo_esc.md`  
-**Uso:** Operações de empréstimo em dinheiro para MEI, ME ou EPP.  
-**Fundamento legal:** Código Civil arts. 586-592; Lei Complementar 167/2019; Decreto-Lei 911/69; Lei 9.514/97 (aplicada analogicamente); CPC art. 784, III.
-
----
-
 # INSTRUMENTO PARTICULAR DE CONTRATO DE MÚTUO FENERATÍCIO COM ALIENAÇÃO FIDUCIÁRIA DE VEÍCULO EM GARANTIA E AVAL
 
 **Contrato nº {{operacao.id}}**
 
 Pelo presente **INSTRUMENTO PARTICULAR DE CONTRATO DE MÚTUO FENERATÍCIO COM ALIENAÇÃO FIDUCIÁRIA DE VEÍCULO EM GARANTIA E AVAL** (doravante denominado "CONTRATO"), firmado em {{operacao.local}}, {{operacao.data_extenso}}, as partes abaixo qualificadas:
 
-**MUTUANTE / CREDORA FIDUCIÁRIA:**  
+**MUTUANTE / CREDORA FIDUCIÁRIA:**<br />
 **{{credor.razao_social}}**, pessoa jurídica de direito privado, constituída sob o regime da Lei Complementar nº 167/2019, inscrita no CNPJ/MF sob o nº **{{credor.documento}}**, com sede em {{credor.endereco_completo}}, neste ato representada na forma de seu Contrato Social por {{credor.representante.nome}}, {{credor.representante.nacionalidade}}, {{credor.representante.estado_civil}}, portador(a) da cédula de identidade RG nº {{credor.representante.rg}} e inscrito(a) no CPF/MF sob o nº {{credor.representante.cpf}}, doravante denominada simplesmente **"MUTUANTE"** ou **"CREDORA"**;
 
-**MUTUÁRIO / DEVEDOR FIDUCIANTE:**  
+**MUTUÁRIO / DEVEDOR FIDUCIANTE:**<br />
 **{{devedor.razao_social}}**, {{devedor.descricao_juridica}}, inscrita no CNPJ/MF sob o nº **{{devedor.cnpj}}**, enquadrada como **{{devedor.porte}}** nos termos da Lei Complementar nº 123/2006, com sede em {{devedor.endereco_completo}}, neste ato representada por {{devedor.representante.nome}}, {{devedor.representante.nacionalidade}}, {{devedor.representante.estado_civil}}, {{devedor.representante.profissao}}, portador(a) da cédula de identidade RG nº {{devedor.representante.rg}} e inscrito(a) no CPF/MF sob o nº {{devedor.representante.cpf}}, residente e domiciliado(a) em {{devedor.representante.endereco}}, doravante denominado simplesmente **"MUTUÁRIO"** ou **"DEVEDOR"**;
 
-**AVALISTA / GARANTIDOR SOLIDÁRIO:**  
+**AVALISTA / GARANTIDOR SOLIDÁRIO:**<br />
 **{{avalista.nome}}**, {{avalista.nacionalidade}}, {{avalista.estado_civil}}, {{avalista.profissao}}, portador(a) da cédula de identidade RG nº {{avalista.rg}} e inscrito(a) no CPF/MF sob o nº **{{avalista.cpf}}**, residente e domiciliado(a) em {{avalista.endereco_completo}}{{#avalista.casado}}, casado(a) sob o regime de {{avalista.regime_casamento}} com **{{avalista.conjuge.nome}}**, inscrito(a) no CPF/MF sob o nº {{avalista.conjuge.cpf}}, que comparece ao presente ato em outorga uxória/marital, nos termos do art. 1.647, inciso III, do Código Civil{{/avalista.casado}}, doravante denominado(a) simplesmente **"AVALISTA"**;
 
 Têm entre si justo e contratado o presente Contrato de Mútuo Feneratício com Alienação Fiduciária de Veículo em Garantia e Aval, que se regerá pelas cláusulas e condições a seguir estipuladas, em conformidade com os artigos 586 a 592 do Código Civil Brasileiro, com a Lei Complementar nº 167/2019, com o Decreto-Lei nº 911/1969 e demais legislação aplicável.
 
----
+***
 
 ## CONSIDERANDOS
 
@@ -39,7 +31,7 @@ Têm entre si justo e contratado o presente Contrato de Mútuo Feneratício com 
 
 **AS PARTES** resolvem celebrar o presente CONTRATO, que se regerá pelas cláusulas seguintes:
 
----
+***
 
 ## CLÁUSULA 1ª — DO OBJETO E DO VALOR DO MÚTUO
 
@@ -49,7 +41,7 @@ Têm entre si justo e contratado o presente Contrato de Mútuo Feneratício com 
 
 **1.3.** O valor total da dívida, considerando-se o capital e os encargos pactuados neste Contrato, pago na forma ordinária prevista na Cláusula 2ª, totaliza **R$ {{operacao.valor_total_devido}}** ({{operacao.valor_total_devido_extenso}}).
 
----
+***
 
 ## CLÁUSULA 2ª — DO PRAZO E DA FORMA DE PAGAMENTO
 
@@ -58,6 +50,7 @@ Têm entre si justo e contratado o presente Contrato de Mútuo Feneratício com 
 **2.2.** A primeira parcela vencerá em **{{operacao.data_primeiro_vencimento}}** e as subsequentes em igual dia dos meses seguintes, até a liquidação integral da dívida, conforme cronograma de pagamentos que integra o presente Contrato como **Anexo I**.
 
 **2.3.** Os pagamentos deverão ser realizados exclusivamente através de {{operacao.forma_pagamento}}, de titularidade da MUTUANTE:
+
 - **Banco:** {{credor.conta.banco}}
 - **Agência:** {{credor.conta.agencia}}
 - **Conta:** {{credor.conta.numero}}
@@ -68,7 +61,7 @@ Têm entre si justo e contratado o presente Contrato de Mútuo Feneratício com 
 
 **2.5.** A quitação individual de cada parcela não implica em quitação das parcelas anteriores, cabendo ao MUTUÁRIO conservar todos os comprovantes, sendo válida como prova de quitação geral apenas a quitação expressa, por escrito, emitida pela MUTUANTE.
 
----
+***
 
 ## CLÁUSULA 3ª — DOS JUROS REMUNERATÓRIOS
 
@@ -78,7 +71,7 @@ Têm entre si justo e contratado o presente Contrato de Mútuo Feneratício com 
 
 **3.3.** As partes declaram estar cientes e concordar que, em razão da natureza jurídica da MUTUANTE como Empresa Simples de Crédito, nos termos da Lei Complementar nº 167/2019, a limitação da taxa de juros prevista no Decreto nº 22.626/1933 (Lei da Usura) não se aplica à presente operação, sendo livres as partes para pactuar a taxa estabelecida na Cláusula 3.1, conforme entendimento jurisprudencial pacificado em diversas instâncias.
 
----
+***
 
 ## CLÁUSULA 4ª — DOS ENCARGOS MORATÓRIOS
 
@@ -94,7 +87,7 @@ d) **Honorários advocatícios** de **10% (dez por cento)** sobre o valor total 
 
 **4.2.** O MUTUÁRIO responderá, ainda, pelas despesas de protesto, notificações, custas processuais, diligências de localização de bens e outras despesas incorridas pela MUTUANTE para o recebimento do crédito.
 
----
+***
 
 ## CLÁUSULA 5ª — DO VENCIMENTO ANTECIPADO
 
@@ -112,7 +105,7 @@ i) Dissolução, liquidação, cisão ou extinção do MUTUÁRIO.
 
 **5.2.** Verificada qualquer das hipóteses acima, ficará automaticamente vencida toda a dívida, com todos os encargos pactuados, facultada à MUTUANTE a cobrança imediata, extrajudicial ou judicial, e a execução das garantias prestadas.
 
----
+***
 
 ## CLÁUSULA 6ª — DA GARANTIA REAL: ALIENAÇÃO FIDUCIÁRIA DE VEÍCULO
 
@@ -156,7 +149,7 @@ c) Cobrar do MUTUÁRIO o saldo devedor remanescente, caso o produto da venda sej
 
 **6.5.** Declara o MUTUÁRIO que o VEÍCULO é de sua legítima propriedade, livre e desembaraçado de quaisquer ônus, gravames ou direitos de terceiros, responsabilizando-se civil e criminalmente pela veracidade desta declaração, sob pena de configuração dos crimes previstos nos artigos 168 e 171 do Código Penal.
 
----
+***
 
 ## CLÁUSULA 7ª — DO AVAL E DA GARANTIA FIDEJUSSÓRIA
 
@@ -170,7 +163,7 @@ c) Cobrar do MUTUÁRIO o saldo devedor remanescente, caso o produto da venda sej
 **7.4.** O(A) cônjuge do(a) AVALISTA, devidamente qualificado(a) no preâmbulo, comparece ao presente ato e manifesta sua **expressa e irrestrita anuência** ao aval prestado, nos termos do art. 1.647, inciso III, do Código Civil, em vista do regime de bens de seu casamento ({{avalista.regime_casamento}}).
 {{/avalista.casado}}
 
----
+***
 
 ## CLÁUSULA 8ª — DA CONFISSÃO DE DÍVIDA
 
@@ -178,7 +171,7 @@ c) Cobrar do MUTUÁRIO o saldo devedor remanescente, caso o produto da venda sej
 
 **8.2.** O presente Contrato, firmado pelas partes e por 2 (duas) testemunhas, constitui **título executivo extrajudicial**, nos termos do art. 784, inciso III, do Código de Processo Civil, dispensando qualquer procedimento prévio de cognição para sua execução em caso de inadimplemento.
 
----
+***
 
 ## CLÁUSULA 9ª — DA NOTA PROMISSÓRIA VINCULADA
 
@@ -188,7 +181,7 @@ c) Cobrar do MUTUÁRIO o saldo devedor remanescente, caso o produto da venda sej
 
 **9.3.** A Nota Promissória poderá ser preenchida pela MUTUANTE com a data e o valor atualizado do débito em caso de inadimplemento, nos termos da Súmula 387 do Supremo Tribunal Federal.
 
----
+***
 
 ## CLÁUSULA 10ª — DA COBRANÇA, PROTESTO E CADASTROS
 
@@ -200,7 +193,7 @@ b) Incluir o nome do MUTUÁRIO e do AVALISTA em cadastros de proteção ao créd
 
 c) Compartilhar informações da operação com bureaus de crédito e com o Cadastro Positivo (Lei 12.414/2011), conforme autorização expressa do MUTUÁRIO firmada em documento específico.
 
----
+***
 
 ## CLÁUSULA 11ª — DAS COMUNICAÇÕES
 
@@ -212,7 +205,7 @@ c) Compartilhar informações da operação com bureaus de crédito e com o Cada
 
 **11.2.** Qualquer mudança de endereço ou meio de contato deverá ser comunicada à outra parte por escrito, sob pena de se considerarem válidas as comunicações enviadas aos endereços acima informados.
 
----
+***
 
 ## CLÁUSULA 12ª — DAS DISPOSIÇÕES GERAIS
 
@@ -226,104 +219,96 @@ c) Compartilhar informações da operação com bureaus de crédito e com o Cada
 
 **12.5.** O MUTUÁRIO e o AVALISTA autorizam expressamente a MUTUANTE a tratar seus dados pessoais e empresariais para fins da operação, nos termos da Lei Geral de Proteção de Dados (Lei nº 13.709/2018), podendo compartilhá-los com bureaus de crédito, órgãos de proteção ao crédito, cartórios, advogados, assessorias de cobrança e autoridades legais, sempre que necessário para o cumprimento das obrigações contratuais ou legais.
 
----
+***
 
 ## CLÁUSULA 13ª — DO FORO
 
 **13.1.** As partes elegem o Foro da Comarca de **Piracicaba/SP** para dirimir quaisquer dúvidas ou controvérsias oriundas deste Contrato, com renúncia expressa a qualquer outro, por mais privilegiado que seja.
 
----
+***
 
 E, por estarem justas e contratadas, as partes firmam o presente Contrato em **{{operacao.num_vias}} ({{operacao.num_vias_extenso}}) vias de igual teor e forma**, na presença de 2 (duas) testemunhas abaixo assinadas.
 
 **{{operacao.local}}, {{operacao.data_extenso}}.**
 
----
+***
 
 ### MUTUANTE:
 
-\
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-**{{credor.razao_social}}**  
-CNPJ: {{credor.documento}}  
-p.p.: {{credor.representante.nome}}  
+<br><br><br>____________________________________________________<br>
+**{{credor.razao_social}}**<br />
+CNPJ: {{credor.documento}}<br />
+p.p.: {{credor.representante.nome}}<br />
 CPF: {{credor.representante.cpf}}
 
 ### MUTUÁRIO / DEVEDOR FIDUCIANTE:
 
-\
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-**{{devedor.razao_social}}**  
-CNPJ: {{devedor.cnpj}}  
-p.p.: {{devedor.representante.nome}}  
+<br><br><br>____________________________________________________<br>
+**{{devedor.razao_social}}**<br />
+CNPJ: {{devedor.cnpj}}<br />
+p.p.: {{devedor.representante.nome}}<br />
 CPF: {{devedor.representante.cpf}}
 
 {{#devedor.conjuge_assina}}
+
 ### CÔNJUGE:
 
-Assinatura:
-
-<div style="margin: 12px 0 6px 0; border-bottom: 1px solid #000; width: 100%; height: 18px;"></div>
-
-Nome: ____________________________________________________  
-CPF:  ____________________________________________________
+<br><br><br>____________________________________________________<br>
+Nome: _____________________________________ CPF: ________________________
 {{/devedor.conjuge_assina}}
 
 ### AVALISTA / GARANTIDOR SOLIDÁRIO:
 
-\
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-**{{avalista.nome}}**  
-CPF: {{avalista.cpf}}  
+<br><br><br>____________________________________________________<br>
+**{{avalista.nome}}**<br />
+CPF: {{avalista.cpf}}<br />
 RG: {{avalista.rg}}
 
 {{#avalista.casado}}
+
 ### CÔNJUGE DO AVALISTA (anuência):
 
-\
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-**{{avalista.conjuge.nome}}**  
+<br><br><br>____________________________________________________<br>
+**{{avalista.conjuge.nome}}**<br />
 CPF: {{avalista.conjuge.cpf}}
 {{/avalista.casado}}
 
 ### TESTEMUNHAS:
 
-\
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-Nome: {{testemunhas.0.nome}}  
+<br><br><br>____________________________________________________<br>
+Nome: {{testemunhas.0.nome}}<br />
 CPF: {{testemunhas.0.cpf}}
 
-\
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-Nome: {{testemunhas.1.nome}}  
+<br><br><br>____________________________________________________<br>
+Nome: {{testemunhas.1.nome}}<br />
 CPF: {{testemunhas.1.cpf}}
 
----
+***
 
 # ANEXO I — CRONOGRAMA DE PAGAMENTOS E MEMÓRIA DE CÁLCULO
 
 **Contrato nº {{operacao.id}}**
 
-| Dados da Operação | Valor |
-|---|---|
-| Capital Mutuado | R$ {{operacao.valor_principal}} |
+| Dados da Operação            | Valor                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------ |
+| Capital Mutuado              | R$ {{operacao.valor_principal}}                                               |
 | Taxa de Juros Remuneratórios | {{operacao.taxa_juros_mensal}}% a.m. / {{operacao.taxa_juros_anual}}% a.a. |
-| Custo Efetivo Total (CET) | {{operacao.cet}}% a.m. |
-| Número de Parcelas | {{operacao.num_parcelas}} |
-| Valor da Parcela | R$ {{operacao.valor_parcela}} |
-| Valor Total da Dívida | R$ {{operacao.valor_total_devido}} |
-| Total de Juros | R$ {{operacao.total_juros}} |
-| Sistema de Amortização | {{operacao.sistema_amortizacao}} |
+| Custo Efetivo Total (CET)    | {{operacao.cet}}% a.m.                                                         |
+| Número de Parcelas           | {{operacao.num_parcelas}}                                                     |
+| Valor da Parcela             | R$ {{operacao.valor_parcela}}                                                 |
+| Valor Total da Dívida        | R$ {{operacao.valor_total_devido}}                                           |
+| Total de Juros               | R$ {{operacao.total_juros}}                                                   |
+| Sistema de Amortização       | {{operacao.sistema_amortizacao}}                                              |
 
 ### Cronograma de Vencimentos:
 
-| Parcela | Data de Vencimento | Valor da Parcela (R$) | Amortização (R$) | Juros (R$) | Saldo Devedor (R$) |
-|:---:|:---:|---:|---:|---:|---:|
+|     Parcela     |  Data de Vencimento  | Valor da Parcela (R$) |       Amortização (R$) |       Juros (R$) | Saldo Devedor (R$) |
+| :-------------: | :------------------: | --------------------: | ---------------------: | ---------------: | -----------------: |
 {{#cronograma}}
 | {{numero}} | {{data_vencimento}} | {{valor_parcela}} | {{valor_amortizacao}} | {{valor_juros}} | {{saldo_devedor}} |
 {{/cronograma}}
 
----
+***
 
 # ANEXO II — NOTA PROMISSÓRIA
 

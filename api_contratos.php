@@ -154,20 +154,20 @@ function montarParteContrato(array $operacao, $porteCliente = '') {
 
     return [
         'pessoa_juridica' => $pessoaJuridica,
-        'razao_social' => $razaoSocial,
+        'razao_social' => normalizarCampoContrato($razaoSocial, '[NÃO INFORMADO]'),
         'descricao_juridica' => 'pessoa jurídica de direito privado',
-        'cnpj' => $cnpj,
-        'nome_completo' => $nomeCompleto,
+        'cnpj' => normalizarCampoContrato($cnpj, '[NÃO INFORMADO]'),
+        'nome_completo' => normalizarCampoContrato($nomeCompleto, '[NÃO INFORMADO]'),
         'nacionalidade' => normalizarCampoContrato($operacao['representante_nacionalidade'] ?? '', 'brasileiro(a)'),
         'estado_civil' => normalizarCampoContrato($operacao['representante_estado_civil'] ?? '', 'Solteiro(a)'),
         'profissao' => normalizarCampoContrato($operacao['representante_profissao'] ?? '', 'Empresário'),
         'rg' => normalizarCampoContrato($operacao['representante_rg'] ?? '', '-'),
-        'cpf' => $cpf,
-        'documento' => $documento,
+        'cpf' => normalizarCampoContrato($cpf, '[NÃO INFORMADO]'),
+        'documento' => normalizarCampoContrato($documento, '[NÃO INFORMADO]'),
         'documento_label' => $pessoaJuridica ? 'CNPJ' : 'CPF',
-        'nome_exibicao' => $nomeExibicao,
-        'porte' => normalizarCampoContrato($porteCliente, normalizarCampoContrato($operacao['porte'] ?? '')),
-        'endereco_completo' => $enderecoCompleto,
+        'nome_exibicao' => normalizarCampoContrato($nomeExibicao, '[NÃO INFORMADO]'),
+        'porte' => normalizarCampoContrato($porteCliente, normalizarCampoContrato($operacao['porte'] ?? '', 'ME')),
+        'endereco_completo' => normalizarCampoContrato($enderecoCompleto, '[NÃO INFORMADO]'),
         'email' => normalizarCampoContrato($operacao['email'] ?? '', 'Não informado'),
         'whatsapp' => normalizarCampoContrato($operacao['whatsapp'] ?? '', 'Não informado'),
         'casado' => in_array(
@@ -180,22 +180,22 @@ function montarParteContrato(array $operacao, $porteCliente = '') {
             'cpf' => ''
         ],
         'conta' => [
-            'banco' => normalizarCampoContrato($operacao['conta_banco'] ?? ''),
-            'agencia' => normalizarCampoContrato($operacao['conta_agencia'] ?? ''),
-            'numero' => normalizarCampoContrato($operacao['conta_numero'] ?? ''),
-            'tipo' => normalizarCampoContrato($operacao['conta_tipo'] ?? ''),
-            'pix' => normalizarCampoContrato($operacao['conta_pix'] ?? ''),
-            'titular' => $nomeExibicao,
-            'documento' => $documento
+            'banco' => normalizarCampoContrato($operacao['conta_banco'] ?? '', '[NÃO INFORMADO]'),
+            'agencia' => normalizarCampoContrato($operacao['conta_agencia'] ?? '', '[NÃO INFORMADO]'),
+            'numero' => normalizarCampoContrato($operacao['conta_numero'] ?? '', '[NÃO INFORMADO]'),
+            'tipo' => normalizarCampoContrato($operacao['conta_tipo'] ?? '', '[NÃO INFORMADO]'),
+            'pix' => normalizarCampoContrato($operacao['conta_pix'] ?? '', '[NÃO INFORMADO]'),
+            'titular' => normalizarCampoContrato($nomeExibicao, '[NÃO INFORMADO]'),
+            'documento' => normalizarCampoContrato($documento, '[NÃO INFORMADO]')
         ],
         'representante' => [
-            'nome' => $representanteNome,
+            'nome' => normalizarCampoContrato($representanteNome, '[NÃO INFORMADO]'),
             'nacionalidade' => normalizarCampoContrato($operacao['representante_nacionalidade'] ?? '', 'brasileiro(a)'),
             'estado_civil' => normalizarCampoContrato($operacao['representante_estado_civil'] ?? '', 'Solteiro(a)'),
             'profissao' => normalizarCampoContrato($operacao['representante_profissao'] ?? '', 'Empresário'),
-            'rg' => $representanteRg,
-            'cpf' => $representanteCpf,
-            'endereco' => $representanteEndereco
+            'rg' => normalizarCampoContrato($representanteRg, '[NÃO INFORMADO]'),
+            'cpf' => normalizarCampoContrato($representanteCpf, '[NÃO INFORMADO]'),
+            'endereco' => normalizarCampoContrato($representanteEndereco, '[NÃO INFORMADO]')
         ]
     ];
 }
@@ -585,25 +585,25 @@ function gerarContrato($pdo, $operacao_id) {
     $data = [
         'titulos' => $titulos_formatados,
         'credor' => [
-            'razao_social' => $credorRazaoSocial,
-            'documento' => $credorDocumento,
+            'razao_social' => normalizarCampoContrato($credorRazaoSocial, '[NÃO INFORMADO]'),
+            'documento' => normalizarCampoContrato($credorDocumento, '[NÃO INFORMADO]'),
             'representante' => [
-                'nome' => $config['empresa_representante_nome'] ?? '',
+                'nome' => normalizarCampoContrato($config['empresa_representante_nome'] ?? '', '[NÃO INFORMADO]'),
                 'nacionalidade' => 'brasileiro(a)',
                 'estado_civil' => 'casado(a)',
                 'rg' => '-',
-                'cpf' => $config['empresa_representante_cpf'] ?? ''
+                'cpf' => normalizarCampoContrato($config['empresa_representante_cpf'] ?? '', '[NÃO INFORMADO]')
             ],
             'conta' => [
-                'banco' => $config['conta_banco'] ?? '',
-                'agencia' => $config['conta_agencia'] ?? '',
-                'numero' => $config['conta_numero'] ?? '',
-                'tipo' => $config['conta_tipo'] ?? '',
-                'pix' => $config['conta_pix'] ?? '',
-                'titular' => $credorContaTitular,
-                'documento' => $credorContaDocumento
+                'banco' => normalizarCampoContrato($config['conta_banco'] ?? '', '[NÃO INFORMADO]'),
+                'agencia' => normalizarCampoContrato($config['conta_agencia'] ?? '', '[NÃO INFORMADO]'),
+                'numero' => normalizarCampoContrato($config['conta_numero'] ?? '', '[NÃO INFORMADO]'),
+                'tipo' => normalizarCampoContrato($config['conta_tipo'] ?? '', '[NÃO INFORMADO]'),
+                'pix' => normalizarCampoContrato($config['conta_pix'] ?? '', '[NÃO INFORMADO]'),
+                'titular' => normalizarCampoContrato($credorContaTitular, '[NÃO INFORMADO]'),
+                'documento' => normalizarCampoContrato($credorContaDocumento, '[NÃO INFORMADO]')
             ],
-            'endereco_completo' => $config['empresa_endereco'] ?? '',
+            'endereco_completo' => normalizarCampoContrato($config['empresa_endereco'] ?? '', '[NÃO INFORMADO]'),
             'email' => normalizarCampoContrato($config['empresa_email'] ?? '', 'Não informado'),
             'whatsapp' => normalizarCampoContrato($config['empresa_whatsapp'] ?? '', 'Não informado')
         ],
@@ -630,23 +630,24 @@ function gerarContrato($pdo, $operacao_id) {
             'forma_pagamento' => 'Transferência Bancária (PIX)'
         ],
         'devedor' => $parteContrato,
-        'avalista' => [
-            'nome' => $avalista_nome,
-            'nacionalidade' => $avalista_nacionalidade,
-            'estado_civil' => $avalista_estado_civil,
-            'profissao' => $avalista_profissao,
-            'rg' => $avalista_rg,
-            'cpf' => $avalista_cpf,
-            'endereco_completo' => $avalista_endereco,
+        'tem_avalista' => $tem_avalista,
+        'avalista' => $tem_avalista ? [
+            'nome' => normalizarCampoContrato($avalista_nome, '[NÃO INFORMADO]'),
+            'nacionalidade' => normalizarCampoContrato($avalista_nacionalidade, '[NÃO INFORMADO]'),
+            'estado_civil' => normalizarCampoContrato($avalista_estado_civil, '[NÃO INFORMADO]'),
+            'profissao' => normalizarCampoContrato($avalista_profissao, '[NÃO INFORMADO]'),
+            'rg' => normalizarCampoContrato($avalista_rg, '[NÃO INFORMADO]'),
+            'cpf' => normalizarCampoContrato($avalista_cpf, '[NÃO INFORMADO]'),
+            'endereco_completo' => normalizarCampoContrato($avalista_endereco, '[NÃO INFORMADO]'),
             'email' => normalizarCampoContrato($avalista_email ?? '', 'Não informado'),
             'whatsapp' => normalizarCampoContrato($avalista_whatsapp ?? '', 'Não informado'),
             'casado' => in_array($avalista_estado_civil, ['Casado(a)', 'União Estável']),
-            'regime_casamento' => $avalista_regime_casamento,
+            'regime_casamento' => normalizarCampoContrato($avalista_regime_casamento, '[NÃO INFORMADO]'),
             'conjuge' => [
-                'nome' => $avalista_conjuge_nome,
-                'cpf' => $avalista_conjuge_cpf
+                'nome' => normalizarCampoContrato($avalista_conjuge_nome, '[NÃO INFORMADO]'),
+                'cpf' => normalizarCampoContrato($avalista_conjuge_cpf, '[NÃO INFORMADO]')
             ]
-        ],
+        ] : null,
         'operacao' => [
             'id' => $operacao_id,
             'local' => 'Piracicaba/SP',
