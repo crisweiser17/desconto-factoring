@@ -31,7 +31,7 @@ function pdfEncodeText($text) {
 
 // 3. Definição da Classe PDF personalizada
 class PDF_Cliente extends FPDF {
-    public $tituloPdf = 'Resumo da Operação de Desconto';
+    public $tituloPdf = 'Resumo da Operação';
     public $isEmprestimo = false;
 
     function Header() { $this->SetFont('Arial','B',14); $this->Cell(0,10,pdfEncodeText($this->tituloPdf),0,1,'C'); $this->Ln(5); }

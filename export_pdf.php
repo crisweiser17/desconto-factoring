@@ -22,7 +22,7 @@ function pdfFormatDate($dateStr) { if(empty($dateStr)) return ''; try { return (
 
 // 3. Definição da Classe PDF personalizada
 class PDF extends FPDF { /* ... (código da classe PDF mantido) ... */
-    public $tituloPdf = 'Resumo da Operação de Desconto';
+    public $tituloPdf = 'Resumo da Operação';
     public $isEmprestimo = false;
 
     function Header() { $this->SetFont('Arial','B',14); $this->Cell(0,10,pdfEncodeText($this->tituloPdf),0,1,'C'); $this->Ln(5); }
@@ -345,7 +345,7 @@ elseif ($chartImageData && $error) { /* ... exibe erro do gráfico se cálculo f
 
 // 10. Output PDF (mantido)
 if (ob_get_level()) ob_end_clean();
-$pdf->Output('D', 'Analise_Operacao_Desconto_'.date('Ymd_His').'.pdf', true);
+$pdf->Output('D', 'Analise_Operacao_'.date('Ymd_His').'.pdf', true);
 
 // 11. Limpeza Imagem Temp (mantido)
 if ($tempImageCleanupNeeded && $chartImagePath && file_exists($chartImagePath)) { register_shutdown_function(function($filename) { @unlink($filename); }, $chartImagePath); }

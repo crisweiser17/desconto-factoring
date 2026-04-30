@@ -356,7 +356,7 @@ $pdf->SectionTitle('Informações da Operação');
 $pdf->ParameterLine('ID da Operação', $operacao['id']);
 $pdf->ParameterLine('Cedente', $cedenteNome);
 $pdf->ParameterLine('Data da Operação', pdfFormatDate($dataOperacaoStr));
-$pdf->ParameterLine('Taxa de Desconto Nominal', pdfFormatPercent($taxaMensal) . ' ao mês');
+$pdf->ParameterLine('Taxa Nominal', pdfFormatPercent($taxaMensal) . ' ao mês');
 // Tipo de Pagamento com nomenclatura completa
 $tipoPagamento = $operacao['tipo_pagamento'] ?? 'direto';
 switch($tipoPagamento) {

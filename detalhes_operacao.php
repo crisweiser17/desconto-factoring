@@ -455,7 +455,7 @@ if ($operacao && !isset($error_message)) {
             $valorEmprestimoOriginal = (float)($operacao['valor_emprestimo'] ?? 0);
             $temValorEmprestimoOriginal = $isEmprestimo && $valorEmprestimoOriginal > 0;
             $labelParteOperacao = $isEmprestimo ? 'Tomador do Empréstimo:' : 'Cedente:';
-            $labelTipoOperacao = $isEmprestimo ? 'Empréstimo' : 'Desconto';
+            $labelTipoOperacao = $isEmprestimo ? 'Empréstimo' : 'Antecipação';
             $labelTaxa = $isEmprestimo ? 'Taxa de Juros Aplicada:' : 'Taxa de Desconto Aplicada:';
             $labelTotalOriginal = $isEmprestimo ? 'Valor a Receber' : 'Total Original dos Recebíveis:';
             $labelTotalIOF = 'Total IOF (Teórico):';
@@ -1063,7 +1063,7 @@ if ($operacao && !isset($error_message)) {
                                         <select class="form-select" name="natureza" id="modalNatureza" required <?php echo $isEmprestimo ? 'disabled' : ''; ?>>
                                             <option value="" <?php echo !$isEmprestimo && empty($operacao['natureza']) ? 'selected' : ''; ?>>Selecione...</option>
                                             <option value="EMPRESTIMO" <?php echo $isEmprestimo || ($operacao['natureza'] ?? '') === 'EMPRESTIMO' ? 'selected' : ''; ?>>Empréstimo</option>
-                                            <option value="DESCONTO" <?php echo !$isEmprestimo && ($operacao['natureza'] ?? '') === 'DESCONTO' ? 'selected' : ''; ?>>Desconto (Cessão)</option>
+                                            <option value="DESCONTO" <?php echo !$isEmprestimo && ($operacao['natureza'] ?? '') === 'DESCONTO' ? 'selected' : ''; ?>>Antecipação (Cessão)</option>
                                         </select>
                                         <?php if ($isEmprestimo): ?>
                                             <input type="hidden" name="natureza" value="EMPRESTIMO">

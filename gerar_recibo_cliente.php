@@ -31,7 +31,7 @@ function pdfText($text) {
 class PDF_Cliente extends FPDF {
     function Header() {
         $this->SetFont('Arial','B',14);
-        $this->Cell(0,10,pdfText('Comprovante da Operação de Desconto'),0,1,'C'); // Título alterado
+        $this->Cell(0,10,pdfText('Comprovante da Operação'),0,1,'C'); // Título alterado
         $this->Ln(5);
     }
     function Footer() {
@@ -228,7 +228,7 @@ $pdf->AliasNbPages(); $pdf->SetAutoPageBreak(true, 20); $pdf->AddPage(); $pdf->S
 $pdf->SectionTitle('Dados da Operação');
 $pdf->ParameterLine('Cliente (Sacado)', $operacao['cedente_nome'] ?? 'N/A');
 $pdf->ParameterLine('Data da Operação', pdfFormatDate($operacao['data_operacao']));
-$pdf->ParameterLine('Taxa de Desconto Aplicada', pdfFormatPercent($operacao['taxa_mensal']) . ' ao mês'); // Taxa salva
+$pdf->ParameterLine('Taxa Aplicada', pdfFormatPercent($operacao['taxa_mensal']) . ' ao mês'); // Taxa salva
 // Tipo de Pagamento com nomenclatura completa
 $tipoPagamento = $operacao['tipo_pagamento'] ?? 'direto';
 switch($tipoPagamento) {
