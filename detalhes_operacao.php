@@ -126,13 +126,13 @@ $error_message = null;
 try {
     $sql_op = "SELECT
                    o.*,
-                   COALESCE(s.empresa, s.nome, (SELECT COALESCE(sac.empresa, sac.nome) FROM recebiveis r2 JOIN clientes sac ON r2.sacado_id = sac.id WHERE r2.operacao_id = o.id LIMIT 1)) AS cedente_nome,
-                   s.empresa AS sacado_empresa,
-                   s.representante_estado_civil AS cedente_representante_estado_civil,
+                   COALESCE(c.empresa, c.nome, (SELECT COALESCE(sac.empresa, sac.nome) FROM recebiveis r2 JOIN clientes sac ON r2.sacado_id = sac.id WHERE r2.operacao_id = o.id LIMIT 1)) AS cedente_nome,
+                   c.empresa AS sacado_empresa,
+                   c.representante_estado_civil AS cedente_representante_estado_civil,
                    o.cedente_id
                FROM
                    operacoes o
-               LEFT JOIN clientes s ON o.cedente_id = s.id
+               LEFT JOIN clientes c ON o.cedente_id = c.id
                WHERE
                    o.id = :id";
     $stmt_op = $pdo->prepare($sql_op);
