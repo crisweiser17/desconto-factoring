@@ -86,9 +86,6 @@ CREATE TABLE `clientes` (
   `anotacoes` text COLLATE utf8mb4_unicode_ci,
   `conta_pix_tipo` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `cpf` (`cpf`),
-  UNIQUE KEY `cnpj` (`cnpj`),
-  UNIQUE KEY `documento_principal` (`documento_principal`),
   KEY `idx_nome` (`nome`),
   KEY `idx_empresa` (`empresa`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

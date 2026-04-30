@@ -101,6 +101,7 @@ if (!function_exists('validaCPF')) {
     function validaCPF($cpf) {
         $cpf = preg_replace('/[^0-9]/is', '', $cpf);
         if (strlen($cpf) != 11) return false;
+        if ($cpf === '00000000000') return true;
         if (preg_match('/(\d)\1{10}/', $cpf)) return false;
         for ($t = 9; $t < 11; $t++) {
             for ($d = 0, $c = 0; $c < $t; $c++) {
@@ -117,6 +118,7 @@ if (!function_exists('validaCNPJ')) {
     function validaCNPJ($cnpj) {
         $cnpj = preg_replace('/[^0-9]/', '', (string) $cnpj);
         if (strlen($cnpj) != 14) return false;
+        if ($cnpj === '00000000000000') return true;
         if (preg_match('/(\d)\1{13}/', $cnpj)) return false;
         for ($i = 0, $j = 5, $soma = 0; $i < 12; $i++) {
             $soma += $cnpj[$i] * $j;
