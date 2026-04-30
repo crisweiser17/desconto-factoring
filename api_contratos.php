@@ -158,10 +158,10 @@ function montarParteContrato(array $operacao, $porteCliente = '') {
         'descricao_juridica' => 'pessoa jurídica de direito privado',
         'cnpj' => $cnpj,
         'nome_completo' => $nomeCompleto,
-        'nacionalidade' => normalizarCampoContrato($operacao['nacionalidade'] ?? '', 'brasileiro(a)'),
-        'estado_civil' => normalizarCampoContrato($operacao['estado_civil'] ?? '', 'Solteiro(a)'),
-        'profissao' => normalizarCampoContrato($operacao['profissao'] ?? '', 'Empresário'),
-        'rg' => normalizarCampoContrato($operacao['rg'] ?? '', '-'),
+        'nacionalidade' => normalizarCampoContrato($operacao['representante_nacionalidade'] ?? '', 'brasileiro(a)'),
+        'estado_civil' => normalizarCampoContrato($operacao['representante_estado_civil'] ?? '', 'Solteiro(a)'),
+        'profissao' => normalizarCampoContrato($operacao['representante_profissao'] ?? '', 'Empresário'),
+        'rg' => normalizarCampoContrato($operacao['representante_rg'] ?? '', '-'),
         'cpf' => $cpf,
         'documento' => $documento,
         'documento_label' => $pessoaJuridica ? 'CNPJ' : 'CPF',
@@ -171,7 +171,7 @@ function montarParteContrato(array $operacao, $porteCliente = '') {
         'email' => normalizarCampoContrato($operacao['email'] ?? '', 'Não informado'),
         'whatsapp' => normalizarCampoContrato($operacao['whatsapp'] ?? '', 'Não informado'),
         'casado' => in_array(
-            normalizarCampoContrato($operacao['estado_civil'] ?? '', 'Solteiro(a)'),
+            normalizarCampoContrato($operacao['representante_estado_civil'] ?? '', 'Solteiro(a)'),
             ['Casado(a)'],
             true
         ),
