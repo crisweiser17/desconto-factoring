@@ -384,7 +384,7 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
                             <input type="text" class="form-control bg-light" id="conta_titular" name="conta_titular" value="<?php echo htmlspecialchars($contaTitularReadonlyValue); ?>" readonly>
                         </div>
                         <div class="col-md-6">
-                            <label for="conta_documento" class="form-label">CPF/CNPJ do Titular</label>
+                            <label for="conta_documento" class="form-label">CNPJ Titular da Conta</label>
                             <input type="text" class="form-control bg-light" id="conta_documento" name="conta_documento" value="<?php echo htmlspecialchars($contaDocumentoReadonlyValue); ?>" readonly>
                         </div>
                         <div class="col-md-4">
@@ -814,7 +814,10 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
 
             $('#conta_documento').on('input', function() {
                 let val = $(this).val().replace(/\D/g, '');
-                if (val.length <= 11) {
+                const tipoPessoa = $('#tipo_pessoa').val();
+                if (tipoPessoa === 'JURIDICA') {
+                    $(this).inputmask("99.999.999/9999-99", { clearIncomplete: false });
+                } else if (val.length <= 11) {
                     $(this).inputmask("999.999.999-99", { clearIncomplete: false });
                 } else {
                     $(this).inputmask("99.999.999/9999-99", { clearIncomplete: false });
@@ -880,16 +883,10 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
                     $('#representante_cpf').removeClass('is-invalid');
                 }
 
-                // Validar Conta Documento
+                // Validar CNPJ Titular da Conta
                 const contaDoc = $('#conta_documento').val().replace(/\D/g, '');
                 if (contaDoc) {
-                    if (contaDoc.length === 11 && !isValidCPF(contaDoc)) {
-                        $('#conta_documento').addClass('is-invalid');
-                        isValid = false;
-                    } else if (contaDoc.length === 14 && !isValidCNPJ(contaDoc)) {
-                        $('#conta_documento').addClass('is-invalid');
-                        isValid = false;
-                    } else if (contaDoc.length !== 11 && contaDoc.length !== 14) {
+                    if (contaDoc.length !== 14 || !isValidCNPJ(contaDoc)) {
                         $('#conta_documento').addClass('is-invalid');
                         isValid = false;
                     } else {
