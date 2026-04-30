@@ -2,7 +2,9 @@
 // installer.php - Script Interativo para instalação do banco de dados
 
 // Verifica se o sistema já está instalado
-if (file_exists(__DIR__ . '/db_connection.php')) {
+$force_reinstall = isset($_POST['reinstall']) && $_POST['reinstall'] === '1';
+
+if (file_exists(__DIR__ . '/db_connection.php') && !$force_reinstall) {
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -31,6 +33,10 @@ if (file_exists(__DIR__ . '/db_connection.php')) {
                 <div class="d-grid gap-3">
                     <a href="update.php" class="btn btn-primary btn-lg"><i class="bi bi-arrow-clockwise"></i> Atualizar Banco de Dados</a>
                     <a href="index.php" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-in-right"></i> Ir para o Login</a>
+                    <form method="POST" action="installer.php" class="d-grid">
+                        <input type="hidden" name="reinstall" value="1">
+                        <button type="submit" class="btn btn-outline-danger"><i class="bi bi-arrow-repeat"></i> Reinstalar / Corrigir Configuração</button>
+                    </form>
                 </div>
             </div>
             <div class="card-footer text-center text-muted py-3">
@@ -179,12 +185,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <?php if ($step === 1): ?>
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle-fill"></i> <strong>Atenção:</strong> 
-                        Crie um banco de dados vazio no painel da sua hospedagem (ex: Cloudways) antes de prosseguir. Este instalador irá carregar a estrutura inicial nele (<code>banco_dump.sql.s</code>).
-                    </div>
-                    
+                    <?php if ($force_reinstall): ?>
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill"></i> <strong>Atenção:</strong>
+                            Você está no modo de <strong>reinstalação forçada</strong>. O arquivo de configuração atual será sobrescrito e o banco de dados será recriado a partir do dump. Certifique-se de que deseja prosseguir.
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle-fill"></i> <strong>Atenção:</strong>
+                            Crie um banco de dados vazio no painel da sua hospedagem (ex: Cloudways) antes de prosseguir. Este instalador irá carregar a estrutura inicial nele (<code>banco_dump.sql.s</code>).
+                        </div>
+                    <?php endif; ?>
+
                     <form method="POST" action="installer.php">
+                        <?php if ($force_reinstall): ?>
+                            <input type="hidden" name="reinstall" value="1">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="confirm_reinstall" required>
+                                <label class="form-check-label" for="confirm_reinstall">
+                                    Entendo que isso sobrescreverá a configuração atual e desejo continuar.
+                                </label>
+                            </div>
+                        <?php endif; ?>
                         <div class="mb-3">
                             <label for="db_host" class="form-label">Servidor MySQL (Host)</label>
                             <input type="text" class="form-control" id="db_host" name="db_host" value="localhost" required>
