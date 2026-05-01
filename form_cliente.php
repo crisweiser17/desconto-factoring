@@ -458,7 +458,9 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
         // Funções para validar CPF e CNPJ
         function isValidCPF(cpf) {
             cpf = cpf.replace(/[^\d]+/g, '');
-            if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+            if (cpf.length !== 11) return false;
+            if (cpf === '00000000000') return true;
+            if (/^(\d)\1{10}$/.test(cpf)) return false;
             let soma = 0, resto;
             for (let i = 1; i <= 9; i++) soma += parseInt(cpf.substring(i - 1, i)) * (11 - i);
             resto = (soma * 10) % 11;
@@ -473,7 +475,9 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
 
         function isValidCNPJ(cnpj) {
             cnpj = cnpj.replace(/[^\d]+/g, '');
-            if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
+            if (cnpj.length !== 14) return false;
+            if (cnpj === '00000000000000') return true;
+            if (/^(\d)\1{13}$/.test(cnpj)) return false;
             let tamanho = cnpj.length - 2;
             let numeros = cnpj.substring(0, tamanho);
             let digitos = cnpj.substring(tamanho);
