@@ -52,3 +52,373 @@ body {
 #tituloTemplateRow {
     display: none;
 }
+
+/* ============================================================
+ * UX/UI v2 — Sticky summary + cards + stepper
+ * Refatoração 2026-05-01
+ * ========================================================== */
+
+:root {
+    --sim-hero-bg: linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%);
+    --sim-profit: #198754;
+    --sim-profit-soft: #d1f0dc;
+    --sim-profit-border: #b3e3c4;
+    --sim-warn: #b76b00;
+    --sim-warn-soft: #fff3d6;
+    --sim-warn-border: #f1d999;
+    --sim-neutral: #6c757d;
+    --sim-surface: #ffffff;
+    --sim-surface-2: #f6f8fb;
+    --sim-border: #e3e8ef;
+}
+
+body.sim-page-body {
+    background: #eef2f7;
+}
+
+/* Toolbar */
+.sim-toolbar {
+    background: var(--sim-surface);
+    border: 1px solid var(--sim-border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.sim-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
+.sim-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+.sim-status-badge.is-pending { background: #fff3d6; color: #8a5a00; }
+.sim-status-badge.is-calculated { background: #cfe2ff; color: #0a4ea8; }
+.sim-status-badge.is-ready { background: #d1f0dc; color: #0f5132; }
+
+/* Stepper */
+.sim-stepper {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 18px;
+    padding: 0;
+    list-style: none;
+    flex-wrap: wrap;
+}
+.sim-stepper li {
+    flex: 1 1 0;
+    min-width: 130px;
+    background: #fff;
+    border: 1px solid var(--sim-border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.78rem;
+    color: var(--sim-neutral);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sim-stepper li .step-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #e3e8ef;
+    color: #495057;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+.sim-stepper li.is-active { border-color: #0d6efd; background: #eef4ff; color: #0a4ea8; }
+.sim-stepper li.is-active .step-num { background: #0d6efd; color: #fff; }
+.sim-stepper li.is-done { border-color: #198754; background: #e7f7ec; color: #0f5132; }
+.sim-stepper li.is-done .step-num { background: #198754; color: #fff; }
+
+/* Section card */
+.sim-card {
+    background: var(--sim-surface);
+    border: 1px solid var(--sim-border);
+    border-radius: 14px;
+    margin-bottom: 18px;
+    overflow: hidden;
+}
+.sim-card .sim-card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--sim-border);
+    background: var(--sim-surface-2);
+}
+.sim-card .sim-card-head .step-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: #0d6efd;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+.sim-card .sim-card-head h2 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+    flex: 1;
+}
+.sim-card .sim-card-head .head-meta {
+    font-size: 0.8rem;
+    color: var(--sim-neutral);
+}
+.sim-card .sim-card-body { padding: 18px; }
+
+.sim-card.sim-card-tax .sim-card-head .step-num { background: #b76b00; }
+.sim-card.sim-card-titles .sim-card-head .step-num { background: #0a8754; }
+.sim-card.sim-card-loan .sim-card-head .step-num { background: #6f42c1; }
+
+/* Modality toggle */
+.sim-modality-toggle .btn {
+    padding: 14px 16px;
+    font-size: 0.95rem;
+}
+.sim-modality-toggle .btn i { font-size: 1.1rem; margin-right: 6px; }
+
+/* Sticky summary panel */
+.sim-summary-panel {
+    position: sticky;
+    top: 16px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--sim-border);
+    background: #fff;
+}
+.sim-summary-head {
+    background: var(--sim-hero-bg);
+    color: #fff;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.sim-summary-head h3 {
+    font-size: 0.85rem;
+    margin: 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.9;
+}
+.sim-summary-hero {
+    background: var(--sim-hero-bg);
+    color: #fff;
+    padding: 6px 18px 22px;
+}
+.sim-summary-hero .hero-label {
+    font-size: 0.78rem;
+    opacity: 0.85;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.sim-summary-hero .hero-value {
+    font-size: 2.05rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #fff;
+}
+.sim-summary-hero .hero-sub {
+    font-size: 0.8rem;
+    opacity: 0.85;
+    margin-top: 4px;
+}
+.sim-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 16px;
+    background: var(--sim-surface);
+}
+.sim-cell {
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: var(--sim-surface-2);
+    border: 1px solid var(--sim-border);
+}
+.sim-cell .cell-label {
+    font-size: 0.72rem;
+    color: var(--sim-neutral);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+}
+.sim-cell .cell-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-top: 2px;
+}
+.sim-cell.cell-profit { background: var(--sim-profit-soft); border-color: var(--sim-profit-border); }
+.sim-cell.cell-profit .cell-value { color: var(--sim-profit); }
+.sim-cell.cell-warn { background: var(--sim-warn-soft); border-color: var(--sim-warn-border); }
+.sim-cell.cell-warn .cell-value { color: var(--sim-warn); }
+.sim-cell.cell-span { grid-column: 1 / -1; }
+
+.sim-summary-actions {
+    padding: 14px 16px;
+    border-top: 1px solid var(--sim-border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--sim-surface);
+}
+.sim-summary-actions .btn { font-weight: 600; }
+.sim-summary-actions .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.sim-actions-divider {
+    border: 0;
+    border-top: 1px dashed var(--sim-border);
+    margin: 4px 0 4px;
+    opacity: 1;
+}
+
+/* Form labels */
+.sim-card .form-label-strong {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sim-neutral);
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: block;
+}
+.sim-field-hint {
+    font-size: 0.75rem;
+    color: var(--sim-neutral);
+    margin-top: 4px;
+}
+
+/* Titles table polish */
+.sim-card-titles .table thead th {
+    background: var(--sim-surface-2);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sim-neutral);
+    border-bottom: 1px solid var(--sim-border);
+    padding: 10px 8px;
+}
+
+/* Collapsible details */
+details.sim-collapsible {
+    background: #fff;
+    border: 1px solid var(--sim-border);
+    border-radius: 12px;
+    padding: 0;
+    margin-bottom: 18px;
+}
+details.sim-collapsible > summary {
+    padding: 14px 18px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #495057;
+}
+details.sim-collapsible > summary::-webkit-details-marker { display: none; }
+details.sim-collapsible[open] > summary { border-bottom: 1px solid var(--sim-border); }
+details.sim-collapsible .details-body { padding: 18px; }
+
+/* Pill badges on card head meta */
+.sim-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+.sim-pill.pos { background: var(--sim-profit-soft); color: var(--sim-profit); }
+.sim-pill.warn { background: var(--sim-warn-soft); color: var(--sim-warn); }
+
+/* When the summary panel is shown in loan mode, hide the antecipação grid */
+.sim-summary-panel.is-loan-mode .sim-summary-hero,
+.sim-summary-panel.is-loan-mode .sim-summary-grid {
+    display: none;
+}
+
+/* Compact loan summary inside the sticky panel */
+.sim-loan-resumo {
+    padding: 16px;
+    border-bottom: 1px solid var(--sim-border);
+    background: var(--sim-surface);
+}
+.sim-loan-resumo-head {
+    text-align: center;
+    margin-bottom: 12px;
+}
+.sim-loan-resumo-head .resumo-modo-badge {
+    font-size: 0.75rem;
+}
+.sim-loan-resumo-desc {
+    font-size: 0.72rem !important;
+    line-height: 1.3;
+}
+.sim-loan-resumo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.sim-loan-resumo-grid .resumo-item-card {
+    padding: 8px 10px;
+    text-align: center;
+    border-radius: 10px;
+    border: 1px solid var(--sim-border);
+    background: var(--sim-surface-2);
+    transition: all 0.2s ease;
+}
+.sim-loan-resumo-grid .resumo-item-card small {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+}
+.sim-loan-resumo-grid .resumo-item-card span {
+    font-size: 1rem;
+}
+.sim-loan-resumo-grid .resumo-item-card.is-active {
+    border-color: #0d6efd;
+    background: linear-gradient(180deg, rgba(13,110,253,0.08), rgba(13,110,253,0.16));
+    box-shadow: 0 0.4rem 1rem rgba(13,110,253,0.12);
+}
+.sim-loan-resumo-grid .resumo-item-card.is-active small {
+    color: #0d6efd !important;
+    font-weight: 700;
+}
+.sim-loan-resumo-grid .resumo-item-card.is-active span {
+    color: #0a58ca;
+    font-size: 1.05rem;
+}
+
+/* Override the .container white background — we use sim-page-body bg instead */
+body.sim-page-body .container,
+body.sim-page-body .container-fluid {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+@media (max-width: 1199.98px) {
+    .sim-summary-panel { position: static; margin-top: 8px; }
+}

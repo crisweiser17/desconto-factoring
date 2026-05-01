@@ -52,6 +52,8 @@ $erro_sacados = $erro_clientes;
     <title>Nova Simulação / Registro - Calculadora</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <?php $styleCssVersion = file_exists(__DIR__ . '/style.css') ? (string) filemtime(__DIR__ . '/style.css') : 'missing'; ?>
+    <link rel="stylesheet" href="style.css?v=<?php echo rawurlencode($styleCssVersion); ?>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <style>
         /* Estilos CSS (mantidos como no seu arquivo) */
@@ -82,80 +84,130 @@ $erro_sacados = $erro_clientes;
         .resumo-item-card.is-active .fs-5 { color: #0a58ca; }
     </style>
 </head>
-<body>
+<body class="sim-page-body">
 
   <div class="container-fluid px-3 px-md-4 mt-4">
-      <h1 class="mb-4">Nova Simulação / Registro de Operação</h1>
+
+      <!-- Toolbar -->
+      <div class="sim-toolbar">
+          <div>
+              <h1><i class="bi bi-calculator-fill text-primary"></i> Nova Simulação / Registro</h1>
+              <div class="text-muted small mt-1">Preencha os dados ao lado e veja o resumo no painel à direita.</div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+              <span id="simStatusBadge" class="sim-status-badge is-pending">
+                  <i class="bi bi-hourglass-split"></i> <span id="simStatusBadgeText">Aguardando cálculo</span>
+              </span>
+          </div>
+      </div>
+
+      <!-- Stepper -->
+      <ol class="sim-stepper" id="simStepper">
+          <li data-step="1" class="is-active"><span class="step-num">1</span> Modalidade</li>
+          <li data-step="2"><span class="step-num">2</span> Cliente &amp; Parâmetros</li>
+          <li data-step="3"><span class="step-num">3</span> Tributação &amp; Pagamento</li>
+          <li data-step="4"><span class="step-num">4</span> Títulos</li>
+          <li data-step="5"><span class="step-num">5</span> Conferir &amp; Registrar</li>
+      </ol>
 
       <form id="calculationForm" method="post">
-          <fieldset class="border p-3 rounded mb-4">
-              <legend class="float-none w-auto px-3 h6">Modalidade da Operação</legend>
-              <div class="row g-3">
-                  <div class="col-md-12">
-                      <div class="btn-group w-100" role="group" aria-label="Tipo de Operação">
+        <div class="row g-4">
+
+          <!-- ============ COLUNA ESQUERDA: formulário ============ -->
+          <div class="col-xl-8">
+
+              <!-- Card 1: Modalidade -->
+              <div class="sim-card">
+                  <div class="sim-card-head">
+                      <span class="step-num">1</span>
+                      <h2>Modalidade da Operação</h2>
+                      <span class="head-meta">Define o cálculo aplicado</span>
+                  </div>
+                  <div class="sim-card-body">
+                      <div class="btn-group w-100 sim-modality-toggle" role="group" aria-label="Tipo de Operação">
                           <input type="radio" class="btn-check" name="tipoOperacao" id="tipoAntecipacao" value="antecipacao" autocomplete="off" checked>
-                          <label class="btn btn-outline-primary" for="tipoAntecipacao">Antecipação de Recebíveis</label>
+                          <label class="btn btn-outline-primary" for="tipoAntecipacao"><i class="bi bi-graph-down-arrow"></i> Antecipação de Recebíveis</label>
 
                           <input type="radio" class="btn-check" name="tipoOperacao" id="tipoEmprestimo" value="emprestimo" autocomplete="off">
-                          <label class="btn btn-outline-primary" for="tipoEmprestimo">Empréstimo (Gerar Parcelas)</label>
+                          <label class="btn btn-outline-primary" for="tipoEmprestimo"><i class="bi bi-cash-coin"></i> Empréstimo (Gerar Parcelas)</label>
                       </div>
                   </div>
               </div>
-          </fieldset>
 
-          <fieldset class="border p-3 rounded mb-4">
-              <legend class="float-none w-auto px-3 h6">Parâmetros da Operação</legend>
-              <div class="row g-3 align-items-end">
-                  <div class="col-md-5" id="containerCedente">
-                      <label for="cedente" class="form-label" id="labelCedente">Cedente</label>
-                      <select id="cedente" name="cedente_id" class="form-select">
-                          <option value="" selected>-- Selecione (Obrigatório p/ Registrar) --</option>
-                          <?php foreach ($cedentes as $cedente): ?>
-                              <option value="<?php echo htmlspecialchars($cedente['id']); ?>"><?php echo htmlspecialchars($cedente['nome']); ?></option>
-                          <?php endforeach; ?>
-                          <?php if (empty($cedentes) && $erro_cedentes): ?>
-                              <option value="" disabled><?php echo htmlspecialchars($erro_cedentes); ?></option>
-                          <?php elseif (empty($cedentes)):?>
-                              <option value="" disabled>Nenhum cedente cadastrado</option>
-                          <?php endif; ?>
-                      </select>
+              <!-- Card 2: Cliente & Parâmetros -->
+              <div class="sim-card">
+                  <div class="sim-card-head">
+                      <span class="step-num">2</span>
+                      <h2>Cliente &amp; Parâmetros</h2>
+                      <span class="head-meta">Quem e em que condições</span>
                   </div>
-                  <div class="col-md-5" id="containerTomador" style="display: none;">
-                      <label for="tomador" class="form-label">Tomador de Empréstimo (Sacado)</label>
-                      <select id="tomador" name="tomador_id" class="form-select">
-                          <option value="" selected>-- Selecione Tomador --</option>
-                          <?php foreach ($sacados as $sacado): ?>
-                              <option value="<?php echo htmlspecialchars($sacado['id']); ?>"><?php echo htmlspecialchars($sacado['nome']); ?></option>
-                          <?php endforeach; ?>
-                          <?php if (empty($sacados) && $erro_sacados): ?>
-                              <option value="" disabled><?php echo htmlspecialchars($erro_sacados); ?></option>
-                          <?php elseif (empty($sacados)): ?>
-                              <option value="" disabled>Nenhum sacado cadastrado</option>
-                          <?php endif; ?>
-                      </select>
-                  </div>
-                  <div class="col-md-4" id="containerTaxaPrincipal">
-                      <div id="taxaFieldContainer"><label for="taxaMensal" class="form-label" id="labelTaxa">Taxa de Desconto (% a.m.)</label><div class="input-group"><button class="btn btn-outline-secondary" type="button" id="taxaDecrementBtn">-</button><input type="number" class="form-control" id="taxaMensal" name="taxaMensal" step="0.25" min="0" value="<?php echo htmlspecialchars($defaultTaxaMensal); ?>" required><button class="btn btn-outline-secondary" type="button" id="taxaIncrementBtn">+</button><button class="btn btn-outline-primary" type="button" id="btnAbrirModalTaxa" title="Descobrir taxa a partir de um valor líquido alvo" data-bs-toggle="modal" data-bs-target="#descobrirTaxaModal"><i class="bi bi-calculator"></i></button></div></div>
-                  </div>
-                  <div class="col-md-2" id="containerDataOperacaoPrincipal">
-                      <div id="dataOperacaoFieldContainer"><label for="data_operacao" class="form-label">Data Base de Cálculo:</label><?php $dataOperacaoDefault = date('Y-m-d'); ?><input type="date" class="form-control" id="data_operacao" name="data_operacao" value="<?php echo $dataOperacaoDefault; ?>" required></div>
-                  </div>
-                  <div class="col-md-3 d-none" id="containerTemGarantiaPrincipal">
-                      <div id="temGarantiaFieldContainer"><label for="temGarantia" class="form-label">Possui Garantia?</label><select id="temGarantia" name="tem_garantia" class="form-select"><option value="Nao" selected>Não</option><option value="Sim">Sim</option></select></div>
+                  <div class="sim-card-body">
+                      <div class="row g-3 align-items-end">
+                          <div class="col-md-5" id="containerCedente">
+                              <label for="cedente" class="form-label-strong" id="labelCedente">Cedente</label>
+                              <select id="cedente" name="cedente_id" class="form-select">
+                                  <option value="" selected>-- Selecione (Obrigatório p/ Registrar) --</option>
+                                  <?php foreach ($cedentes as $cedente): ?>
+                                      <option value="<?php echo htmlspecialchars($cedente['id']); ?>"><?php echo htmlspecialchars($cedente['nome']); ?></option>
+                                  <?php endforeach; ?>
+                                  <?php if (empty($cedentes) && $erro_cedentes): ?>
+                                      <option value="" disabled><?php echo htmlspecialchars($erro_cedentes); ?></option>
+                                  <?php elseif (empty($cedentes)):?>
+                                      <option value="" disabled>Nenhum cedente cadastrado</option>
+                                  <?php endif; ?>
+                              </select>
+                          </div>
+                          <div class="col-md-5" id="containerTomador" style="display: none;">
+                              <label for="tomador" class="form-label-strong">Tomador de Empréstimo (Sacado)</label>
+                              <select id="tomador" name="tomador_id" class="form-select">
+                                  <option value="" selected>-- Selecione Tomador --</option>
+                                  <?php foreach ($sacados as $sacado): ?>
+                                      <option value="<?php echo htmlspecialchars($sacado['id']); ?>"><?php echo htmlspecialchars($sacado['nome']); ?></option>
+                                  <?php endforeach; ?>
+                                  <?php if (empty($sacados) && $erro_sacados): ?>
+                                      <option value="" disabled><?php echo htmlspecialchars($erro_sacados); ?></option>
+                                  <?php elseif (empty($sacados)): ?>
+                                      <option value="" disabled>Nenhum sacado cadastrado</option>
+                                  <?php endif; ?>
+                              </select>
+                          </div>
+                          <div class="col-md-4" id="containerTaxaPrincipal">
+                              <div id="taxaFieldContainer"><label for="taxaMensal" class="form-label-strong" id="labelTaxa">Taxa de Desconto (% a.m.)</label><div class="input-group"><button class="btn btn-outline-secondary" type="button" id="taxaDecrementBtn">-</button><input type="number" class="form-control" id="taxaMensal" name="taxaMensal" step="0.25" min="0" value="<?php echo htmlspecialchars($defaultTaxaMensal); ?>" required><button class="btn btn-outline-secondary" type="button" id="taxaIncrementBtn">+</button><button class="btn btn-outline-primary" type="button" id="btnAbrirModalTaxa" title="Descobrir taxa a partir de um valor líquido alvo" data-bs-toggle="modal" data-bs-target="#descobrirTaxaModal"><i class="bi bi-calculator"></i></button></div></div>
+                          </div>
+                          <div class="col-md-3" id="containerDataOperacaoPrincipal">
+                              <div id="dataOperacaoFieldContainer"><label for="data_operacao" class="form-label-strong">Data Base de Cálculo</label><?php $dataOperacaoDefault = date('Y-m-d'); ?><input type="date" class="form-control" id="data_operacao" name="data_operacao" value="<?php echo $dataOperacaoDefault; ?>" required></div>
+                          </div>
+                          <div class="col-md-3 d-none" id="containerTemGarantiaPrincipal">
+                              <div id="temGarantiaFieldContainer"><label for="temGarantia" class="form-label-strong">Possui Garantia?</label><select id="temGarantia" name="tem_garantia" class="form-select"><option value="Nao" selected>Não</option><option value="Sim">Sim</option></select></div>
+                          </div>
+                      </div>
                   </div>
               </div>
-              <div class="row g-3 mt-1 align-items-end">
-                  <div class="col-md-3" id="containerTipoPagamento"><label for="tipoPagamento" class="form-label">Tipo de Pagamento</label><select id="tipoPagamento" name="tipoPagamento" class="form-select" required><option value="direto">Pagamento Direto (Devedor Notificado)</option><option value="escrow">Pagamento via Conta Escrow</option><option value="indireto">Pagamento Indireto (Repasse via Cedente)</option></select></div>
-                  <div class="col-md-3" id="containerIncorreIOF"><label for="incorreIOF" class="form-label">Você Incorre Custo IOF?</label><select id="incorreIOF" name="incorreIOF" class="form-select"><option value="Sim">Sim</option><option value="Nao" selected>Não</option></select></div>
-                  <div class="col-md-3 cobrar-iof-wrapper d-none" id="containerCobrarIOF"><label for="cobrarIOF" class="form-label">Cobrar IOF do Cliente?</label><select id="cobrarIOF" name="cobrarIOF" class="form-select"><option value="Sim">Sim (Taxa Extra)</option><option value="Nao">Não</option></select></div>
-              </div>
-              <div class="row g-3 mt-1">
-                  <div class="col-12"><label for="notas" class="form-label">Anotações da Operação</label><textarea class="form-control" id="notas" name="notas" rows="3" placeholder="Detalhes..."></textarea></div>
-              </div>
-          </fieldset>
 
-          <fieldset class="border p-3 rounded mb-4" id="emprestimoParamsSection" style="display: none; background-color: #f8f9fa;">
-              <legend class="float-none w-auto px-3 h6 text-primary"><i class="bi bi-cash-coin"></i> Calculadora Flexível de Empréstimo</legend>
+              <!-- Card 3: Tributação & Pagamento (somente Antecipação) -->
+              <div class="sim-card sim-card-tax" id="cardTributacao">
+                  <div class="sim-card-head">
+                      <span class="step-num">3</span>
+                      <h2>Tributação &amp; Pagamento</h2>
+                      <span class="head-meta">IOF e fluxo do dinheiro</span>
+                  </div>
+                  <div class="sim-card-body">
+                      <div class="row g-3 align-items-end">
+                          <div class="col-md-4" id="containerTipoPagamento"><label for="tipoPagamento" class="form-label-strong">Tipo de Pagamento</label><select id="tipoPagamento" name="tipoPagamento" class="form-select" required><option value="direto">Pagamento Direto (Devedor Notificado)</option><option value="escrow">Pagamento via Conta Escrow</option><option value="indireto">Pagamento Indireto (Repasse via Cedente)</option></select></div>
+                          <div class="col-md-4" id="containerIncorreIOF"><label for="incorreIOF" class="form-label-strong">Você Incorre Custo IOF?</label><select id="incorreIOF" name="incorreIOF" class="form-select"><option value="Sim">Sim</option><option value="Nao" selected>Não</option></select></div>
+                          <div class="col-md-4 cobrar-iof-wrapper d-none" id="containerCobrarIOF"><label for="cobrarIOF" class="form-label-strong">Cobrar IOF do Cliente?</label><select id="cobrarIOF" name="cobrarIOF" class="form-select"><option value="Sim">Sim (Taxa Extra)</option><option value="Nao">Não</option></select></div>
+                      </div>
+                  </div>
+              </div>
+
+              <!-- Card de Empréstimo (mantém id e display original toggleados pelo JS) -->
+              <fieldset class="sim-card sim-card-loan p-0 border-0 mb-4" id="emprestimoParamsSection" style="display: none;">
+              <div class="sim-card-head">
+                  <span class="step-num"><i class="bi bi-cash-coin"></i></span>
+                  <h2>Calculadora Flexível de Empréstimo</h2>
+                  <span class="head-meta">Configuração das parcelas</span>
+              </div>
+              <div class="sim-card-body" style="background:#fafbfd;">
               
               <!-- Seletor de Modo de Cálculo -->
               <div class="row g-3 mb-3">
@@ -225,252 +277,296 @@ $erro_sacados = $erro_clientes;
                   </div>
               </div>
 
-              <!-- Card de Resumo do Empréstimo -->
-              <div class="row g-3 mt-3" id="resumoEmprestimoSection" style="display: none;">
-                  <div class="col-12">
-                      <div class="card border-primary">
-                          <div class="card-header bg-primary text-white fw-bold">
-                              <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                                  <span><i class="bi bi-file-earmark-bar-graph"></i> Resumo da Simulação</span>
-                                  <span class="badge bg-light text-primary resumo-modo-badge" id="resumoModoBadge">Modo: Descobrir Parcela</span>
+              <!-- O resumo do empréstimo agora aparece no painel sticky à direita (#resumoEmprestimoSection). -->
+              </div>
+              </fieldset>
+
+              <!-- Card 4: Títulos a Descontar -->
+              <div class="sim-card sim-card-titles">
+                  <div class="sim-card-head">
+                      <span class="step-num">4</span>
+                      <h2 id="legendTitulos">Títulos a Descontar</h2>
+                      <span class="head-meta">Valores e datas</span>
+                  </div>
+                  <div class="sim-card-body p-0">
+                      <div class="table-responsive">
+                          <table class="table mb-0" id="titulosTable">
+                              <thead>
+                                  <tr>
+                                      <th scope="col">Valor Original (R$)</th>
+                                      <th scope="col">Data Vencimento</th>
+                                      <th scope="col">Sacado (Devedor)</th>
+                                      <th scope="col">Tipo Recebível</th>
+                                      <th scope="col" class="text-end" id="colHeaderValorPago">Valor Líquido Pago (R$)</th>
+                                      <th scope="col" class="text-center" style="width: 80px;">Dias Rest.</th>
+                                      <th scope="col" style="width: 50px;">Ação</th>
+                                  </tr>
+                              </thead>
+                              <tbody id="titulosBody">
+                                  <tr>
+                                      <td><input type="text" inputmode="decimal" name="titulo_valor[]" class="form-control valor-original text-end" placeholder="0,00" required></td>
+                                      <td><input type="date" name="titulo_data[]" class="form-control data-vencimento" required></td>
+                                      <td>
+                                          <select name="titulo_sacado[]" class="form-select sacado-select">
+                                              <option value="">-- Selecione Sacado --</option>
+                                              <?php foreach ($sacados as $sacado): ?>
+                                                  <option value="<?php echo htmlspecialchars($sacado['id']); ?>"><?php echo htmlspecialchars($sacado['nome']); ?></option>
+                                              <?php endforeach; ?>
+                                              <?php if (empty($sacados) && $erro_sacados): ?>
+                                                  <option value="" disabled><?php echo htmlspecialchars($erro_sacados); ?></option>
+                                              <?php elseif (empty($sacados)): ?>
+                                                  <option value="" disabled>Nenhum sacado cadastrado</option>
+                                              <?php endif; ?>
+                                          </select>
+                                      </td>
+                                      <td>
+                                          <select name="titulo_tipo[]" class="form-select tipo-recebivel-select">
+                                              <option value="duplicata" selected>Duplicata</option>
+                                              <option value="cheque">Cheque</option>
+                                              <option value="nota_promissoria">Nota Promissória</option>
+                                              <option value="boleto">Boleto</option>
+                                              <option value="fatura">Fatura</option>
+                                              <option value="nota_fiscal">Nota Fiscal</option>
+                                              <option value="parcela_emprestimo">Parcela de Empréstimo</option>
+                                              <option value="outros">Outros</option>
+                                          </select>
+                                      </td>
+                                      <td class="valor-pago-cell">--</td>
+                                      <td class="dias-restantes-cell"></td>
+                                      <td></td>
+                                  </tr>
+                              </tbody>
+                          </table>
+                      </div>
+                      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-2 border-top">
+                          <button type="button" class="btn btn-outline-success btn-sm" id="addTituloBtn"><i class="bi bi-plus-circle"></i> Adicionar Título</button>
+                          <button type="button" class="btn btn-sm" id="encontroContasBtn" style="display: none; background-color: #d2691e; color: white; border: 1px solid #b8621a;">
+                              <i class="bi bi-arrow-left-right"></i> Listar Recebíveis Indiretos
+                          </button>
+                      </div>
+                      <div id="compensacaoInfo" class="px-3 pb-3" style="display: none;">
+                          <div class="alert alert-warning d-flex justify-content-between align-items-start mb-0">
+                              <div>
+                                  <small>ID do Recebível: <span id="compensacaoRecebiveis"></span></small><br>
+                                  <small>Valor Original: <span id="compensacaoValorOriginal">R$ 0,00</span></small><br>
+                                  <strong>Compensação Aplicada: <span id="compensacaoValor">R$ 0,00</span></strong><br>
+                                  <small>Saldo Remanescente: <span id="compensacaoSaldoRemanescente">R$ 0,00</span></small><br>
+                                  <small>Valor Presente (Antecipado): <span id="compensacaoValorPresente" class="text-info fw-bold">R$ 0,00</span></small><br>
+                                  <small>Crédito por Antecipação: <span id="compensacaoRemuneracao" class="text-success fw-bold">R$ 0,00</span></small><br>
+                                  <small>Status: <span id="compensacaoStatus" class="badge bg-warning">Parcialmente Quitado</span></small>
                               </div>
-                              <div class="small text-white-50 mt-1" id="resumoModoDescricao">O resultado principal da simulação aparece destacado conforme o modo selecionado.</div>
-                          </div>
-                          <div class="card-body">
-                              <div class="row text-center">
-                                  <div class="col-md-2 col-6 mb-2">
-                                      <div class="resumo-item-card" id="resumoItemPv">
-                                          <small class="text-muted d-block">Empréstimo</small>
-                                          <span class="fs-5 fw-bold" id="resumoPv">--</span>
-                                      </div>
-                                  </div>
-                                  <div class="col-md-2 col-6 mb-2">
-                                      <div class="resumo-item-card" id="resumoItemPmt">
-                                          <small class="text-muted d-block">Parcela</small>
-                                          <span class="fs-5 fw-bold text-primary" id="resumoPmt">--</span>
-                                      </div>
-                                  </div>
-                                  <div class="col-md-2 col-6 mb-2">
-                                      <div class="resumo-item-card" id="resumoItemPrazo">
-                                          <small class="text-muted d-block">Prazo</small>
-                                          <span class="fs-5 fw-bold" id="resumoPrazo">--</span>
-                                      </div>
-                                  </div>
-                                  <div class="col-md-2 col-6 mb-2">
-                                      <div class="resumo-item-card" id="resumoItemTaxa">
-                                          <small class="text-muted d-block">Taxa a.m.</small>
-                                          <span class="fs-5 fw-bold text-danger" id="resumoTaxa">--</span>
-                                      </div>
-                                  </div>
-                                  <div class="col-md-2 col-6 mb-2">
-                                      <div class="resumo-item-card" id="resumoItemTotal">
-                                          <small class="text-muted d-block">Total a Pagar</small>
-                                          <span class="fs-5 fw-bold" id="resumoTotal">--</span>
-                                      </div>
-                                  </div>
-                                  <div class="col-md-2 col-6 mb-2">
-                                      <div class="resumo-item-card" id="resumoItemLucro">
-                                          <small class="text-muted d-block">Lucro</small>
-                                          <span class="fs-5 fw-bold text-success" id="resumoLucro">--</span>
-                                      </div>
-                                  </div>
-                              </div>
+                              <button type="button" class="btn btn-outline-danger btn-sm" id="removerCompensacaoBtn" title="Remover Compensação">
+                                  <i class="bi bi-x-circle"></i> Remover
+                              </button>
                           </div>
                       </div>
                   </div>
               </div>
-          </fieldset>
 
-          <fieldset class="border p-3 rounded mb-4">
-            <legend id="legendTitulos" class="float-none w-auto px-3 h6">Títulos a Descontar</legend>
-            <div class="table-responsive">
-                <table class="table" id="titulosTable">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col">Valor Original (R$)</th>
-                            <th scope="col">Data Vencimento</th>
-                            <th scope="col">Sacado (Devedor)</th>
-                            <th scope="col">Tipo Recebível</th>
-                            <th scope="col" class="text-end" id="colHeaderValorPago">Valor Líquido Pago (R$)</th>
-                            <th scope="col" class="text-center" style="width: 80px;">Dias Rest.</th>
-                            <th scope="col" style="width: 50px;">Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody id="titulosBody">
-                        <tr>
-                            <td><input type="number" name="titulo_valor[]" class="form-control valor-original" step="0.01" min="0.01" placeholder="1000.00" required></td>
-                            <td><input type="date" name="titulo_data[]" class="form-control data-vencimento" required></td>
-                            <td>
-                                <select name="titulo_sacado[]" class="form-select sacado-select">
-                                    <option value="">-- Selecione Sacado --</option>
-                                    <?php foreach ($sacados as $sacado): ?>
-                                        <option value="<?php echo htmlspecialchars($sacado['id']); ?>"><?php echo htmlspecialchars($sacado['nome']); ?></option>
-                                    <?php endforeach; ?>
-                                    <?php if (empty($sacados) && $erro_sacados): ?>
-                                        <option value="" disabled><?php echo htmlspecialchars($erro_sacados); ?></option>
-                                    <?php elseif (empty($sacados)): ?>
-                                        <option value="" disabled>Nenhum sacado cadastrado</option>
-                                    <?php endif; ?>
-                                </select>
-                            </td>
-                            <td>
-                                <select name="titulo_tipo[]" class="form-select tipo-recebivel-select">
-                                    <option value="duplicata" selected>Duplicata</option>
-                                    <option value="cheque">Cheque</option>
-                                    <option value="nota_promissoria">Nota Promissória</option>
-                                    <option value="boleto">Boleto</option>
-                                    <option value="fatura">Fatura</option>
-                                    <option value="nota_fiscal">Nota Fiscal</option>
-                                    <option value="parcela_emprestimo">Parcela de Empréstimo</option>
-                                    <option value="outros">Outros</option>
-                                </select>
-                            </td>
-                            <td class="valor-pago-cell">--</td>
-                            <td class="dias-restantes-cell"></td>
-                            <td></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <button type="button" class="btn btn-outline-success btn-sm mt-2" id="addTituloBtn"><i class="bi bi-plus-circle"></i> Adicionar Título</button>
-            
-            <!-- Botão de Encontro de Contas -->
-            <div class="mt-3">
-                <button type="button" class="btn btn-sm" id="encontroContasBtn" style="display: none; background-color: #d2691e; color: white; border: 1px solid #b8621a;">
-                    <i class="bi bi-arrow-left-right"></i> Listar Recebíveis Indiretos
-                </button>
-                <div id="compensacaoInfo" class="mt-2" style="display: none;">
-                    <div class="alert alert-warning d-flex justify-content-between align-items-start">
-                        <div>
-                            <small>ID do Recebível: <span id="compensacaoRecebiveis"></span></small><br>
-                            <small>Valor Original: <span id="compensacaoValorOriginal">R$ 0,00</span></small><br>
-                            <strong>Compensação Aplicada: <span id="compensacaoValor">R$ 0,00</span></strong><br>
-                            <small>Saldo Remanescente: <span id="compensacaoSaldoRemanescente">R$ 0,00</span></small><br>
-                            <small>Valor Presente (Antecipado): <span id="compensacaoValorPresente" class="text-info fw-bold">R$ 0,00</span></small><br>
-                            <small>Crédito por Antecipação: <span id="compensacaoRemuneracao" class="text-success fw-bold">R$ 0,00</span></small><br>
-                            <small>Status: <span id="compensacaoStatus" class="badge bg-warning">Parcialmente Quitado</span></small>
-                        </div>
-                        <button type="button" class="btn btn-outline-danger btn-sm" id="removerCompensacaoBtn" title="Remover Compensação">
-                            <i class="bi bi-x-circle"></i> Remover
-                        </button>
-                    </div>
-                </div>
-            </div>
-          </fieldset>
+              <!-- Anotações da operação (sempre visível, ambos os modos) -->
+              <details class="sim-collapsible">
+                  <summary><i class="bi bi-pencil-square"></i> Anotações da operação <span class="text-muted small ms-auto">opcional</span></summary>
+                  <div class="details-body">
+                      <textarea class="form-control" id="notas" name="notas" rows="3" placeholder="Detalhes da operação..."></textarea>
+                  </div>
+              </details>
 
-          <!-- Seção de Upload de Arquivos -->
-          <fieldset class="border p-3 rounded mb-4" id="arquivosSection" style="display: none;">
-            <legend class="float-none w-auto px-3 h6">Anexar Documentos (Garantias, Contratos, etc.)</legend>
-            <div class="row">
-                <div class="col-md-8">
-                    <label for="arquivos" class="form-label">Selecionar Arquivos</label>
-                    <input type="file" class="form-control" id="arquivos" name="arquivos[]" multiple
-                           accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.txt">
-                    <div class="form-text">
-                        Tipos aceitos: PDF, JPG, PNG, GIF, WebP, DOC, DOCX, XLS, XLSX, TXT<br>
-                        Tamanho máximo por arquivo: 10MB | Máximo: 20 arquivos por operação
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <label for="descricaoArquivos" class="form-label">Descrição (opcional)</label>
-                    <textarea class="form-control" id="descricaoArquivos" rows="3"
-                              placeholder="Descrição dos documentos anexados..."></textarea>
-                </div>
-            </div>
-            <div id="arquivos-preview" class="mt-3" style="display: none;">
-                <h6>Arquivos Selecionados:</h6>
-                <div id="arquivos-list" class="list-group"></div>
-            </div>
-          </fieldset>
+              <!-- Anexos: Anexar Documentos (collapse) -->
+              <details class="sim-collapsible" id="arquivosSection" style="display: none;">
+                  <summary><i class="bi bi-paperclip"></i> Anexar Documentos (Garantias, Contratos, etc.) <span class="text-muted small ms-auto">opcional</span></summary>
+                  <div class="details-body">
+                      <div class="row">
+                          <div class="col-md-8">
+                              <label for="arquivos" class="form-label">Selecionar Arquivos</label>
+                              <input type="file" class="form-control" id="arquivos" name="arquivos[]" multiple
+                                     accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.txt">
+                              <div class="form-text">
+                                  Tipos aceitos: PDF, JPG, PNG, GIF, WebP, DOC, DOCX, XLS, XLSX, TXT<br>
+                                  Tamanho máximo por arquivo: 10MB | Máximo: 20 arquivos por operação
+                              </div>
+                          </div>
+                          <div class="col-md-4">
+                              <label for="descricaoArquivos" class="form-label">Descrição (opcional)</label>
+                              <textarea class="form-control" id="descricaoArquivos" rows="3"
+                                        placeholder="Descrição dos documentos anexados..."></textarea>
+                          </div>
+                      </div>
+                      <div id="arquivos-preview" class="mt-3" style="display: none;">
+                          <h6>Arquivos Selecionados:</h6>
+                          <div id="arquivos-list" class="list-group"></div>
+                      </div>
+                  </div>
+              </details>
 
-          <table style="display:none;">
-              <tr id="tituloTemplateRow">
-                  <td><input type="number" name="titulo_valor[]" class="form-control valor-original" step="0.01" min="0.01" placeholder="1000.00" required disabled></td>
-                  <td><input type="date" name="titulo_data[]" class="form-control data-vencimento" required disabled></td>
-                  <td>
-                      <select name="titulo_sacado[]" class="form-select sacado-select" disabled>
-                          <option value="">-- Selecione Sacado --</option>
-                          <?php foreach ($sacados as $sacado): ?>
-                              <option value="<?php echo htmlspecialchars($sacado['id']); ?>"><?php echo htmlspecialchars($sacado['nome']); ?></option>
-                          <?php endforeach; ?>
-                          <?php if (empty($sacados) && $erro_sacados): ?>
-                              <option value="" disabled><?php echo htmlspecialchars($erro_sacados); ?></option>
-                          <?php elseif (empty($sacados)): ?>
-                              <option value="" disabled>Nenhum sacado cadastrado</option>
-                          <?php endif; ?>
-                      </select>
-                  </td>
-                  <td>
-                      <select name="titulo_tipo[]" class="form-select tipo-recebivel-select" disabled>
-                          <option value="duplicata" selected>Duplicata</option>
-                          <option value="cheque">Cheque</option>
-                          <option value="nota_promissoria">Nota Promissória</option>
-                          <option value="boleto">Boleto</option>
-                          <option value="fatura">Fatura</option>
-                          <option value="nota_fiscal">Nota Fiscal</option>
-                          <option value="parcela_emprestimo">Parcela de Empréstimo</option>
-                          <option value="outros">Outros</option>
-                      </select>
-                  </td>
-                  <td class="valor-pago-cell">--</td>
-                  <td class="dias-restantes-cell"></td>
-                  <td><button type="button" class="btn btn-danger btn-sm remove-row-btn" title="Remover Título" disabled><i class="bi bi-trash"></i></button></td>
-              </tr>
-          </table>
+              <!-- Fluxo de Caixa (collapse) -->
+              <details class="sim-collapsible">
+                  <summary><i class="bi bi-bar-chart-line"></i> Fluxo de Caixa por Mês <span class="text-muted small ms-auto">após calcular</span></summary>
+                  <div class="details-body">
+                      <div class="chart-wrapper"><canvas id="fluxoCaixaChart"></canvas></div>
+                  </div>
+              </details>
 
-          <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mt-4 mb-2">
-              <button type="button" id="calculateBtn" class="btn btn-primary">Calcular Totais</button>
-              <button type="button" id="exportPdfBtn" class="btn btn-secondary" disabled><i class="bi bi-file-earmark-pdf"></i> PDF Análise Completa</button>
-              <button type="button" id="exportPdfClienteBtn" class="btn btn-outline-secondary" disabled><i class="bi bi-file-earmark-person"></i> PDF Simulação Cliente</button>
-              <button type="button" id="registerBtn" class="btn btn-success" disabled><i class="bi bi-check-lg"></i> Registrar Operação</button>
+              <!-- Template oculto para clonagem de linhas (mantido na coluna esquerda) -->
+              <table style="display:none;">
+                  <tr id="tituloTemplateRow">
+                      <td><input type="text" inputmode="decimal" name="titulo_valor[]" class="form-control valor-original text-end" placeholder="0,00" required disabled></td>
+                      <td><input type="date" name="titulo_data[]" class="form-control data-vencimento" required disabled></td>
+                      <td>
+                          <select name="titulo_sacado[]" class="form-select sacado-select" disabled>
+                              <option value="">-- Selecione Sacado --</option>
+                              <?php foreach ($sacados as $sacado): ?>
+                                  <option value="<?php echo htmlspecialchars($sacado['id']); ?>"><?php echo htmlspecialchars($sacado['nome']); ?></option>
+                              <?php endforeach; ?>
+                              <?php if (empty($sacados) && $erro_sacados): ?>
+                                  <option value="" disabled><?php echo htmlspecialchars($erro_sacados); ?></option>
+                              <?php elseif (empty($sacados)): ?>
+                                  <option value="" disabled>Nenhum sacado cadastrado</option>
+                              <?php endif; ?>
+                          </select>
+                      </td>
+                      <td>
+                          <select name="titulo_tipo[]" class="form-select tipo-recebivel-select" disabled>
+                              <option value="duplicata" selected>Duplicata</option>
+                              <option value="cheque">Cheque</option>
+                              <option value="nota_promissoria">Nota Promissória</option>
+                              <option value="boleto">Boleto</option>
+                              <option value="fatura">Fatura</option>
+                              <option value="nota_fiscal">Nota Fiscal</option>
+                              <option value="parcela_emprestimo">Parcela de Empréstimo</option>
+                              <option value="outros">Outros</option>
+                          </select>
+                      </td>
+                      <td class="valor-pago-cell">--</td>
+                      <td class="dias-restantes-cell"></td>
+                      <td><button type="button" class="btn btn-danger btn-sm remove-row-btn" title="Remover Título" disabled><i class="bi bi-trash"></i></button></td>
+                  </tr>
+              </table>
+
           </div>
-          
-          <div class="d-flex justify-content-center mb-3" id="containerNotificarSacado">
-              <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="notificar_sacado" name="notificar_sacado">
-                  <label class="form-check-label" for="notificar_sacado">
-                      <i class="bi bi-envelope"></i> Notificar Sacado(s) por E-mail após o registro
-                  </label>
+          <!-- /col-xl-8 -->
+
+          <!-- ============ COLUNA DIREITA: painel sticky ============ -->
+          <div class="col-xl-4">
+              <div class="sim-summary-panel" id="summaryPanel">
+
+                  <div class="sim-summary-head">
+                      <h3>Resumo da Simulação</h3>
+                      <span class="badge bg-light text-primary" id="summaryModeBadge">Antecipação</span>
+                  </div>
+
+                  <!-- Resumo da simulação de Empréstimo (controlado por JS via #resumoEmprestimoSection) -->
+                  <div id="resumoEmprestimoSection" class="sim-loan-resumo" style="display: none;">
+                      <div class="sim-loan-resumo-head">
+                          <span class="badge bg-light text-primary resumo-modo-badge" id="resumoModoBadge">Modo: Descobrir Parcela</span>
+                          <div class="sim-loan-resumo-desc small text-muted mt-1" id="resumoModoDescricao">O resultado principal aparece destacado conforme o modo selecionado.</div>
+                      </div>
+                      <div class="sim-loan-resumo-grid">
+                          <div class="resumo-item-card" id="resumoItemPv">
+                              <small class="text-muted d-block">Empréstimo</small>
+                              <span class="fw-bold" id="resumoPv">--</span>
+                          </div>
+                          <div class="resumo-item-card" id="resumoItemPmt">
+                              <small class="text-muted d-block">Parcela</small>
+                              <span class="fw-bold text-primary" id="resumoPmt">--</span>
+                          </div>
+                          <div class="resumo-item-card" id="resumoItemPrazo">
+                              <small class="text-muted d-block">Prazo</small>
+                              <span class="fw-bold" id="resumoPrazo">--</span>
+                          </div>
+                          <div class="resumo-item-card" id="resumoItemTaxa">
+                              <small class="text-muted d-block">Taxa a.m.</small>
+                              <span class="fw-bold text-danger" id="resumoTaxa">--</span>
+                          </div>
+                          <div class="resumo-item-card" id="resumoItemTotal">
+                              <small class="text-muted d-block">Total a Pagar</small>
+                              <span class="fw-bold" id="resumoTotal">--</span>
+                          </div>
+                          <div class="resumo-item-card" id="resumoItemLucro">
+                              <small class="text-muted d-block">Lucro</small>
+                              <span class="fw-bold text-success" id="resumoLucro">--</span>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div class="sim-summary-hero">
+                      <div class="hero-label">Total líquido pago</div>
+                      <div class="hero-value" id="resTotalLiquido">--</div>
+                      <div class="hero-sub">Valor a entregar ao cliente</div>
+                  </div>
+
+                  <div class="sim-summary-grid">
+                      <div class="sim-cell cell-profit cell-span">
+                          <div class="cell-label"><i class="bi bi-arrow-up-right"></i> Lucro líquido</div>
+                          <div class="cell-value" id="resTotalLucro">--</div>
+                      </div>
+                      <div class="sim-cell cell-profit">
+                          <div class="cell-label">Margem (%)</div>
+                          <div class="cell-value" id="resMargemTotal">--</div>
+                      </div>
+                      <div class="sim-cell cell-profit">
+                          <div class="cell-label">Retorno mensal</div>
+                          <div class="cell-value" id="resRetornoMensal">--</div>
+                      </div>
+                      <div class="sim-cell">
+                          <div class="cell-label">Total Original</div>
+                          <div class="cell-value" id="resTotalOriginal">--</div>
+                      </div>
+                      <div class="sim-cell">
+                          <div class="cell-label">Vl. Presente</div>
+                          <div class="cell-value" id="resTotalPresente">--</div>
+                      </div>
+                      <div class="sim-cell">
+                          <div class="cell-label">Média Dias</div>
+                          <div class="cell-value" id="resMediaDias">--</div>
+                      </div>
+                      <div class="sim-cell cell-warn" id="containerResTotalIOF">
+                          <div class="cell-label"><i class="bi bi-receipt"></i> IOF Calc.</div>
+                          <div class="cell-value" id="resTotalIOF">--</div>
+                      </div>
+
+                      <div class="sim-cell cell-warn cell-span" id="compensacaoRow" style="display: none;">
+                          <div class="row g-2 m-0">
+                              <div class="col-6 p-0 pe-2">
+                                  <div class="cell-label">Antecipação</div>
+                                  <div class="cell-value" id="resAntecipacao">--</div>
+                              </div>
+                              <div class="col-6 p-0 ps-2 border-start">
+                                  <div class="cell-label" style="color: var(--sim-profit);">Crédito Antecipação</div>
+                                  <div class="cell-value" id="resCreditoAntecipacao" style="color: var(--sim-profit);">--</div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div id="error-message" class="alert alert-danger d-none mx-3" role="alert"></div>
+
+                  <div class="sim-summary-actions">
+                      <button type="button" id="calculateBtn" class="btn btn-primary btn-lg"><i class="bi bi-calculator"></i> Calcular Totais</button>
+                      <div class="btn-row">
+                          <button type="button" id="exportPdfBtn" class="btn btn-outline-secondary btn-sm" disabled><i class="bi bi-file-earmark-pdf"></i> PDF Análise</button>
+                          <button type="button" id="exportPdfClienteBtn" class="btn btn-outline-secondary btn-sm" disabled><i class="bi bi-file-earmark-person"></i> PDF Cliente</button>
+                      </div>
+
+                      <hr class="sim-actions-divider">
+
+                      <button type="button" id="registerBtn" class="btn btn-success" disabled><i class="bi bi-check-lg"></i> Registrar Operação</button>
+                      <div class="form-check mt-1" id="containerNotificarSacado">
+                          <input class="form-check-input" type="checkbox" id="notificar_sacado" name="notificar_sacado" checked>
+                          <label class="form-check-label small" for="notificar_sacado">
+                              <i class="bi bi-envelope"></i> Notificar Sacado(s) por E-mail após o registro
+                          </label>
+                      </div>
+                      <div id="register-feedback" class="text-center small mt-1" style="min-height: 1.2em;"></div>
+                  </div>
               </div>
           </div>
-          <div id="register-feedback" class="text-center mt-2" style="min-height: 1.5em;"></div>
+          <!-- /col-xl-4 -->
 
-          <fieldset class="border p-3 rounded mb-4">
-              <legend class="float-none w-auto px-3 h6">Resultados Totais da Operação</legend>
-              <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
-              
-              <!-- Primeira linha: Dados básicos da operação -->
-              <div class="row g-2 justify-content-center result-row-1 mb-3">
-                  <div class="col-auto col-md"><div class="resultado-total-item bg-light border rounded"><span class="label">Média Dias</span><span class="value" id="resMediaDias">--</span></div></div>
-                  <div class="col-auto col-md"><div class="resultado-total-item bg-light border rounded"><span class="label">Total Original</span><span class="value" id="resTotalOriginal">--</span></div></div>
-                  <div class="col-auto col-md"><div class="resultado-total-item bg-light border rounded"><span class="label">Total Vl. Presente</span><span class="value" id="resTotalPresente">--</span></div></div>
-                  <div class="col-auto col-md" id="containerResTotalIOF"><div class="resultado-total-item bg-light border rounded"><span class="label">Total IOF Calc.</span><span class="value" id="resTotalIOF">--</span></div></div>
-              </div>
-              
-              <!-- Segunda linha: Compensação e Antecipação -->
-              <div class="row g-2 justify-content-center result-row-2 mb-3" id="compensacaoRow" style="display: none;">
-                  <div class="col-auto col-md"><div class="resultado-total-item bg-warning border rounded"><span class="label">Antecipação</span><span class="value" id="resAntecipacao">--</span></div></div>
-                  <div class="col-auto col-md"><div class="resultado-total-item bg-success text-white border rounded"><span class="label">Crédito por Antecipação</span><span class="value" id="resCreditoAntecipacao">--</span></div></div>
-              </div>
-              
-              <!-- Terceira linha: Total Líquido Pago -->
-              <div class="row g-2 justify-content-center result-row-3 mb-3">
-                  <div class="col-auto col-md-6"><div class="resultado-total-item bg-primary text-white border rounded"><span class="label">Total Líquido Pago</span><span class="value" id="resTotalLiquido">--</span></div></div>
-              </div>
-              
-              <!-- Quarta linha: Resultados financeiros -->
-              <div class="row g-3 justify-content-center result-row-4">
-                  <div class="col-md-4"><div class="resultado-total-item bg-light border rounded"><span class="label">Total Lucro Líquido</span><span class="value" id="resTotalLucro">--</span></div></div>
-                  <div class="col-md-4"><div class="resultado-total-item bg-light border rounded"><span class="label">Margem Total (%)</span><span class="value" id="resMargemTotal">--</span></div></div>
-                  <div class="col-md-4"><div class="resultado-total-item bg-light border rounded"><span class="label">Retorno Mensal (%)</span><span class="value" id="resRetornoMensal">--</span></div></div>
-              </div>
-          </fieldset>
-          <fieldset class="border p-3 rounded mb-5">
-              <legend class="float-none w-auto px-3 h6">Fluxo de Caixa (Saída, Retorno e Lucro por Mês)</legend>
-              <div class="chart-wrapper"><canvas id="fluxoCaixaChart"></canvas></div>
-          </fieldset>
-          <input type="hidden" name="chartImageData" id="chartImageData">
-          <input type="hidden" name="compensacao_data" id="compensacaoData">
+        </div>
+        <!-- /.row -->
+
+        <input type="hidden" name="chartImageData" id="chartImageData">
+        <input type="hidden" name="compensacao_data" id="compensacaoData">
       </form>
   </div>
 
@@ -619,6 +715,38 @@ $erro_sacados = $erro_clientes;
               return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           }
           return '--';
+      }
+
+      // --- Helpers BR p/ inputs de valor (suporta "1.000,50" e "1000.50") ---
+      function parseValorBR(s) {
+          if (typeof s === 'number') return s;
+          if (s == null || s === '') return 0;
+          let str = String(s).replace(/[R$\s]/g, '');
+          if (str.indexOf(',') !== -1) {
+              str = str.replace(/\./g, '').replace(',', '.');
+          }
+          const n = parseFloat(str);
+          return isNaN(n) ? 0 : n;
+      }
+      function formatValorBR(value) {
+          const n = typeof value === 'number' ? value : parseValorBR(value);
+          return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      function applyMoneyMaskBR(input) {
+          let raw = (input.value || '').replace(/\D/g, '');
+          if (raw === '') { input.value = ''; return; }
+          raw = raw.replace(/^0+/, '') || '0';
+          while (raw.length < 3) raw = '0' + raw;
+          const cents = raw.slice(-2);
+          let intPart = raw.slice(0, -2);
+          intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+          input.value = intPart + ',' + cents;
+      }
+      function attachMoneyMask(input) {
+          if (!input || input.dataset.moneyMask === '1') return;
+          input.dataset.moneyMask = '1';
+          input.addEventListener('input', () => applyMoneyMaskBR(input));
+          input.addEventListener('blur', () => { if (input.value) applyMoneyMaskBR(input); });
       }
 
       // --- DOM Elements ---
@@ -1184,6 +1312,8 @@ $erro_sacados = $erro_clientes;
           const containerTipoPagamento = document.getElementById('containerTipoPagamento');
           const containerNotificarSacado = document.getElementById('containerNotificarSacado');
           const containerResTotalIOF = document.getElementById('containerResTotalIOF');
+          const cardTributacao = document.getElementById('cardTributacao');
+          const encontroContasBtnEl = document.getElementById('encontroContasBtn');
           const displayBotaoTaxa = tipoEmprestimoRadio.checked ? 'none' : 'inline-block';
 
           if (btnAbrirModalTaxa) {
@@ -1195,7 +1325,7 @@ $erro_sacados = $erro_clientes;
               addTituloBtn.style.display = 'none';
               posicionarCamposLayoutEmprestimo();
               syncGarantiaVisibility();
-              
+
               // Updates text and visibility
               labelTaxa.textContent = 'Taxa de Juros (% a.m.)';
               legendTitulos.textContent = 'Parcelas do Empréstimo';
@@ -1207,6 +1337,8 @@ $erro_sacados = $erro_clientes;
               containerTipoPagamento.style.display = 'none';
               containerNotificarSacado.classList.add('d-none');
               containerResTotalIOF.style.display = 'none';
+              if (cardTributacao) cardTributacao.style.display = 'none';
+              if (encontroContasBtnEl) encontroContasBtnEl.style.display = 'none';
 
               // Make table inputs readonly
               titulosBody.querySelectorAll('.valor-pago-cell').forEach(el => el.style.display = 'none');
@@ -1243,6 +1375,7 @@ $erro_sacados = $erro_clientes;
               containerTipoPagamento.style.display = 'block';
               containerNotificarSacado.classList.remove('d-none');
               containerResTotalIOF.style.display = 'block';
+              if (cardTributacao) cardTributacao.style.display = '';
 
               titulosBody.querySelectorAll('.valor-pago-cell').forEach(el => el.style.display = '');
 
@@ -1303,7 +1436,7 @@ $erro_sacados = $erro_clientes;
               nR.style.display = '';
               nR.querySelectorAll('input, button, select').forEach(e => e.disabled = false);
               
-              nR.querySelector('.valor-original').value = pmt.toFixed(2);
+              nR.querySelector('.valor-original').value = formatValorBR(pmt);
               
               // Set date
               nR.querySelector('.data-vencimento').value = schedule.dates[step].toISOString().split('T')[0];
@@ -1335,7 +1468,7 @@ $erro_sacados = $erro_clientes;
       // --- Funções Auxiliares ---
       const taxaStep=0.25; taxaDecrementBtn.addEventListener('click',()=>{let v=parseFloat(taxaMensalInput.value)||0;taxaMensalInput.value=Math.max(0,v-taxaStep).toFixed(2);clearResultsAndRegister();}); taxaIncrementBtn.addEventListener('click',()=>{let v=parseFloat(taxaMensalInput.value)||0;taxaMensalInput.value=(v+taxaStep).toFixed(2);clearResultsAndRegister();});
       addTituloBtn.addEventListener('click',()=>{const nR=tituloTemplateRow.cloneNode(true);nR.removeAttribute('id');nR.style.display='';nR.querySelectorAll('input,button,select').forEach(e=>e.disabled=false);nR.querySelectorAll('input').forEach(i=>i.value='');nR.querySelectorAll('select').forEach(s=>s.selectedIndex=0);const nDI=nR.querySelector('.data-vencimento');if(nDI)setFutureDate(nDI,30);const rB=nR.querySelector('.remove-row-btn');if(rB){rB.addEventListener('click',function(){this.closest('tr').remove();clearResultsAndRegister();})}addInputListeners(nR);titulosBody.appendChild(nR);clearResultsAndRegister();});
-      function addInputListeners(rE){rE.querySelectorAll('input.valor-original,input.data-vencimento').forEach(i=>{i.addEventListener('change',clearResultsAndRegister);i.addEventListener('input',clearResultsAndRegister);});} addInputListeners(titulosBody.querySelector('tr'));
+      function addInputListeners(rE){rE.querySelectorAll('input.valor-original,input.data-vencimento').forEach(i=>{i.addEventListener('change',clearResultsAndRegister);i.addEventListener('input',clearResultsAndRegister);});rE.querySelectorAll('input.valor-original').forEach(i=>attachMoneyMask(i));} addInputListeners(titulosBody.querySelector('tr'));
       function setFutureDate(iE,dA){if(!iE)return;try{const bDS=dataOperacaoInput.value;let bD=bDS?new Date(bDS+'T00:00:00'):new Date();if(isNaN(bD.getTime())){bD=new Date();}bD.setUTCHours(0,0,0,0);const fTS=bD.getTime()+dA*24*60*60*1000;const fD=new Date(fTS);iE.value=fD.toISOString().split('T')[0];}catch(e){console.error("Erro setFutureDate.",e);}} const fDI=titulosBody.querySelector('.data-vencimento');if(fDI&&!fDI.value){setFutureDate(fDI,30);}
       [taxaMensalInput,dataOperacaoInput,incorreIOFSelect,cobrarIOFSelect,tipoPagamentoSelect].forEach(el=>{el.addEventListener('change',clearResultsAndRegister);if(el.tagName==='INPUT'&&el.type==='number'){el.addEventListener('input',clearResultsAndRegister);}});
       cedenteSelect.addEventListener('change',()=>{registerFeedback.textContent='';registerFeedback.className='mt-2';cedenteSelect.classList.remove('is-invalid');checkEncontroContasVisibility();});
@@ -1742,7 +1875,7 @@ $erro_sacados = $erro_clientes;
                   const vI = row.querySelector('.valor-original:not([disabled])');
                   const dI = row.querySelector('.data-vencimento:not([disabled])');
                   if (vI && vI.value && dI && dI.value) {
-                      const v = parseFloat(vI.value);
+                      const v = parseValorBR(vI.value);
                       titulos.push({ valorOriginal: v, dataVencimento: dI.value });
                       totalOriginal += v;
                   }
@@ -1825,7 +1958,7 @@ $erro_sacados = $erro_clientes;
           errorMessageDiv.classList.add('d-none'); errorMessageDiv.textContent = ''; let valid = true; form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
           [taxaMensalInput, dataOperacaoInput].forEach(el=>{if(!el.value||(el.type==='number'&&parseFloat(el.value)<0)){el.classList.add('is-invalid');valid=false;}});
           const titulos = []; const rows = titulosBody.querySelectorAll('tr');
-          if(rows.length===0){errorMessageDiv.textContent='Adicione título.';valid=false;} else {rows.forEach((row,index)=>{const vI=row.querySelector('.valor-original:not([disabled])');const dI=row.querySelector('.data-vencimento:not([disabled])');const sI=row.querySelector('.sacado-select:not([disabled])');const tI=row.querySelector('.tipo-recebivel-select:not([disabled])');let rV=true;if(!vI||!vI.value||parseFloat(vI.value)<=0){if(vI)vI.classList.add('is-invalid');rV=false;valid=false;}else{if(vI)vI.classList.remove('is-invalid');}if(!dI||!dI.value){if(dI)dI.classList.add('is-invalid');rV=false;valid=false;}else{if(dI)dI.classList.remove('is-invalid');}if(dI&&dI.value&&dataOperacaoInput.value&&dI.value<dataOperacaoInput.value){if(dI)dI.classList.add('is-invalid');errorMessageDiv.textContent='Venc. anterior à Data Op.';rV=false;valid=false;}if(vI&&dI&&rV){titulos.push({valorOriginal:parseFloat(vI.value),dataVencimento:dI.value,sacadoId:sI?sI.value||null:null,tipoRecebivel:tI?tI.value||'duplicata':'duplicata'});}});if(valid&&titulos.length===0&&rows.length>0){errorMessageDiv.textContent='Preencha títulos.';valid=false;}}
+          if(rows.length===0){errorMessageDiv.textContent='Adicione título.';valid=false;} else {rows.forEach((row,index)=>{const vI=row.querySelector('.valor-original:not([disabled])');const dI=row.querySelector('.data-vencimento:not([disabled])');const sI=row.querySelector('.sacado-select:not([disabled])');const tI=row.querySelector('.tipo-recebivel-select:not([disabled])');let rV=true;if(!vI||!vI.value||parseValorBR(vI.value)<=0){if(vI)vI.classList.add('is-invalid');rV=false;valid=false;}else{if(vI)vI.classList.remove('is-invalid');}if(!dI||!dI.value){if(dI)dI.classList.add('is-invalid');rV=false;valid=false;}else{if(dI)dI.classList.remove('is-invalid');}if(dI&&dI.value&&dataOperacaoInput.value&&dI.value<dataOperacaoInput.value){if(dI)dI.classList.add('is-invalid');errorMessageDiv.textContent='Venc. anterior à Data Op.';rV=false;valid=false;}if(vI&&dI&&rV){titulos.push({valorOriginal:parseValorBR(vI.value),dataVencimento:dI.value,sacadoId:sI?sI.value||null:null,tipoRecebivel:tI?tI.value||'duplicata':'duplicata'});}});if(valid&&titulos.length===0&&rows.length>0){errorMessageDiv.textContent='Preencha títulos.';valid=false;}}
           if(!valid){if(!errorMessageDiv.textContent){errorMessageDiv.textContent='Verifique campos.';}errorMessageDiv.classList.remove('d-none');registerBtn.disabled=true;exportPdfBtn.disabled=true;return;}
           const tipoOperacaoChecked = document.querySelector('input[name="tipoOperacao"]:checked').value;
           const data = { 
@@ -2322,7 +2455,24 @@ $erro_sacados = $erro_clientes;
                       plugins: {
                           legend: {
                               display: true,
-                              position: 'top',
+                              position: 'bottom',
+                              labels: {
+                                  generateLabels: function(chart) {
+                                      const fmt = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                                      return chart.data.datasets.map((ds, i) => {
+                                          const total = (ds.data || []).reduce((a, b) => a + (Number(b) || 0), 0);
+                                          const meta = chart.getDatasetMeta(i);
+                                          return {
+                                              text: ds.label + ' — ' + fmt(total),
+                                              fillStyle: ds.backgroundColor,
+                                              strokeStyle: ds.borderColor,
+                                              lineWidth: ds.borderWidth,
+                                              hidden: meta.hidden === true,
+                                              datasetIndex: i
+                                          };
+                                      });
+                                  }
+                              }
                           },
                           tooltip: {
                               callbacks: {
@@ -2403,15 +2553,20 @@ $erro_sacados = $erro_clientes;
           form.action = 'export_pdf.php';   // Define action para o script PHP
           form.target = '_blank';           // Define target para nova aba
 
+          // Converte valores BR ("1.000,50") para formato simples ("1000.50") p/ o backend PHP
+          const valorInputs = form.querySelectorAll('input.valor-original');
+          const valoresBR = [];
+          valorInputs.forEach(i => { valoresBR.push(i.value); i.value = String(parseValorBR(i.value)); });
+
           // 4. Submete o formulário programaticamente
           console.log("[PDF Click] Submetendo formulário para export_pdf.php...");
           form.submit(); // Envia o formulário AGORA
 
-          // 5. Restaura os atributos originais após um pequeno delay
+          // 5. Restaura os atributos originais e os valores BR após um pequeno delay
           setTimeout(() => {
-              // console.log("[PDF Click] Resetando action/target do form.");
               form.action = originalAction;
               form.target = originalTarget;
+              valorInputs.forEach((i, idx) => { i.value = valoresBR[idx]; });
           }, 500); // Meio segundo de delay
       });
 
@@ -2431,17 +2586,150 @@ if (exportPdfClienteBtn) { // Verifica se o botão existe no HTML
          form.action = 'export_pdf_cliente.php'; // Script correto para simulações
          form.target = '_blank';               // Nova aba
 
+         // Converte valores BR para formato simples antes do submit
+         const valorInputs = form.querySelectorAll('input.valor-original');
+         const valoresBR = [];
+         valorInputs.forEach(i => { valoresBR.push(i.value); i.value = String(parseValorBR(i.value)); });
+
          console.log("[PDF Cliente Click] Submetendo para export_pdf_cliente.php...");
          form.submit(); // Envia
 
-         // Restaura action/target originais após um delay
+         // Restaura action/target e valores BR após um delay
          setTimeout(() => {
              form.action = originalAction;
              form.target = originalTarget;
+             valorInputs.forEach((i, idx) => { i.value = valoresBR[idx]; });
          }, 500);
      });
  }
 
+   </script>
+
+   <script>
+   /* UX/UI v2 — hooks não-invasivos para o painel sticky e status badge.
+      Não modificam a lógica de cálculo; apenas refletem estado já existente. */
+   (function () {
+       const statusBadge = document.getElementById('simStatusBadge');
+       const statusText = document.getElementById('simStatusBadgeText');
+       const registerBtn = document.getElementById('registerBtn');
+       const summaryPanel = document.getElementById('summaryPanel');
+       const summaryModeBadge = document.getElementById('summaryModeBadge');
+       const tipoAntecipacao = document.getElementById('tipoAntecipacao');
+       const tipoEmprestimo = document.getElementById('tipoEmprestimo');
+
+       function setStatus(state) {
+           if (!statusBadge || !statusText) return;
+           statusBadge.classList.remove('is-pending', 'is-calculated', 'is-ready');
+           if (state === 'ready') {
+               statusBadge.classList.add('is-ready');
+               statusBadge.querySelector('i').className = 'bi bi-check-circle-fill';
+               statusText.textContent = 'Pronta para registrar';
+           } else if (state === 'calculated') {
+               statusBadge.classList.add('is-calculated');
+               statusBadge.querySelector('i').className = 'bi bi-calculator-fill';
+               statusText.textContent = 'Calculada';
+           } else {
+               statusBadge.classList.add('is-pending');
+               statusBadge.querySelector('i').className = 'bi bi-hourglass-split';
+               statusText.textContent = 'Aguardando cálculo';
+           }
+       }
+
+       /* Observa o estado de disabled do botão Registrar para inferir status. */
+       if (registerBtn) {
+           const obs = new MutationObserver(() => {
+               if (!registerBtn.disabled) {
+                   setStatus('ready');
+               } else {
+                   /* Se totalLiquido tem valor != "--" há cálculo recente */
+                   const tot = document.getElementById('resTotalLiquido');
+                   if (tot && tot.textContent && tot.textContent.trim() !== '--' && tot.textContent.trim() !== '') {
+                       setStatus('calculated');
+                   } else {
+                       setStatus('pending');
+                   }
+               }
+           });
+           obs.observe(registerBtn, { attributes: true, attributeFilter: ['disabled'] });
+       }
+
+       /* Abre automaticamente o <details> do Fluxo de Caixa quando há cálculo concluído. */
+       const fluxoCanvas = document.getElementById('fluxoCaixaChart');
+       const fluxoDetails = fluxoCanvas ? fluxoCanvas.closest('details') : null;
+       const totalLiquidoEl = document.getElementById('resTotalLiquido');
+       if (fluxoDetails && totalLiquidoEl) {
+           const obsChart = new MutationObserver(() => {
+               const v = (totalLiquidoEl.textContent || '').trim();
+               if (v && v !== '--') {
+                   fluxoDetails.open = true;
+               } else {
+                   fluxoDetails.open = false;
+               }
+           });
+           obsChart.observe(totalLiquidoEl, { childList: true, characterData: true, subtree: true });
+       }
+
+       /* Sincroniza o badge de modo no painel sticky com o radio selecionado. */
+       function syncModoBadge() {
+           if (!summaryPanel || !summaryModeBadge) return;
+           if (tipoEmprestimo && tipoEmprestimo.checked) {
+               summaryPanel.classList.add('is-loan-mode');
+               summaryModeBadge.textContent = 'Empréstimo';
+           } else {
+               summaryPanel.classList.remove('is-loan-mode');
+               summaryModeBadge.textContent = 'Antecipação';
+           }
+       }
+       if (tipoAntecipacao) tipoAntecipacao.addEventListener('change', syncModoBadge);
+       if (tipoEmprestimo) tipoEmprestimo.addEventListener('change', syncModoBadge);
+       syncModoBadge();
+
+       /* Stepper visual: marca etapas como concluídas conforme campos preenchidos. */
+       const stepper = document.getElementById('simStepper');
+       function syncStepper() {
+           if (!stepper) return;
+           const steps = stepper.querySelectorAll('li');
+           const cedente = document.getElementById('cedente');
+           const tomador = document.getElementById('tomador');
+           const tipoPag = document.getElementById('tipoPagamento');
+           const titulosBody = document.getElementById('titulosBody');
+           const isLoan = tipoEmprestimo && tipoEmprestimo.checked;
+           const tipoOk = true; // sempre selecionado
+           const clienteOk = isLoan ? !!(tomador && tomador.value) : !!(cedente && cedente.value);
+           const tributacaoOk = isLoan ? true : !!(tipoPag && tipoPag.value);
+           const titulosOk = !!(titulosBody && titulosBody.querySelector('input.valor-original') && titulosBody.querySelector('input.valor-original').value);
+           const conferirOk = registerBtn && !registerBtn.disabled;
+           const states = [tipoOk, clienteOk, tributacaoOk, titulosOk, conferirOk];
+           let activeSet = false;
+           steps.forEach((li, idx) => {
+               li.classList.remove('is-active', 'is-done');
+               if (states[idx]) {
+                   li.classList.add('is-done');
+                   const num = li.querySelector('.step-num');
+                   if (num) num.innerHTML = '<i class="bi bi-check"></i>';
+               } else {
+                   const num = li.querySelector('.step-num');
+                   if (num) num.textContent = String(idx + 1);
+                   if (!activeSet) {
+                       li.classList.add('is-active');
+                       activeSet = true;
+                   }
+               }
+           });
+       }
+       /* Hooks de mudança em campos-chave para atualizar o stepper */
+       ['cedente', 'tomador', 'tipoPagamento', 'tipoAntecipacao', 'tipoEmprestimo'].forEach(id => {
+           const el = document.getElementById(id);
+           if (el) el.addEventListener('change', syncStepper);
+       });
+       const titulosBodyEl = document.getElementById('titulosBody');
+       if (titulosBodyEl) titulosBodyEl.addEventListener('input', syncStepper);
+       if (registerBtn) {
+           const obsStep = new MutationObserver(syncStepper);
+           obsStep.observe(registerBtn, { attributes: true, attributeFilter: ['disabled'] });
+       }
+       syncStepper();
+   })();
    </script>
 
 </body>
