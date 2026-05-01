@@ -252,55 +252,70 @@ E, por estarem justas e contratadas, as partes firmam o presente Contrato em **{
 
 ***
 
-### MUTUANTE:
-
-<br><br><br>____________________________________________________<br>
-**{{credor.razao_social}}**<br />
+<div class="signature-block">
+<p class="sig-role">MUTUANTE:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name"><strong>{{credor.razao_social}}</strong><br />
 CNPJ: {{credor.documento}}<br />
 p.p.: {{credor.representante.nome}}<br />
-CPF: {{credor.representante.cpf}}
+CPF: {{credor.representante.cpf}}</p>
+</div>
 
-### MUTUÁRIO / DEVEDOR FIDUCIANTE:
-
-<br><br><br>____________________________________________________<br>
-**{{devedor.razao_social}}**<br />
+<div class="signature-block">
+<p class="sig-role">MUTUÁRIO / DEVEDOR FIDUCIANTE:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name"><strong>{{devedor.razao_social}}</strong><br />
 CNPJ: {{devedor.cnpj}}<br />
 p.p.: {{devedor.representante.nome}}<br />
-CPF: {{devedor.representante.cpf}}
+CPF: {{devedor.representante.cpf}}</p>
+</div>
 
 {{#devedor.conjuge_assina}}
-
-### CÔNJUGE:
-
-<br><br><br>____________________________________________________<br>
-Nome: _____________________________________ CPF: ________________________
+<div class="signature-block">
+<p class="sig-role">CÔNJUGE:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name">Nome: ______________________________________<br />
+CPF: ______________________________</p>
+</div>
 {{/devedor.conjuge_assina}}
 
-### AVALISTA / GARANTIDOR SOLIDÁRIO:
-
-<br><br><br>____________________________________________________<br>
-**{{avalista.nome}}**<br />
+<div class="signature-block">
+<p class="sig-role">AVALISTA / GARANTIDOR SOLIDÁRIO:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name"><strong>{{avalista.nome}}</strong><br />
 CPF: {{avalista.cpf}}<br />
-RG: {{avalista.rg}}
+RG: {{avalista.rg}}</p>
+</div>
 
 {{#avalista.casado}}
-
-### CÔNJUGE DO AVALISTA (anuência):
-
-<br><br><br>____________________________________________________<br>
-**{{avalista.conjuge.nome}}**<br />
-CPF: {{avalista.conjuge.cpf}}
+<div class="signature-block">
+<p class="sig-role">CÔNJUGE DO AVALISTA (anuência):</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name"><strong>{{avalista.conjuge.nome}}</strong><br />
+CPF: {{avalista.conjuge.cpf}}</p>
+</div>
 {{/avalista.casado}}
 
-### TESTEMUNHAS:
+<div class="signature-block">
+<p class="sig-role">TESTEMUNHA 1:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name">Nome: {{testemunhas.0.nome}}<br />
+CPF: {{testemunhas.0.cpf}}</p>
+</div>
 
-<br><br><br>____________________________________________________<br>
-Nome: {{testemunhas.0.nome}}<br />
-CPF: {{testemunhas.0.cpf}}
-
-<br><br><br>____________________________________________________<br>
-Nome: {{testemunhas.1.nome}}<br />
-CPF: {{testemunhas.1.cpf}}
+<div class="signature-block">
+<p class="sig-role">TESTEMUNHA 2:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name">Nome: {{testemunhas.1.nome}}<br />
+CPF: {{testemunhas.1.cpf}}</p>
+</div>
 
 ***
 
@@ -326,9 +341,3 @@ CPF: {{testemunhas.1.cpf}}
 {{#cronograma}}
 | {{numero}} | {{data_vencimento}} | {{valor_parcela}} | {{valor_amortizacao}} | {{valor_juros}} | {{saldo_devedor}} |
 {{/cronograma}}
-
-***
-
-# ANEXO II — NOTA PROMISSÓRIA
-
-(Documento emitido em separado, com aval. Ver arquivo: `NP_Contrato_{{operacao.id}}.pdf`)

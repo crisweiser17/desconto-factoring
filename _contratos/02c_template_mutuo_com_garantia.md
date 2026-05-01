@@ -119,11 +119,10 @@ i) Dissolução, liquidação, cisão ou extinção do MUTUÁRIO.
 - **Ano de Fabricação:** {{veiculo.ano_fab}}
 - **Ano do Modelo:** {{veiculo.ano_mod}}
 - **Cor:** {{veiculo.cor}}
-- **Combustível:** {{veiculo.combustivel}}
 - **Chassi (nº):** {{veiculo.chassi}}
 - **Placa:** {{veiculo.placa}}
 - **RENAVAM:** {{veiculo.renavam}}
-- **Município/UF de emplacamento:** {{veiculo.municipio_emplacamento}}/{{veiculo.uf}}
+- **Município/UF de emplacamento:** {{veiculo.municipio_uf_emplacamento}}
 - **Valor atribuído ao bem:** R$ {{veiculo.valor_avaliacao}} ({{veiculo.valor_avaliacao_extenso}})
 
 **6.2.** Com a presente alienação fiduciária, a propriedade resolúvel e a posse indireta do VEÍCULO transferem-se à MUTUANTE, permanecendo o MUTUÁRIO com a posse direta, na qualidade de fiel depositário, com todos os ônus e encargos civis e penais inerentes a esta condição.
@@ -221,39 +220,51 @@ E, por estarem justas e contratadas, as partes firmam o presente Contrato em **{
 
 ***
 
-### MUTUANTE:
-
-<br><br><br>____________________________________________________<br>
-**{{credor.razao_social}}**<br />
+<div class="signature-block">
+<p class="sig-role">MUTUANTE:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name"><strong>{{credor.razao_social}}</strong><br />
 CNPJ: {{credor.documento}}<br />
 p.p.: {{credor.representante.nome}}<br />
-CPF: {{credor.representante.cpf}}
+CPF: {{credor.representante.cpf}}</p>
+</div>
 
-### MUTUÁRIO / DEVEDOR FIDUCIANTE:
-
-<br><br><br>____________________________________________________<br>
-**{{devedor.razao_social}}**<br />
+<div class="signature-block">
+<p class="sig-role">MUTUÁRIO / DEVEDOR FIDUCIANTE:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name"><strong>{{devedor.razao_social}}</strong><br />
 CNPJ: {{devedor.cnpj}}<br />
 p.p.: {{devedor.representante.nome}}<br />
-CPF: {{devedor.representante.cpf}}
+CPF: {{devedor.representante.cpf}}</p>
+</div>
 
 {{#devedor.conjuge_assina}}
-
-### CÔNJUGE:
-
-<br><br><br>____________________________________________________<br>
-Nome: _____________________________________ CPF: ________________________
+<div class="signature-block">
+<p class="sig-role">CÔNJUGE:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name">Nome: ______________________________________<br />
+CPF: ______________________________</p>
+</div>
 {{/devedor.conjuge_assina}}
 
-### TESTEMUNHAS:
+<div class="signature-block">
+<p class="sig-role">TESTEMUNHA 1:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name">Nome: {{testemunhas.0.nome}}<br />
+CPF: {{testemunhas.0.cpf}}</p>
+</div>
 
-<br><br><br>____________________________________________________<br>
-Nome: {{testemunhas.0.nome}}<br />
-CPF: {{testemunhas.0.cpf}}
-
-<br><br><br>____________________________________________________<br>
-Nome: {{testemunhas.1.nome}}<br />
-CPF: {{testemunhas.1.cpf}}
+<div class="signature-block">
+<p class="sig-role">TESTEMUNHA 2:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name">Nome: {{testemunhas.1.nome}}<br />
+CPF: {{testemunhas.1.cpf}}</p>
+</div>
 
 ***
 
@@ -279,9 +290,3 @@ CPF: {{testemunhas.1.cpf}}
 {{#cronograma}}
 | {{numero}} | {{data_vencimento}} | {{valor_parcela}} | {{valor_amortizacao}} | {{valor_juros}} | {{saldo_devedor}} |
 {{/cronograma}}
-
-***
-
-# ANEXO II — NOTA PROMISSÓRIA
-
-(Documento emitido em separado. Ver arquivo: `NP_Contrato_{{operacao.id}}.pdf`)

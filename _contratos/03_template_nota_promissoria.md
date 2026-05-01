@@ -27,19 +27,15 @@ a quantia de **R$ {{operacao.valor_total_devido}}** (**{{operacao.valor_total_de
 
 ***
 
-### EMITENTE:
-
-**{{devedor.razao_social}}**<br />
+<div class="signature-block">
+<p class="sig-role">EMITENTE:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name"><strong>{{devedor.razao_social}}</strong><br />
 CNPJ: {{devedor.cnpj}}<br />
-Endereço: {{devedor.endereco_completo}}
-
-Representada por:<br />
-**{{devedor.representante.nome}}**<br />
-CPF: {{devedor.representante.cpf}}<br />
-RG: {{devedor.representante.rg}}
-
-<br><br><br>____________________________________________________<br>
-(assinatura do emitente)
+p.p.: {{devedor.representante.nome}}<br />
+CPF: {{devedor.representante.cpf}}</p>
+</div>
 
 ***
 
@@ -48,25 +44,28 @@ RG: {{devedor.representante.rg}}
 
 Nos termos do art. 30 e seguintes do Decreto nº 57.663/1966 (Lei Uniforme de Genebra), o(a) abaixo assinado(a) presta **AVAL** à presente Nota Promissória, responsabilizando-se solidariamente pelo pagamento integral do valor nela representado, como principal pagador(a), renunciando expressamente aos benefícios de ordem, divisão e excussão prévia.
 
-**AVALISTA:**<br />
-**{{avalista.nome}}**<br />
+<div class="signature-block">
+<p class="sig-role">AVALISTA:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name"><strong>{{avalista.nome}}</strong><br />
 CPF: {{avalista.cpf}}<br />
-RG: {{avalista.rg}}<br />
-Endereço: {{avalista.endereco_completo}}
-
-<br><br><br>____________________________________________________<br>
-(assinatura do avalista)
+RG: {{avalista.rg}}</p>
+</div>
 
 {{#avalista.casado}}
-
 ### ANUÊNCIA CONJUGAL:
 
 **{{avalista.conjuge.nome}}**, cônjuge do(a) AVALISTA, manifesta expressa anuência ao aval prestado, nos termos do art. 1.647, inciso III, do Código Civil.
 
-CPF: {{avalista.conjuge.cpf}}
-
-<br><br><br>____________________________________________________<br>
-(assinatura do(a) cônjuge) {{/avalista.casado}}
+<div class="signature-block">
+<p class="sig-role">CÔNJUGE DO AVALISTA:</p>
+<div class="sig-space"></div>
+<div class="sig-line"></div>
+<p class="sig-name"><strong>{{avalista.conjuge.nome}}</strong><br />
+CPF: {{avalista.conjuge.cpf}}</p>
+</div>
+{{/avalista.casado}}
 {{/avalista}}
 
 ***

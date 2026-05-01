@@ -1060,14 +1060,11 @@ if ($operacao && !isset($error_message)) {
                                 <div class="row g-3 mb-4">
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Natureza da Operação</label>
-                                        <select class="form-select" name="natureza" id="modalNatureza" required <?php echo $isEmprestimo ? 'disabled' : ''; ?>>
-                                            <option value="" <?php echo !$isEmprestimo && empty($operacao['natureza']) ? 'selected' : ''; ?>>Selecione...</option>
-                                            <option value="EMPRESTIMO" <?php echo $isEmprestimo || ($operacao['natureza'] ?? '') === 'EMPRESTIMO' ? 'selected' : ''; ?>>Empréstimo</option>
-                                            <option value="DESCONTO" <?php echo !$isEmprestimo && ($operacao['natureza'] ?? '') === 'DESCONTO' ? 'selected' : ''; ?>>Antecipação (Cessão)</option>
+                                        <select class="form-select" name="natureza" id="modalNatureza" required disabled>
+                                            <option value="EMPRESTIMO" <?php echo $isEmprestimo ? 'selected' : ''; ?>>Empréstimo</option>
+                                            <option value="DESCONTO" <?php echo !$isEmprestimo ? 'selected' : ''; ?>>Antecipação (Cessão)</option>
                                         </select>
-                                        <?php if ($isEmprestimo): ?>
-                                            <input type="hidden" name="natureza" value="EMPRESTIMO">
-                                        <?php endif; ?>
+                                        <input type="hidden" name="natureza" value="<?php echo $isEmprestimo ? 'EMPRESTIMO' : 'DESCONTO'; ?>">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Porte do Cliente (Cedente)</label>

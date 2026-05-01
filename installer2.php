@@ -405,9 +405,7 @@ $contractTemplates = [
         'description' => 'Contrato de antecipacao de recebiveis (desconto de titulos)',
         'content' => file_exists(__DIR__ . '/_contratos/01_template_antecipacao_recebiveis.md') 
             ? file_get_contents(__DIR__ . '/_contratos/01_template_antecipacao_recebiveis.md')
-            : (file_exists(__DIR__ . '/_contratos/antigos/03_template_cessao_bordero.md')
-                ? file_get_contents(__DIR__ . '/_contratos/antigos/03_template_cessao_bordero.md')
-                : '# Template de Cessao de Creditos - atualizar manualmente')
+            : '# Template de Cessao de Creditos - atualizar manualmente'
     ],
     [
         'code' => '02a',

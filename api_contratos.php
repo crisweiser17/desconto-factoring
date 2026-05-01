@@ -655,7 +655,6 @@ function gerarContrato($pdo, $operacao_id) {
             'valor_principal' => number_format($total_liquido_pago_calc, 2, ',', '.'),
             'valor_principal_extenso' => $extenso->converter($total_liquido_pago_calc),
             'forma_liberacao' => 'Transferência Bancária (PIX)',
-            'comprovante_liberacao' => '',
             'valor_total_devido' => number_format($total_face_bordero, 2, ',', '.'),
             'valor_total_devido_extenso' => $extenso->converter($total_face_bordero),
             'num_parcelas' => $num_parcelas_count,
@@ -685,12 +684,14 @@ function gerarContrato($pdo, $operacao_id) {
             'ano_fab' => $veiculo_ano_fab,
             'ano_mod' => $veiculo_ano_mod,
             'cor' => $veiculo_cor,
-            'combustivel' => 'Flex',
             'placa' => $veiculo_placa,
             'renavam' => $veiculo_renavam,
             'chassi' => $veiculo_chassi,
-            'municipio_registro' => $veiculo_municipio_registro,
+            'municipio_emplacamento' => $veiculo_municipio_registro,
             'uf' => $veiculo_uf,
+            'municipio_uf_emplacamento' => trim($veiculo_municipio_registro) !== '' && trim($veiculo_uf) !== ''
+                ? trim($veiculo_municipio_registro) . '/' . trim($veiculo_uf)
+                : (trim($veiculo_municipio_registro) ?: trim($veiculo_uf)),
             'valor_avaliacao' => number_format($veiculo_valor_avaliacao, 2, ',', '.'),
             'valor_avaliacao_extenso' => $extenso->converter($veiculo_valor_avaliacao)
         ],
@@ -804,10 +805,36 @@ function gerarContrato($pdo, $operacao_id) {
             text-align: center; 
         }
         
-        .np-linha-assinatura { 
-            border-top: 1px solid #000; 
-            width: 70%; 
-            margin: 0 auto 5px auto; 
+        .np-linha-assinatura {
+            border-top: 1px solid #000;
+            width: 70%;
+            margin: 0 auto 5px auto;
+        }
+
+        /* Bloco de assinatura — não pode quebrar entre páginas */
+        .signature-block {
+            page-break-inside: avoid;
+            margin: 30px 0 12px 0;
+            text-align: center;
+        }
+        .signature-block .sig-role {
+            font-weight: bold;
+            text-align: center;
+            margin: 0;
+            text-transform: uppercase;
+        }
+        .signature-block .sig-space {
+            height: 60px;
+        }
+        .signature-block .sig-line {
+            border-top: 1px solid #000;
+            width: 70%;
+            margin: 0 auto 6px auto;
+        }
+        .signature-block .sig-name {
+            text-align: center;
+            margin: 0;
+            line-height: 1.4;
         }
     </style>
     " . $htmlContent;
