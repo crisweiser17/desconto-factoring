@@ -1358,6 +1358,7 @@ $erro_sacados = $erro_clientes;
 
           } else {
               emprestimoParamsSection.style.display = 'none';
+              if (resumoEmprestimoSection) resumoEmprestimoSection.style.display = 'none';
               addTituloBtn.style.display = 'inline-block';
               posicionarCamposLayoutEmprestimo();
               syncGarantiaVisibility();
