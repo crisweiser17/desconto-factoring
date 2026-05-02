@@ -93,16 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['atualizar'])) {
             email VARCHAR(100),
             FOREIGN KEY (operation_id) REFERENCES operacoes(id)
         )",
-        "ALTER TABLE cedentes ADD COLUMN tipo_pessoa ENUM('PF','PJ') NOT NULL DEFAULT 'PJ'",
-        "ALTER TABLE cedentes ADD COLUMN porte ENUM('MEI','ME','EPP','MEDIO','GRANDE','PF') NULL",
-        "ALTER TABLE cedentes ADD COLUMN representante_nome VARCHAR(255)",
-        "ALTER TABLE cedentes ADD COLUMN representante_cpf VARCHAR(14)",
-        "ALTER TABLE cedentes ADD COLUMN representante_rg VARCHAR(30)",
-        "ALTER TABLE cedentes ADD COLUMN representante_nacionalidade VARCHAR(50) DEFAULT 'brasileiro(a)'",
-        "ALTER TABLE cedentes ADD COLUMN representante_estado_civil VARCHAR(30)",
-        "ALTER TABLE cedentes ADD COLUMN representante_profissao VARCHAR(100)",
-        "ALTER TABLE cedentes ADD COLUMN representante_endereco TEXT",
-        
+        // Nota: cedentes/sacados foram consolidadas em `clientes`. Os ALTERs dinâmicos
+        // mais abaixo são aplicados em `clientes` (idempotente — colunas duplicadas são ignoradas).
+
         "ALTER TABLE operacoes ADD COLUMN natureza ENUM('EMPRESTIMO','DESCONTO') NOT NULL DEFAULT 'DESCONTO'",
         "ALTER TABLE operacoes ADD COLUMN valor_principal DECIMAL(15,2)",
         "ALTER TABLE operacoes ADD COLUMN valor_total_devido DECIMAL(15,2)",
@@ -188,7 +181,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['atualizar'])) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
     ];
 
-    $tables_to_update = ['cedentes', 'sacados'];
+    // Schema unificado: cedentes/sacados foram fundidas em `clientes`.
+    $tables_to_update = ['clientes'];
     $columns_to_add = [
         'casado' => 'TINYINT(1) DEFAULT 0',
         'regime_casamento' => 'VARCHAR(100) DEFAULT NULL',
@@ -236,11 +230,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['atualizar'])) {
             $msg = $e->getMessage();
             // 1060: Duplicate column name
             // 1050: Table already exists
+            // 1146: Base table or view not found (tabela legada que nao existe mais)
             // 42S21: SQLSTATE for duplicate column
+            // 42S02: SQLSTATE for table not found
             if (strpos($msg, '1060') !== false || strpos($msg, 'Duplicate column name') !== false || $code == '42S21') {
                 // Ignorar erro de coluna duplicada
-            } elseif (strpos($msg, '1050') !== false || strpos($msg, 'Table') !== false && strpos($msg, 'already exists') !== false) {
+            } elseif (strpos($msg, '1050') !== false || (strpos($msg, 'Table') !== false && strpos($msg, 'already exists') !== false)) {
                 // Ignorar erro de tabela existente
+            } elseif (strpos($msg, '1146') !== false || $code == '42S02') {
+                // Ignorar erro de tabela inexistente (referencias legadas a cedentes/sacados removidas do schema)
             } else {
                 $messages[] = ['type' => 'error', 'text' => "Erro na query " . ($index + 1) . ": " . $msg];
             }
