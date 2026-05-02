@@ -379,11 +379,6 @@ $currentConfig = readConfig($configFilePath);
                 <h1><i class="bi bi-gear-fill text-primary"></i> Configurações do Sistema</h1>
                 <div class="text-muted small mt-1">Taxas, dados da empresa, conta bancária e templates de notificação</div>
             </div>
-            <div class="d-flex gap-2 flex-wrap">
-                <button type="button" class="btn btn-outline-info btn-sm" id="btnTestarEmail" data-bs-toggle="modal" data-bs-target="#testEmailModal">
-                    <i class="bi bi-send"></i> Testar disparo de e-mail
-                </button>
-            </div>
         </div>
 
         <form method="POST" id="configForm">
@@ -589,6 +584,13 @@ $currentConfig = readConfig($configFilePath);
                             <input type="text" class="form-control" id="resend_bcc_email" name="resend_bcc_email" value="<?php echo htmlspecialchars($currentConfig['resend_bcc_email'] ?? ''); ?>" placeholder="exemplo@dominio.com">
                             <div class="help-line">Vários e-mails separados por vírgula.</div>
                         </div>
+                    </div>
+
+                    <hr class="my-3">
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-outline-info btn-sm" id="btnTestarEmail" data-bs-toggle="modal" data-bs-target="#testEmailModal">
+                            <i class="bi bi-send"></i> Testar disparo de e-mail
+                        </button>
                     </div>
                 </div>
             </div>
