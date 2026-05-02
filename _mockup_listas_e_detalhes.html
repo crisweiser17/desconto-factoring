@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[MOCKUP] Listas + Detalhes — Proposta UX/UI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --hero-bg-grad: linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%);
+            --view-grad: linear-gradient(135deg, #0a8754 0%, #15b079 100%);
+            --profit: #198754;
+            --profit-soft: #d1f0dc;
+            --warn: #b76b00;
+            --warn-soft: #fff3d6;
+            --danger: #b02a37;
+            --danger-soft: #fde2e4;
+            --info: #0a4ea8;
+            --info-soft: #eef4ff;
+            --neutral: #6c757d;
+            --surface: #ffffff;
+            --surface-2: #f6f8fb;
+            --border: #e3e8ef;
+        }
+        body { background: #eef2f7; font-size: 0.95rem; }
+
+        /* ===== Mode picker ===== */
+        .mode-picker {
+            background: #fff8e1;
+            border: 1px dashed #d6a300;
+            color: #7a5500;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        }
+        .mode-picker strong { color: #5a3f00; }
+
+        /* ===== Toolbar ===== */
+        .page-toolbar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
+        .page-toolbar .subtitle {
+            font-size: 0.95rem; font-weight: 400; color: var(--neutral); margin-left: 8px;
+        }
+        .id-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 999px;
+            background: var(--info-soft); color: var(--info);
+            font-size: 0.78rem; font-weight: 700; margin-left: 6px;
+        }
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 999px;
+            font-size: 0.78rem; font-weight: 600;
+        }
+        .status-pill.s-aberto    { background: var(--info-soft); color: var(--info); }
+        .status-pill.s-concluida { background: var(--profit-soft); color: var(--profit); }
+        .status-pill.s-parcial   { background: var(--warn-soft); color: var(--warn); }
+        .status-pill.s-problema  { background: var(--danger-soft); color: var(--danger); }
+        .status-pill.s-ativo     { background: var(--profit-soft); color: var(--profit); }
+
+        /* ===== KPI strip ===== */
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        @media (max-width: 992px) { .kpi-strip { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 576px) { .kpi-strip { grid-template-columns: 1fr; } }
+        .kpi-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .kpi-card .k-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+        .kpi-card .k-icon.b-blue { background: var(--info-soft); color: var(--info); }
+        .kpi-card .k-icon.b-green { background: var(--profit-soft); color: var(--profit); }
+        .kpi-card .k-icon.b-warn { background: var(--warn-soft); color: var(--warn); }
+        .kpi-card .k-icon.b-purple { background: #efe8fa; color: #6f42c1; }
+        .kpi-card .k-icon.b-pink { background: #fce4ec; color: #d63384; }
+        .kpi-card .k-label {
+            font-size: 0.72rem; color: var(--neutral);
+            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+        }
+        .kpi-card .k-value { font-size: 1.4rem; font-weight: 700; line-height: 1.1; margin-top: 2px; }
+        .kpi-card .k-trend { font-size: 0.78rem; color: var(--neutral); margin-top: 4px; }
+        .kpi-card .k-trend.up { color: var(--profit); }
+        .kpi-card .k-trend.down { color: var(--danger); }
+
+        /* ===== Section card ===== */
+        .section-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+        .section-card .section-head {
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+        .section-card .section-head .step-num {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background: #0d6efd; color: #fff;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
+        }
+        .section-card .section-head h2 {
+            font-size: 0.95rem; font-weight: 600; margin: 0; flex: 1;
+        }
+        .section-card .section-head .head-meta {
+            font-size: 0.78rem; color: var(--neutral);
+        }
+        .section-card .section-body { padding: 18px; }
+        .section-card .section-body.p-0 { padding: 0; }
+
+        .section-card.s-recb .section-head .step-num   { background: #0d6efd; }
+        .section-card.s-data .section-head .step-num   { background: #6f42c1; }
+        .section-card.s-cont .section-head .step-num   { background: #d63384; }
+        .section-card.s-anex .section-head .step-num   { background: #fd7e14; }
+        .section-card.s-anot .section-head .step-num   { background: #0a8754; }
+        .section-card.s-flux .section-head .step-num   { background: #b76b00; }
+
+        /* ===== Filter chips ===== */
+        .filter-bar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin-bottom: 18px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .filter-bar .filter-label {
+            font-size: 0.74rem; color: var(--neutral);
+            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+        }
+        .filter-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: var(--info-soft);
+            color: var(--info);
+            font-size: 0.82rem;
+            font-weight: 600;
+            border: 1px solid #c8dafc;
+        }
+        .filter-chip .x { cursor: pointer; opacity: 0.7; }
+        .filter-chip .x:hover { opacity: 1; }
+        .filter-chip.btn-add {
+            background: var(--surface-2);
+            color: var(--neutral);
+            border: 1px dashed var(--border);
+            cursor: pointer;
+        }
+        .filter-chip.btn-clear {
+            background: transparent;
+            color: var(--neutral);
+            border: none;
+            cursor: pointer;
+        }
+        .filter-chip.btn-clear:hover { color: var(--danger); }
+
+        /* ===== Modern data table ===== */
+        .data-table-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .data-table-head {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+        .data-table-head h3 {
+            margin: 0; font-size: 0.95rem; font-weight: 600;
+        }
+        .data-table-head .meta { font-size: 0.78rem; color: var(--neutral); }
+        .data-table {
+            width: 100%; margin-bottom: 0;
+            font-size: 0.9rem;
+        }
+        .data-table thead th {
+            background: var(--surface-2);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--neutral);
+            border-bottom: 1px solid var(--border);
+            border-top: none;
+            padding: 10px 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .data-table tbody td {
+            padding: 12px;
+            vertical-align: middle;
+            border-top: 1px solid var(--border);
+        }
+        .data-table tbody tr:hover { background: #fafbfd; }
+        .data-table .text-end { text-align: right; }
+        .data-table .text-center { text-align: center; }
+        .data-table .num { font-variant-numeric: tabular-nums; font-weight: 600; }
+        .data-table .profit { color: var(--profit); font-weight: 700; }
+        .data-table tfoot td {
+            background: var(--surface-2);
+            font-weight: 700;
+            border-top: 2px solid var(--border);
+            padding: 12px;
+            font-size: 0.85rem;
+        }
+
+        /* Cliente cell with avatar */
+        .client-cell {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .client-cell .avatar {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6f42c1, #d63384);
+            color: #fff;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .client-cell .avatar.b1 { background: linear-gradient(135deg, #0d6efd, #15b079); }
+        .client-cell .avatar.b2 { background: linear-gradient(135deg, #fd7e14, #b76b00); }
+        .client-cell .avatar.b3 { background: linear-gradient(135deg, #0a8754, #15b079); }
+        .client-cell .avatar.b4 { background: linear-gradient(135deg, #d63384, #b02a37); }
+        .client-cell .name { font-weight: 600; font-size: 0.92rem; line-height: 1.2; }
+        .client-cell .doc  { font-size: 0.76rem; color: var(--neutral); }
+
+        /* Action icons */
+        .row-actions {
+            display: inline-flex; gap: 4px;
+        }
+        .row-actions .btn-ico {
+            width: 30px; height: 30px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 6px;
+            color: var(--neutral);
+            background: transparent;
+            border: 1px solid transparent;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .row-actions .btn-ico:hover { background: var(--surface-2); border-color: var(--border); color: var(--info); }
+        .row-actions .btn-ico.danger:hover { color: var(--danger); }
+
+        /* Tipo pills */
+        .pill-tipo {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 8px; border-radius: 999px;
+            font-size: 0.74rem; font-weight: 600;
+        }
+        .pill-tipo.antecip { background: var(--profit-soft); color: var(--profit); }
+        .pill-tipo.empr    { background: var(--warn-soft); color: var(--warn); }
+
+        /* Compact contact chips */
+        .mini-contact {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 0.78rem; color: var(--neutral); margin-right: 8px;
+        }
+        .mini-contact i { font-size: 0.85rem; }
+        .mini-contact a { color: var(--neutral); text-decoration: none; }
+        .mini-contact a:hover { color: var(--info); }
+
+        /* Pagination */
+        .pagination-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 18px;
+            border-top: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+        .pagination-bar .info { font-size: 0.82rem; color: var(--neutral); }
+        .pagination-bar .pagination { margin: 0; }
+        .pagination-bar .page-link {
+            padding: 4px 10px; font-size: 0.82rem;
+            color: var(--info); border-color: var(--border);
+        }
+        .pagination-bar .page-item.active .page-link {
+            background: var(--info); border-color: var(--info);
+        }
+
+        /* Sticky panel for detail page */
+        .sticky-panel {
+            position: sticky; top: 16px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: #fff;
+        }
+        .sticky-panel .panel-head {
+            padding: 14px 18px;
+            display: flex; justify-content: space-between; align-items: center;
+            color: #fff;
+            background: var(--hero-bg-grad);
+        }
+        .sticky-panel .panel-head h3 {
+            font-size: 0.85rem; margin: 0; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.92;
+        }
+        .summary-hero {
+            background: var(--hero-bg-grad);
+            color: #fff;
+            padding: 6px 18px 22px;
+        }
+        .summary-hero .h-label {
+            font-size: 0.78rem; opacity: 0.8;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .summary-hero .h-value {
+            font-size: 2.05rem; font-weight: 700; line-height: 1.1;
+        }
+        .summary-hero .h-sub {
+            font-size: 0.8rem; opacity: 0.85; margin-top: 4px;
+        }
+
+        .summary-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 8px; padding: 14px;
+            background: var(--surface);
+        }
+        .summary-cell {
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+        }
+        .summary-cell .c-label {
+            font-size: 0.7rem; color: var(--neutral);
+            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+        }
+        .summary-cell .c-value { font-size: 1.05rem; font-weight: 700; margin-top: 2px; }
+        .summary-cell.span2 { grid-column: 1 / -1; }
+        .summary-cell.profit { background: var(--profit-soft); border-color: #b3e3c4; }
+        .summary-cell.profit .c-value { color: var(--profit); }
+        .summary-cell.warn { background: var(--warn-soft); border-color: #f1d999; }
+        .summary-cell.warn .c-value { color: var(--warn); }
+
+        .panel-actions {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 8px;
+            background: var(--surface);
+        }
+        .panel-actions .btn { font-weight: 600; }
+        .panel-actions .btn-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        }
+
+        /* Info display (key/value) */
+        .info-grid {
+            display: grid; grid-template-columns: repeat(12, 1fr);
+            gap: 14px 18px;
+        }
+        .info-cell { grid-column: span 4; }
+        .info-cell.col-2 { grid-column: span 2; }
+        .info-cell.col-3 { grid-column: span 3; }
+        .info-cell.col-4 { grid-column: span 4; }
+        .info-cell.col-6 { grid-column: span 6; }
+        .info-cell.col-8 { grid-column: span 8; }
+        .info-cell.col-12 { grid-column: span 12; }
+        .info-cell .info-label {
+            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;
+            color: var(--neutral); font-weight: 600; margin-bottom: 3px;
+        }
+        .info-cell .info-value {
+            font-size: 0.95rem; color: #212529; font-weight: 500;
+            min-height: 22px; word-break: break-word;
+        }
+        .info-cell .info-value.muted { color: #adb5bd; font-style: italic; font-weight: 400; }
+
+        /* Anotação card */
+        .anot-card {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .anot-card .anot-meta {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.78rem; color: var(--neutral);
+        }
+        .anot-card .anot-meta .who { font-weight: 600; color: #495057; }
+        .anot-card .anot-text { color: #212529; }
+
+        /* Anexo card */
+        .anexo-card {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface);
+            margin-bottom: 6px;
+        }
+        .anexo-card .ico {
+            width: 36px; height: 36px;
+            background: var(--info-soft); color: var(--info);
+            border-radius: 8px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .anexo-card .name { font-weight: 600; font-size: 0.88rem; line-height: 1.2; }
+        .anexo-card .desc { font-size: 0.75rem; color: var(--neutral); }
+
+        /* Cash flow chart placeholder */
+        .chart-placeholder {
+            height: 240px;
+            background:
+                repeating-linear-gradient(0deg,
+                    transparent 0,
+                    transparent 39px,
+                    var(--border) 39px,
+                    var(--border) 40px),
+                var(--surface-2);
+            border-radius: 10px;
+            position: relative;
+            display: flex; align-items: flex-end; justify-content: space-around;
+            padding: 16px;
+        }
+        .chart-bar {
+            width: 28px; background: linear-gradient(180deg, #15b079, #0a8754);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+        }
+        .chart-bar.warn { background: linear-gradient(180deg, #b76b00, #8a5a00); }
+        .chart-bar.info { background: linear-gradient(180deg, #1d5fb0, #0d3a6e); }
+
+        .empty-block {
+            padding: 40px 18px;
+            text-align: center; color: var(--neutral); font-size: 0.88rem;
+        }
+        .empty-block i { font-size: 2.4rem; opacity: 0.4; }
+
+        .mode-block { display: none; }
+        .mode-block.is-active { display: block; }
+    </style>
+</head>
+<body class="px-3 px-md-4 py-3">
+
+<div class="container-fluid" style="max-width: 1500px;">
+
+    <div class="mode-picker">
+        <i class="bi bi-palette-fill"></i>
+        <strong>Mockup estático.</strong>
+        <span>Escolha a página:</span>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-info text-white" data-mode="clientes">
+                <i class="bi bi-people"></i> Listar Clientes
+            </button>
+            <button type="button" class="btn btn-primary" data-mode="operacoes">
+                <i class="bi bi-cash-stack"></i> Listar Operações
+            </button>
+            <button type="button" class="btn btn-success" data-mode="detalhes">
+                <i class="bi bi-receipt"></i> Detalhes da Operação
+            </button>
+        </div>
+        <span class="ms-auto small">3 telas com a mesma linguagem visual do cadastro.</span>
+    </div>
+
+    <!-- =========================================== -->
+    <!-- ============ LISTAR CLIENTES ============== -->
+    <!-- =========================================== -->
+    <div class="mode-block is-active" data-mode-block="clientes">
+
+        <div class="page-toolbar">
+            <div>
+                <h1>
+                    <i class="bi bi-people-fill text-info"></i>
+                    Clientes
+                    <span class="id-pill"><i class="bi bi-hash"></i>87 cadastrados</span>
+                </h1>
+                <div class="text-muted small mt-1">Gerencie os cedentes da operação · busca e ordenação rápidas</div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="input-group input-group-sm" style="width: 280px;">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="search" class="form-control" placeholder="Buscar por nome, CNPJ, e-mail…">
+                </div>
+                <button class="btn btn-success">
+                    <i class="bi bi-plus-lg"></i> Novo Cliente
+                </button>
+            </div>
+        </div>
+
+        <!-- KPIs simples -->
+        <div class="kpi-strip">
+            <div class="kpi-card">
+                <div class="k-icon b-blue"><i class="bi bi-people-fill"></i></div>
+                <div class="k-label">Total de clientes</div>
+                <div class="k-value">87</div>
+                <div class="k-trend up"><i class="bi bi-arrow-up"></i> +3 no mês</div>
+            </div>
+            <div class="kpi-card">
+                <div class="k-icon b-green"><i class="bi bi-graph-up-arrow"></i></div>
+                <div class="k-label">Ativos (90 dias)</div>
+                <div class="k-value">42</div>
+                <div class="k-trend">com operação recente</div>
+            </div>
+            <div class="kpi-card">
+                <div class="k-icon b-warn"><i class="bi bi-pause-circle"></i></div>
+                <div class="k-label">Inativos</div>
+                <div class="k-value">15</div>
+                <div class="k-trend">sem operação há 6+ meses</div>
+            </div>
+            <div class="kpi-card">
+                <div class="k-icon b-purple"><i class="bi bi-cash-stack"></i></div>
+                <div class="k-label">Volume 12 meses</div>
+                <div class="k-value">R$ 4,2 mi</div>
+                <div class="k-trend up"><i class="bi bi-arrow-up"></i> +18% vs ano anterior</div>
+            </div>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="filter-bar">
+            <span class="filter-label">Filtros rápidos:</span>
+            <button class="filter-chip">Todos <span class="text-muted ms-1">(87)</span></button>
+            <button class="filter-chip" style="background:var(--profit-soft);color:var(--profit);border-color:#b3e3c4;">Ativos (42)</button>
+            <button class="filter-chip" style="background:var(--surface-2);color:var(--neutral);border-color:var(--border);">Inativos (15)</button>
+            <button class="filter-chip" style="background:var(--surface-2);color:var(--neutral);border-color:var(--border);">Novos no mês (3)</button>
+            <span class="ms-auto text-muted small">Ordenar por: <strong>Nome ↑</strong></span>
+        </div>
+
+        <!-- Tabela -->
+        <div class="data-table-wrap">
+            <div class="data-table-head">
+                <h3>87 clientes</h3>
+                <div class="meta">Página 1 de 6</div>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:50px;">ID</th>
+                            <th>Cliente</th>
+                            <th>Contato</th>
+                            <th class="text-center">Operações</th>
+                            <th class="text-end">Volume 12m</th>
+                            <th class="text-center">Última op.</th>
+                            <th class="text-center" style="width:140px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">#51</td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="avatar b1">AC</div>
+                                    <div>
+                                        <div class="name">ACME Indústria Ltda.</div>
+                                        <div class="doc">CNPJ 12.345.678/0001-90 · EPP</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="mini-contact"><i class="bi bi-whatsapp text-success"></i> (11) 98765-4321</span>
+                                <span class="mini-contact"><i class="bi bi-envelope-fill"></i> contato@acme.com.br</span>
+                            </td>
+                            <td class="text-center"><span class="badge bg-light text-dark border">12</span></td>
+                            <td class="text-end num">R$ 487.250</td>
+                            <td class="text-center text-muted">há 8 dias</td>
+                            <td class="text-center">
+                                <div class="row-actions">
+                                    <a href="#" class="btn-ico" title="Visualizar"><i class="bi bi-eye-fill"></i></a>
+                                    <a href="#" class="btn-ico" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                                    <a href="#" class="btn-ico" title="Nova simulação"><i class="bi bi-calculator-fill"></i></a>
+                                    <a href="#" class="btn-ico danger" title="Excluir"><i class="bi bi-trash3-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">#48</td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="avatar b2">BC</div>
+                                    <div>
+                                        <div class="name">Bonassoli Soluções</div>
+                                        <div class="doc">CNPJ 35.258.176/0001-22 · ME</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="mini-contact"><i class="bi bi-whatsapp text-success"></i> (15) 99821-1200</span>
+                                <span class="mini-contact"><i class="bi bi-envelope-fill"></i> caio@bonassoli.com</span>
+                            </td>
+                            <td class="text-center"><span class="badge bg-light text-dark border">7</span></td>
+                            <td class="text-end num">R$ 213.000</td>
+                            <td class="text-center text-muted">há 21 dias</td>
+                            <td class="text-center">
+                                <div class="row-actions">
+                                    <a href="#" class="btn-ico" title="Visualizar"><i class="bi bi-eye-fill"></i></a>
+                                    <a href="#" class="btn-ico" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                                    <a href="#" class="btn-ico" title="Nova simulação"><i class="bi bi-calculator-fill"></i></a>
+                                    <a href="#" class="btn-ico danger" title="Excluir"><i class="bi bi-trash3-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">#3</td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="avatar b3">AT</div>
+                                    <div>
+                                        <div class="name">All Terra Terraplenagem</div>
+                                        <div class="doc">CNPJ 49.915.558/0001-96 · MEDIO</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="mini-contact"><i class="bi bi-whatsapp text-success"></i> (19) 99986-0107</span>
+                                <span class="mini-contact"><i class="bi bi-envelope-fill"></i> adm@allterra.com.br</span>
+                            </td>
+                            <td class="text-center"><span class="badge bg-light text-dark border">28</span></td>
+                            <td class="text-end num">R$ 1.240.000</td>
+                            <td class="text-center text-muted">ontem</td>
+                            <td class="text-center">
+                                <div class="row-actions">
+                                    <a href="#" class="btn-ico" title="Visualizar"><i class="bi bi-eye-fill"></i></a>
+                                    <a href="#" class="btn-ico" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                                    <a href="#" class="btn-ico" title="Nova simulação"><i class="bi bi-calculator-fill"></i></a>
+                                    <a href="#" class="btn-ico danger" title="Excluir"><i class="bi bi-trash3-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">#14</td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="avatar b4">CW</div>
+                                    <div>
+                                        <div class="name">Crisweiser</div>
+                                        <div class="doc">CNPJ 00.000.000/0000-00 · MEI</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="mini-contact"><i class="bi bi-whatsapp text-success"></i> (19) 99898-9999</span>
+                                <span class="mini-contact"><i class="bi bi-envelope-fill"></i> cris@crisweiser.com</span>
+                            </td>
+                            <td class="text-center"><span class="badge bg-light text-dark border">3</span></td>
+                            <td class="text-end num">R$ 24.500</td>
+                            <td class="text-center text-muted">há 2 meses</td>
+                            <td class="text-center">
+                                <div class="row-actions">
+                                    <a href="#" class="btn-ico" title="Visualizar"><i class="bi bi-eye-fill"></i></a>
+                                    <a href="#" class="btn-ico" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                                    <a href="#" class="btn-ico" title="Nova simulação"><i class="bi bi-calculator-fill"></i></a>
+                                    <a href="#" class="btn-ico danger" title="Excluir"><i class="bi bi-trash3-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-bar">
+                <div class="info">Mostrando <strong>1–15</strong> de <strong>87</strong> clientes</div>
+                <ul class="pagination">
+                    <li class="page-item disabled"><a class="page-link" href="#">«</a></li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                    <li class="page-item disabled"><a class="page-link" href="#">…</a></li>
+                    <li class="page-item"><a class="page-link" href="#">6</a></li>
+                    <li class="page-item"><a class="page-link" href="#">»</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================== -->
+    <!-- ============ LISTAR OPERAÇÕES ============= -->
+    <!-- =========================================== -->
+    <div class="mode-block" data-mode-block="operacoes">
+
+        <div class="page-toolbar">
+            <div>
+                <h1>
+                    <i class="bi bi-cash-stack text-primary"></i>
+                    Operações
+                    <span class="id-pill"><i class="bi bi-hash"></i>347 registradas</span>
+                </h1>
+                <div class="text-muted small mt-1">Acompanhamento de antecipações e empréstimos</div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="input-group input-group-sm" style="width: 260px;">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="search" class="form-control" placeholder="Buscar por ID ou cliente…">
+                </div>
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-download"></i> Exportar CSV</button>
+                <a href="#" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nova Operação</a>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-strip">
+            <div class="kpi-card">
+                <div class="k-icon b-blue"><i class="bi bi-list-ol"></i></div>
+                <div class="k-label">Operações filtradas</div>
+                <div class="k-value">347</div>
+                <div class="k-trend">de 412 totais</div>
+            </div>
+            <div class="kpi-card">
+                <div class="k-icon b-warn"><i class="bi bi-hourglass-split"></i></div>
+                <div class="k-label">Saldo em aberto</div>
+                <div class="k-value">R$ 1,8 mi</div>
+                <div class="k-trend">96 títulos a receber</div>
+            </div>
+            <div class="kpi-card">
+                <div class="k-icon b-purple"><i class="bi bi-bar-chart-fill"></i></div>
+                <div class="k-label">Volume operado</div>
+                <div class="k-value">R$ 8,4 mi</div>
+                <div class="k-trend">total nominal</div>
+            </div>
+            <div class="kpi-card">
+                <div class="k-icon b-green"><i class="bi bi-piggy-bank-fill"></i></div>
+                <div class="k-label">Lucro líquido</div>
+                <div class="k-value">R$ 712 mil</div>
+                <div class="k-trend up"><i class="bi bi-arrow-up"></i> margem 8,5%</div>
+            </div>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="filter-bar">
+            <span class="filter-label">Filtros ativos:</span>
+            <span class="filter-chip">
+                <i class="bi bi-calendar3"></i> Mês atual
+                <span class="x"><i class="bi bi-x"></i></span>
+            </span>
+            <span class="filter-chip" style="background:var(--profit-soft);color:var(--profit);border-color:#b3e3c4;">
+                <i class="bi bi-arrow-return-left"></i> Antecipação
+                <span class="x"><i class="bi bi-x"></i></span>
+            </span>
+            <span class="filter-chip" style="background:var(--warn-soft);color:var(--warn);border-color:#f1d999;">
+                <i class="bi bi-clock"></i> Em aberto
+                <span class="x"><i class="bi bi-x"></i></span>
+            </span>
+            <button class="filter-chip btn-add"><i class="bi bi-plus"></i> Adicionar filtro</button>
+            <button class="filter-chip btn-clear ms-auto"><i class="bi bi-x-circle"></i> Limpar tudo</button>
+        </div>
+
+        <!-- Tabela -->
+        <div class="data-table-wrap">
+            <div class="data-table-head">
+                <h3>Resultado</h3>
+                <div class="meta">
+                    <strong>347</strong> operações ·
+                    Total nominal <strong>R$ 8,4 mi</strong> ·
+                    Lucro <strong class="text-success">R$ 712 mil</strong>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:60px;">#</th>
+                            <th>Cliente</th>
+                            <th>Tipo</th>
+                            <th class="text-end">Taxa</th>
+                            <th class="text-end">Nominal</th>
+                            <th class="text-end">Líquido pago</th>
+                            <th class="text-end">Lucro</th>
+                            <th class="text-center">Dias</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-end">Saldo aberto</th>
+                            <th>Data</th>
+                            <th class="text-center" style="width:110px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>#1247</strong></td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="avatar b1">AC</div>
+                                    <div>
+                                        <div class="name">ACME Indústria Ltda.</div>
+                                        <div class="doc">5 títulos</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="pill-tipo antecip"><i class="bi bi-arrow-return-left"></i> Antecipação</span></td>
+                            <td class="text-end num">5,00%</td>
+                            <td class="text-end num">R$ 32.000</td>
+                            <td class="text-end num">R$ 28.800</td>
+                            <td class="text-end profit">R$ 3.200</td>
+                            <td class="text-center text-muted">45</td>
+                            <td class="text-center"><span class="status-pill s-aberto">Em aberto</span></td>
+                            <td class="text-end num">R$ 32.000</td>
+                            <td class="text-muted small">23/04/2026</td>
+                            <td class="text-center">
+                                <div class="row-actions">
+                                    <a href="#" class="btn-ico" title="Detalhes"><i class="bi bi-eye-fill"></i></a>
+                                    <a href="#" class="btn-ico danger" title="Excluir"><i class="bi bi-trash3-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>#1198</strong></td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="avatar b3">AT</div>
+                                    <div>
+                                        <div class="name">All Terra Terraplenagem</div>
+                                        <div class="doc">3 títulos</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="pill-tipo antecip"><i class="bi bi-arrow-return-left"></i> Antecipação</span></td>
+                            <td class="text-end num">4,75%</td>
+                            <td class="text-end num">R$ 25.400</td>
+                            <td class="text-end num">R$ 22.860</td>
+                            <td class="text-end profit">R$ 2.540</td>
+                            <td class="text-center text-muted">38</td>
+                            <td class="text-center"><span class="status-pill s-concluida">Concluída</span></td>
+                            <td class="text-end text-muted">—</td>
+                            <td class="text-muted small">10/04/2026</td>
+                            <td class="text-center">
+                                <div class="row-actions">
+                                    <a href="#" class="btn-ico" title="Detalhes"><i class="bi bi-eye-fill"></i></a>
+                                    <a href="#" class="btn-ico danger" title="Excluir"><i class="bi bi-trash3-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>#1165</strong></td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="avatar b2">BC</div>
+                                    <div>
+                                        <div class="name">Bonassoli Soluções</div>
+                                        <div class="doc">2 títulos</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="pill-tipo empr"><i class="bi bi-cash-coin"></i> Empréstimo</span></td>
+                            <td class="text-end num">5,50%</td>
+                            <td class="text-end num">R$ 21.000</td>
+                            <td class="text-end num">R$ 18.900</td>
+                            <td class="text-end profit">R$ 2.100</td>
+                            <td class="text-center text-muted">60</td>
+                            <td class="text-center"><span class="status-pill s-problema">Com problema</span></td>
+                            <td class="text-end num">R$ 12.500</td>
+                            <td class="text-muted small">02/04/2026</td>
+                            <td class="text-center">
+                                <div class="row-actions">
+                                    <a href="#" class="btn-ico" title="Detalhes"><i class="bi bi-eye-fill"></i></a>
+                                    <a href="#" class="btn-ico danger" title="Excluir"><i class="bi bi-trash3-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>#1102</strong></td>
+                            <td>
+                                <div class="client-cell">
+                                    <div class="avatar b4">CW</div>
+                                    <div>
+                                        <div class="name">Crisweiser</div>
+                                        <div class="doc">4 títulos</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="pill-tipo antecip"><i class="bi bi-arrow-return-left"></i> Antecipação</span></td>
+                            <td class="text-end num">5,00%</td>
+                            <td class="text-end num">R$ 18.000</td>
+                            <td class="text-end num">R$ 16.290</td>
+                            <td class="text-end profit">R$ 1.710</td>
+                            <td class="text-center text-muted">42</td>
+                            <td class="text-center"><span class="status-pill s-parcial">Parcial</span></td>
+                            <td class="text-end num">R$ 8.000</td>
+                            <td class="text-muted small">28/03/2026</td>
+                            <td class="text-center">
+                                <div class="row-actions">
+                                    <a href="#" class="btn-ico" title="Detalhes"><i class="bi bi-eye-fill"></i></a>
+                                    <a href="#" class="btn-ico danger" title="Excluir"><i class="bi bi-trash3-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end">TOTAIS:</td>
+                            <td class="text-end">5,06%</td>
+                            <td class="text-end">R$ 96.400</td>
+                            <td class="text-end">R$ 86.850</td>
+                            <td class="text-end profit">R$ 9.550</td>
+                            <td class="text-center">46</td>
+                            <td></td>
+                            <td class="text-end">R$ 52.500</td>
+                            <td colspan="2" class="text-center text-muted">4 operações nesta página</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="pagination-bar">
+                <div class="info">Mostrando <strong>1–15</strong> de <strong>347</strong> operações</div>
+                <ul class="pagination">
+                    <li class="page-item disabled"><a class="page-link" href="#">«</a></li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                    <li class="page-item disabled"><a class="page-link" href="#">…</a></li>
+                    <li class="page-item"><a class="page-link" href="#">24</a></li>
+                    <li class="page-item"><a class="page-link" href="#">»</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================== -->
+    <!-- ========== DETALHES DA OPERAÇÃO =========== -->
+    <!-- =========================================== -->
+    <div class="mode-block" data-mode-block="detalhes">
+
+        <div class="page-toolbar">
+            <div>
+                <h1>
+                    <i class="bi bi-receipt text-primary"></i>
+                    Operação <span class="text-primary">#59</span>
+                    <span class="subtitle">— ACME Indústria Ltda.</span>
+                </h1>
+                <div class="text-muted small mt-1">
+                    <i class="bi bi-arrow-return-left text-success"></i> Antecipação ·
+                    Registrada em <strong>23/04/2026</strong> ·
+                    <span class="status-pill s-aberto"><i class="bi bi-clock-fill"></i> Em aberto</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a href="#" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Lista</a>
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer"></i> Imprimir</button>
+                <a href="#" class="btn btn-warning btn-sm"><i class="bi bi-pencil-square"></i> Editar</a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- ====== LEFT: conteúdo ====== -->
+            <div class="col-xl-8">
+
+                <!-- Dados da Operação -->
+                <div class="section-card s-data">
+                    <div class="section-head">
+                        <span class="step-num">1</span>
+                        <h2>Dados da Operação</h2>
+                        <span class="head-meta">Antecipação · Pagto direto</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="info-grid">
+                            <div class="info-cell col-6">
+                                <div class="info-label">Cliente / Cedente</div>
+                                <div class="info-value">ACME Indústria Ltda. <span class="text-muted small">· CNPJ 12.345.678/0001-90</span></div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">Data de registro</div>
+                                <div class="info-value">23/04/2026</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">Data base de cálculo</div>
+                                <div class="info-value">23/04/2026</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">Taxa mensal</div>
+                                <div class="info-value">5,00% a.m.</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">Tipo de pagamento</div>
+                                <div class="info-value">Direto (devedor notificado)</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">Incorre IOF?</div>
+                                <div class="info-value">Não</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">Tem garantia?</div>
+                                <div class="info-value muted">Não</div>
+                            </div>
+                            <div class="info-cell col-12">
+                                <div class="info-label">Observações</div>
+                                <div class="info-value">Antecipação solicitada via WhatsApp pelo financeiro. Sacado já notificado.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recebíveis -->
+                <div class="section-card s-recb">
+                    <div class="section-head">
+                        <span class="step-num">2</span>
+                        <h2>Recebíveis (Títulos)</h2>
+                        <span class="head-meta"><strong>5</strong> títulos · R$ 32.000 nominais</span>
+                    </div>
+                    <div class="section-body p-0">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:50px;">#</th>
+                                        <th>Vencimento</th>
+                                        <th>Sacado</th>
+                                        <th>Tipo</th>
+                                        <th class="text-end">Valor</th>
+                                        <th class="text-center">Dias</th>
+                                        <th class="text-end">Líquido</th>
+                                        <th class="text-end">Lucro</th>
+                                        <th class="text-center">Status</th>
+                                        <th class="text-center" style="width:90px;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>#1</td>
+                                        <td>15/05/2026</td>
+                                        <td>Cliente A</td>
+                                        <td>Duplicata</td>
+                                        <td class="text-end num">R$ 6.400</td>
+                                        <td class="text-center text-muted">22</td>
+                                        <td class="text-end num">R$ 5.872</td>
+                                        <td class="text-end profit">R$ 528</td>
+                                        <td class="text-center"><span class="status-pill s-aberto">Em aberto</span></td>
+                                        <td class="text-center">
+                                            <div class="row-actions">
+                                                <a href="#" class="btn-ico" title="Marcar recebido"><i class="bi bi-check-circle"></i></a>
+                                                <a href="#" class="btn-ico" title="Editar"><i class="bi bi-pencil"></i></a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#2</td>
+                                        <td>30/05/2026</td>
+                                        <td>Cliente A</td>
+                                        <td>Duplicata</td>
+                                        <td class="text-end num">R$ 6.400</td>
+                                        <td class="text-center text-muted">37</td>
+                                        <td class="text-end num">R$ 5.730</td>
+                                        <td class="text-end profit">R$ 670</td>
+                                        <td class="text-center"><span class="status-pill s-aberto">Em aberto</span></td>
+                                        <td class="text-center">
+                                            <div class="row-actions">
+                                                <a href="#" class="btn-ico" title="Marcar recebido"><i class="bi bi-check-circle"></i></a>
+                                                <a href="#" class="btn-ico" title="Editar"><i class="bi bi-pencil"></i></a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#3</td>
+                                        <td>15/06/2026</td>
+                                        <td>Cliente B</td>
+                                        <td>Cheque</td>
+                                        <td class="text-end num">R$ 6.400</td>
+                                        <td class="text-center text-muted">53</td>
+                                        <td class="text-end num">R$ 5.620</td>
+                                        <td class="text-end profit">R$ 780</td>
+                                        <td class="text-center"><span class="status-pill s-parcial">Parcial</span></td>
+                                        <td class="text-center">
+                                            <div class="row-actions">
+                                                <a href="#" class="btn-ico" title="Marcar recebido"><i class="bi bi-check-circle"></i></a>
+                                                <a href="#" class="btn-ico" title="Editar"><i class="bi bi-pencil"></i></a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#4</td>
+                                        <td>30/06/2026</td>
+                                        <td>Cliente B</td>
+                                        <td>Cheque</td>
+                                        <td class="text-end num">R$ 6.400</td>
+                                        <td class="text-center text-muted">68</td>
+                                        <td class="text-end num">R$ 5.490</td>
+                                        <td class="text-end profit">R$ 910</td>
+                                        <td class="text-center"><span class="status-pill s-concluida">Recebido</span></td>
+                                        <td class="text-center">
+                                            <div class="row-actions">
+                                                <a href="#" class="btn-ico" title="Reverter"><i class="bi bi-arrow-counterclockwise"></i></a>
+                                                <a href="#" class="btn-ico" title="Editar"><i class="bi bi-pencil"></i></a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#5</td>
+                                        <td>15/07/2026</td>
+                                        <td>Cliente C</td>
+                                        <td>NF</td>
+                                        <td class="text-end num">R$ 6.400</td>
+                                        <td class="text-center text-muted">83</td>
+                                        <td class="text-end num">R$ 5.380</td>
+                                        <td class="text-end profit">R$ 1.020</td>
+                                        <td class="text-center"><span class="status-pill s-problema">Problema</span></td>
+                                        <td class="text-center">
+                                            <div class="row-actions">
+                                                <a href="#" class="btn-ico" title="Marcar recebido"><i class="bi bi-check-circle"></i></a>
+                                                <a href="#" class="btn-ico" title="Editar"><i class="bi bi-pencil"></i></a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="4" class="text-end">TOTAIS:</td>
+                                        <td class="text-end">R$ 32.000</td>
+                                        <td class="text-center">53 méd.</td>
+                                        <td class="text-end">R$ 28.092</td>
+                                        <td class="text-end profit">R$ 3.908</td>
+                                        <td colspan="2" class="text-center text-muted">5 títulos</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contratos -->
+                <div class="section-card s-cont">
+                    <div class="section-head">
+                        <span class="step-num">3</span>
+                        <h2>Contratos &amp; Assinaturas</h2>
+                        <span class="head-meta"><span class="status-pill s-concluida">Assinado</span></span>
+                        <button class="btn btn-sm btn-outline-primary"><i class="bi bi-file-earmark-plus"></i> Gerar contrato</button>
+                    </div>
+                    <div class="section-body">
+                        <div class="anexo-card">
+                            <div class="ico" style="background:#fce4ec;color:#d63384;"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+                            <div class="flex-grow-1">
+                                <div class="name">51_DESCONTO_20260423.pdf</div>
+                                <div class="desc">Antecipação de recebíveis · gerado 23/04/2026 · 2 vias</div>
+                            </div>
+                            <span class="status-pill s-concluida"><i class="bi bi-check-circle-fill"></i> Assinado</span>
+                            <a href="#" class="btn btn-sm btn-outline-secondary ms-2"><i class="bi bi-download"></i></a>
+                        </div>
+                        <div class="anexo-card">
+                            <div class="ico"><i class="bi bi-cloud-upload-fill"></i></div>
+                            <div class="flex-grow-1">
+                                <div class="name">Anexar via assinada</div>
+                                <div class="desc">Suba o PDF assinado pelo cliente</div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary"><i class="bi bi-paperclip"></i> Selecionar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Documentos anexados -->
+                <div class="section-card s-anex">
+                    <div class="section-head">
+                        <span class="step-num">4</span>
+                        <h2>Documentos Anexados</h2>
+                        <span class="head-meta"><strong>3</strong> arquivos · 1,2 MB</span>
+                        <button class="btn btn-sm" style="background:#fd7e14;color:#fff;"><i class="bi bi-upload"></i> Adicionar</button>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="anexo-card">
+                                    <div class="ico"><i class="bi bi-file-earmark-image-fill"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="name">duplicata_001.jpg</div>
+                                        <div class="desc">Foto duplicata #1 · 340 KB</div>
+                                    </div>
+                                    <a href="#" class="btn-ico"><i class="bi bi-download"></i></a>
+                                    <a href="#" class="btn-ico danger"><i class="bi bi-trash3"></i></a>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="anexo-card">
+                                    <div class="ico"><i class="bi bi-file-earmark-image-fill"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="name">duplicata_002.jpg</div>
+                                        <div class="desc">Foto duplicata #2 · 380 KB</div>
+                                    </div>
+                                    <a href="#" class="btn-ico"><i class="bi bi-download"></i></a>
+                                    <a href="#" class="btn-ico danger"><i class="bi bi-trash3"></i></a>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="anexo-card">
+                                    <div class="ico" style="background:#fce4ec;color:#d63384;"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="name">notificacao_sacado.pdf</div>
+                                        <div class="desc">Notificação enviada · 480 KB</div>
+                                    </div>
+                                    <a href="#" class="btn-ico"><i class="bi bi-download"></i></a>
+                                    <a href="#" class="btn-ico danger"><i class="bi bi-trash3"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Anotações -->
+                <div class="section-card s-anot">
+                    <div class="section-head">
+                        <span class="step-num">5</span>
+                        <h2>Anotações</h2>
+                        <span class="head-meta"><strong>2</strong> registros</span>
+                        <button class="btn btn-sm" style="background:#0a8754;color:#fff;"><i class="bi bi-plus-lg"></i> Nova anotação</button>
+                    </div>
+                    <div class="section-body">
+                        <div class="anot-card">
+                            <div class="anot-meta">
+                                <span class="who"><i class="bi bi-person-circle"></i> Cris</span>
+                                <span>30/04/2026 às 16:42</span>
+                            </div>
+                            <div class="anot-text">Cliente confirmou que vai antecipar mais 2 títulos no início de maio. Acompanhar.</div>
+                        </div>
+                        <div class="anot-card">
+                            <div class="anot-meta">
+                                <span class="who"><i class="bi bi-person-circle"></i> Cris</span>
+                                <span>23/04/2026 às 14:10</span>
+                            </div>
+                            <div class="anot-text">Operação registrada. Sacado já notificado por e-mail.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fluxo de caixa -->
+                <div class="section-card s-flux">
+                    <div class="section-head">
+                        <span class="step-num">6</span>
+                        <h2>Fluxo de Caixa por Mês</h2>
+                        <span class="head-meta">capital, retorno e lucro</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="chart-placeholder">
+                            <div class="text-center">
+                                <div class="chart-bar info" style="height:120px;"></div>
+                                <div class="small text-muted mt-2">Abr</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="chart-bar" style="height:80px;"></div>
+                                <div class="small text-muted mt-2">Mai</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="chart-bar" style="height:120px;"></div>
+                                <div class="small text-muted mt-2">Jun</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="chart-bar warn" style="height:50px;"></div>
+                                <div class="small text-muted mt-2">Jul</div>
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex gap-3 justify-content-center small">
+                            <span><span class="d-inline-block" style="width:12px;height:12px;background:#1d5fb0;border-radius:3px;"></span> Capital emprestado</span>
+                            <span><span class="d-inline-block" style="width:12px;height:12px;background:#15b079;border-radius:3px;"></span> Capital retornado</span>
+                            <span><span class="d-inline-block" style="width:12px;height:12px;background:#b76b00;border-radius:3px;"></span> Lucro mensal</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ====== RIGHT: sticky panel ====== -->
+            <div class="col-xl-4">
+                <div class="sticky-panel">
+                    <div class="panel-head">
+                        <h3><i class="bi bi-bar-chart-fill"></i> Resumo da Operação</h3>
+                        <span class="badge bg-light text-primary">#59</span>
+                    </div>
+
+                    <!-- Hero KPI: lucro -->
+                    <div class="summary-hero">
+                        <div class="h-label">Lucro líquido projetado</div>
+                        <div class="h-value">R$ 3.908</div>
+                        <div class="h-sub">margem 12,2% · 53 dias médios</div>
+                    </div>
+
+                    <!-- KPIs grid -->
+                    <div class="summary-grid">
+                        <div class="summary-cell profit span2">
+                            <div class="c-label"><i class="bi bi-arrow-up-right"></i> Margem</div>
+                            <div class="c-value">12,2%</div>
+                        </div>
+
+                        <div class="summary-cell">
+                            <div class="c-label">Total nominal</div>
+                            <div class="c-value">R$ 32.000</div>
+                        </div>
+                        <div class="summary-cell">
+                            <div class="c-label">Líquido pago</div>
+                            <div class="c-value">R$ 28.092</div>
+                        </div>
+
+                        <div class="summary-cell">
+                            <div class="c-label">Taxa</div>
+                            <div class="c-value">5,00%</div>
+                        </div>
+                        <div class="summary-cell">
+                            <div class="c-label">Dias médios</div>
+                            <div class="c-value">53</div>
+                        </div>
+
+                        <div class="summary-cell warn span2">
+                            <div class="c-label"><i class="bi bi-hourglass-split"></i> Saldo em aberto</div>
+                            <div class="c-value">R$ 19.200 <span class="small text-muted ms-1">3 títulos</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Quick actions -->
+                    <div class="panel-actions">
+                        <a href="#" class="btn btn-warning"><i class="bi bi-pencil-square"></i> Editar Operação</a>
+                        <div class="btn-row">
+                            <button class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-pdf"></i> Análise PDF</button>
+                            <button class="btn btn-outline-primary btn-sm"><i class="bi bi-receipt"></i> Recibo PDF</button>
+                        </div>
+                        <button class="btn btn-success"><i class="bi bi-envelope-fill"></i> Notificar Sacados</button>
+                    </div>
+                </div>
+
+                <!-- Atalhos relacionados -->
+                <div class="data-table-wrap mt-3">
+                    <div class="data-table-head">
+                        <h3 class="small text-uppercase text-muted">Outras operações deste cliente</h3>
+                    </div>
+                    <table class="data-table">
+                        <tbody>
+                            <tr>
+                                <td><strong>#1198</strong></td>
+                                <td class="text-muted small">10/04/2026</td>
+                                <td class="text-end num">R$ 25.400</td>
+                                <td class="text-center"><span class="status-pill s-concluida" style="font-size:0.7rem;">OK</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>#1102</strong></td>
+                                <td class="text-muted small">28/03/2026</td>
+                                <td class="text-end num">R$ 18.000</td>
+                                <td class="text-center"><span class="status-pill s-parcial" style="font-size:0.7rem;">P</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <p class="text-center text-muted small my-4">
+        Mockup · proposta UX/UI listas e detalhes · 01/05/2026
+    </p>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.querySelectorAll('[data-mode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.mode;
+            document.querySelectorAll('.mode-block').forEach(b => {
+                b.classList.toggle('is-active', b.dataset.modeBlock === mode);
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+</script>
+</body>
+</html>

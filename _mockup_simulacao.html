@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[MOCKUP] Nova Simulação — Proposta UX/UI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --hero-bg: #0d3a6e;
+            --hero-bg-grad: linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%);
+            --profit: #198754;
+            --profit-soft: #d1f0dc;
+            --warn: #b76b00;
+            --warn-soft: #fff3d6;
+            --danger: #b02a37;
+            --neutral: #6c757d;
+            --surface: #ffffff;
+            --surface-2: #f6f8fb;
+            --border: #e3e8ef;
+        }
+
+        body {
+            background: #eef2f7;
+            font-size: 0.95rem;
+        }
+
+        /* ===== Top status bar ===== */
+        .page-toolbar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-badge.pending { background: #fff3d6; color: #8a5a00; }
+        .status-badge.ready { background: #d1f0dc; color: #0f5132; }
+
+        /* ===== Stepper ===== */
+        .stepper {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 18px;
+            padding: 0;
+            list-style: none;
+            flex-wrap: wrap;
+        }
+        .stepper li {
+            flex: 1 1 0;
+            min-width: 130px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.78rem;
+            color: var(--neutral);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stepper li .step-num {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: #e3e8ef;
+            color: #495057;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+        .stepper li.is-active { border-color: #0d6efd; background: #eef4ff; color: #0a4ea8; }
+        .stepper li.is-active .step-num { background: #0d6efd; color: #fff; }
+        .stepper li.is-done { border-color: #198754; background: #e7f7ec; color: #0f5132; }
+        .stepper li.is-done .step-num { background: #198754; color: #fff; }
+
+        /* ===== Section card ===== */
+        .section-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+        .section-card .section-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+        .section-card .section-head .step-num {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background: #0d6efd;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .section-card .section-head h2 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin: 0;
+            flex: 1;
+        }
+        .section-card .section-head .head-meta {
+            font-size: 0.8rem;
+            color: var(--neutral);
+        }
+        .section-card .section-body { padding: 18px; }
+
+        .section-card.section-tax .section-head .step-num { background: #b76b00; }
+        .section-card.section-titles .section-head .step-num { background: #0a8754; }
+
+        /* ===== Modality toggle (segmented) ===== */
+        .modality-toggle .btn {
+            padding: 14px 16px;
+            font-size: 0.95rem;
+        }
+        .modality-toggle .btn i { font-size: 1.1rem; margin-right: 6px; }
+
+        /* ===== Form polish ===== */
+        .form-label-strong {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--neutral);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .field-hint {
+            font-size: 0.75rem;
+            color: var(--neutral);
+            margin-top: 4px;
+        }
+        .field-emphasis input,
+        .field-emphasis select {
+            border-width: 2px;
+            font-weight: 600;
+        }
+
+        /* ===== Sticky summary ===== */
+        .summary-panel {
+            position: sticky;
+            top: 16px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: #fff;
+        }
+        .summary-panel .summary-head {
+            background: var(--hero-bg-grad);
+            color: #fff;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .summary-panel .summary-head h3 {
+            font-size: 0.85rem;
+            margin: 0;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            opacity: 0.85;
+        }
+        .summary-hero {
+            background: var(--hero-bg-grad);
+            color: #fff;
+            padding: 6px 18px 22px;
+        }
+        .summary-hero .hero-label {
+            font-size: 0.78rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .summary-hero .hero-value {
+            font-size: 2.05rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+        .summary-hero .hero-sub {
+            font-size: 0.8rem;
+            opacity: 0.85;
+            margin-top: 4px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 16px;
+            background: var(--surface);
+        }
+        .summary-cell {
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+        }
+        .summary-cell .cell-label {
+            font-size: 0.72rem;
+            color: var(--neutral);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-weight: 600;
+        }
+        .summary-cell .cell-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+        .summary-cell.cell-profit { background: var(--profit-soft); border-color: #b3e3c4; }
+        .summary-cell.cell-profit .cell-value { color: var(--profit); }
+        .summary-cell.cell-warn { background: var(--warn-soft); border-color: #f1d999; }
+        .summary-cell.cell-warn .cell-value { color: var(--warn); }
+        .summary-cell.cell-span { grid-column: 1 / -1; }
+
+        .summary-actions {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--surface);
+        }
+        .summary-actions .btn { font-weight: 600; }
+        .summary-actions .btn-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        /* ===== Titles table ===== */
+        .titles-table { font-size: 0.9rem; }
+        .titles-table thead th {
+            background: var(--surface-2);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--neutral);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 8px;
+        }
+        .titles-table tbody td {
+            vertical-align: middle;
+            padding: 8px;
+        }
+        .net-cell {
+            text-align: right;
+            font-weight: 600;
+            color: #0a58ca;
+        }
+        .days-cell {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--neutral);
+            font-style: italic;
+        }
+
+        /* ===== Misc ===== */
+        .pill-money {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .pill-money.pos { background: var(--profit-soft); color: var(--profit); }
+        .pill-money.warn { background: var(--warn-soft); color: var(--warn); }
+
+        .empty-summary {
+            padding: 28px 18px;
+            text-align: center;
+            color: var(--neutral);
+            font-size: 0.88rem;
+            background: var(--surface);
+        }
+        .empty-summary i { font-size: 2.2rem; opacity: 0.4; }
+
+        details.collapsible {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0;
+            margin-bottom: 18px;
+        }
+        details.collapsible > summary {
+            padding: 14px 18px;
+            font-weight: 600;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #495057;
+        }
+        details.collapsible > summary::-webkit-details-marker { display: none; }
+        details.collapsible[open] > summary { border-bottom: 1px solid var(--border); }
+        details.collapsible .details-body { padding: 18px; }
+
+        .legend-mockup {
+            background: #fff8e1;
+            border: 1px dashed #d6a300;
+            color: #7a5500;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body class="px-3 px-md-4 py-3">
+
+<div class="container-fluid" style="max-width: 1500px;">
+
+    <div class="legend-mockup">
+        <i class="bi bi-info-circle"></i> Mockup estático apenas para visualização. Os campos são ilustrativos — a implementação reaproveita os mesmos IDs/JS do <code>index.php</code> atual.
+    </div>
+
+    <!-- Toolbar -->
+    <div class="page-toolbar">
+        <div>
+            <h1><i class="bi bi-calculator-fill text-primary"></i> Nova Simulação / Registro</h1>
+            <div class="text-muted small mt-1">Operação <strong>#--</strong> · Modalidade: <strong>Antecipação de Recebíveis</strong></div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="status-badge pending"><i class="bi bi-hourglass-split"></i> Aguardando cálculo</span>
+            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Limpar</button>
+        </div>
+    </div>
+
+    <!-- Stepper -->
+    <ol class="stepper">
+        <li class="is-done"><span class="step-num"><i class="bi bi-check"></i></span> Modalidade</li>
+        <li class="is-active"><span class="step-num">2</span> Cliente &amp; Parâmetros</li>
+        <li><span class="step-num">3</span> Tributação &amp; Pagamento</li>
+        <li><span class="step-num">4</span> Títulos</li>
+        <li><span class="step-num">5</span> Conferir &amp; Registrar</li>
+    </ol>
+
+    <div class="row g-4">
+
+        <!-- ============== LEFT: form ============== -->
+        <div class="col-xl-8">
+
+            <!-- 1. Modalidade -->
+            <div class="section-card">
+                <div class="section-head">
+                    <span class="step-num">1</span>
+                    <h2>Modalidade da Operação</h2>
+                    <span class="head-meta">Define o cálculo aplicado</span>
+                </div>
+                <div class="section-body">
+                    <div class="btn-group w-100 modality-toggle" role="group">
+                        <input type="radio" class="btn-check" name="tipoOp" id="m1" checked>
+                        <label class="btn btn-outline-primary" for="m1">
+                            <i class="bi bi-graph-down-arrow"></i>
+                            Antecipação de Recebíveis
+                        </label>
+                        <input type="radio" class="btn-check" name="tipoOp" id="m2">
+                        <label class="btn btn-outline-primary" for="m2">
+                            <i class="bi bi-cash-coin"></i>
+                            Empréstimo (Gerar Parcelas)
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Cliente & Parâmetros -->
+            <div class="section-card">
+                <div class="section-head">
+                    <span class="step-num">2</span>
+                    <h2>Cliente &amp; Parâmetros</h2>
+                    <span class="head-meta">Quem e em que condições</span>
+                </div>
+                <div class="section-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label-strong">Cedente</label>
+                            <select class="form-select form-select-lg">
+                                <option>ACME Indústria Ltda. — 12.345.678/0001-90</option>
+                                <option>Beta Comércio S.A.</option>
+                            </select>
+                            <div class="field-hint">Obrigatório para registrar a operação.</div>
+                        </div>
+
+                        <div class="col-md-5 field-emphasis">
+                            <label class="form-label-strong">Taxa de desconto (% a.m.)</label>
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary" type="button">−</button>
+                                <input type="text" class="form-control text-center" value="5,00">
+                                <button class="btn btn-outline-secondary" type="button">+</button>
+                                <button class="btn btn-outline-primary" type="button" title="Descobrir taxa pelo valor líquido"><i class="bi bi-calculator"></i></button>
+                            </div>
+                            <div class="field-hint">Padrão da configuração: 5,00% a.m.</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label-strong">Data base de cálculo</label>
+                            <input type="date" class="form-control" value="2026-05-01">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label-strong">Possui garantia?</label>
+                            <select class="form-select">
+                                <option>Não</option>
+                                <option>Sim</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Tributação & Pagamento -->
+            <div class="section-card section-tax">
+                <div class="section-head">
+                    <span class="step-num">3</span>
+                    <h2>Tributação &amp; Pagamento</h2>
+                    <span class="head-meta">IOF e fluxo do dinheiro</span>
+                </div>
+                <div class="section-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label-strong">Tipo de pagamento</label>
+                            <select class="form-select">
+                                <option>Pagamento direto (devedor notificado)</option>
+                                <option>Via conta escrow</option>
+                                <option>Indireto (repasse via cedente)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-strong">Você incorre custo IOF?</label>
+                            <select class="form-select">
+                                <option>Não</option>
+                                <option>Sim</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-strong">Cobrar IOF do cliente?</label>
+                            <select class="form-select" disabled>
+                                <option>—</option>
+                            </select>
+                            <div class="field-hint">Aparece quando "Incorre IOF = Sim".</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Títulos -->
+            <div class="section-card section-titles">
+                <div class="section-head">
+                    <span class="step-num">4</span>
+                    <h2>Títulos a Descontar</h2>
+                    <span class="head-meta"><strong>2</strong> títulos · <span class="pill-money pos">R$ 30.000,00 nominais</span></span>
+                </div>
+                <div class="section-body p-0">
+                    <div class="table-responsive">
+                        <table class="table titles-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Valor (R$)</th>
+                                    <th>Vencimento</th>
+                                    <th>Sacado</th>
+                                    <th>Tipo</th>
+                                    <th class="text-end">Líquido pago</th>
+                                    <th class="text-center">Dias</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="text" class="form-control" value="10.000,00"></td>
+                                    <td><input type="date" class="form-control" value="2026-06-15"></td>
+                                    <td><select class="form-select"><option>Cliente A</option></select></td>
+                                    <td><select class="form-select"><option>Duplicata</option></select></td>
+                                    <td class="net-cell">R$ 9.250,00</td>
+                                    <td class="days-cell">45 dias</td>
+                                    <td><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="text" class="form-control" value="20.000,00"></td>
+                                    <td><input type="date" class="form-control" value="2026-07-10"></td>
+                                    <td><select class="form-select"><option>Cliente B</option></select></td>
+                                    <td><select class="form-select"><option>Cheque</option></select></td>
+                                    <td class="net-cell">R$ 17.900,00</td>
+                                    <td class="days-cell">70 dias</td>
+                                    <td><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top">
+                        <button class="btn btn-outline-success btn-sm"><i class="bi bi-plus-circle"></i> Adicionar título</button>
+                        <button class="btn btn-sm" style="background:#d2691e;color:#fff;"><i class="bi bi-arrow-left-right"></i> Recebíveis indiretos</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Anotações & anexos (collapse) -->
+            <details class="collapsible">
+                <summary><i class="bi bi-pencil-square"></i> Anotações da operação <span class="text-muted small ms-auto">opcional</span></summary>
+                <div class="details-body">
+                    <textarea class="form-control" rows="3" placeholder="Detalhes da operação..."></textarea>
+                </div>
+            </details>
+
+            <details class="collapsible">
+                <summary><i class="bi bi-paperclip"></i> Anexar documentos <span class="text-muted small ms-auto">disponível após registrar</span></summary>
+                <div class="details-body">
+                    <input type="file" class="form-control" multiple disabled>
+                </div>
+            </details>
+
+            <!-- Fluxo de caixa (collapse) -->
+            <details class="collapsible">
+                <summary><i class="bi bi-bar-chart-line"></i> Fluxo de caixa por mês <span class="text-muted small ms-auto">após calcular</span></summary>
+                <div class="details-body">
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-graph-up" style="font-size:2.5rem;opacity:0.3;"></i>
+                        <div class="mt-2">Gráfico de saída, retorno e lucro mensal aparece aqui.</div>
+                    </div>
+                </div>
+            </details>
+
+        </div>
+
+        <!-- ============== RIGHT: sticky summary ============== -->
+        <div class="col-xl-4">
+            <div class="summary-panel">
+
+                <div class="summary-head">
+                    <h3>Resumo da Simulação</h3>
+                    <span class="badge bg-light text-primary">Antecipação</span>
+                </div>
+
+                <!-- HERO KPI -->
+                <div class="summary-hero">
+                    <div class="hero-label">Total líquido pago ao cliente</div>
+                    <div class="hero-value">R$ 27.150,00</div>
+                    <div class="hero-sub">de R$ 30.000,00 nominais · média de 60 dias</div>
+                </div>
+
+                <!-- KPIs -->
+                <div class="summary-grid">
+                    <div class="summary-cell cell-profit cell-span">
+                        <div class="cell-label"><i class="bi bi-arrow-up-right"></i> Lucro líquido</div>
+                        <div class="cell-value">R$ 2.850,00</div>
+                    </div>
+
+                    <div class="summary-cell cell-profit">
+                        <div class="cell-label">Margem</div>
+                        <div class="cell-value">9,50%</div>
+                    </div>
+                    <div class="summary-cell cell-profit">
+                        <div class="cell-label">Retorno mensal</div>
+                        <div class="cell-value">4,75%</div>
+                    </div>
+
+                    <div class="summary-cell">
+                        <div class="cell-label">Total nominal</div>
+                        <div class="cell-value">R$ 30.000,00</div>
+                    </div>
+                    <div class="summary-cell">
+                        <div class="cell-label">Valor presente</div>
+                        <div class="cell-value">R$ 27.260,00</div>
+                    </div>
+
+                    <div class="summary-cell cell-warn cell-span">
+                        <div class="cell-label"><i class="bi bi-receipt"></i> IOF estimado</div>
+                        <div class="cell-value">R$ 110,00</div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="summary-actions">
+                    <button class="btn btn-primary btn-lg"><i class="bi bi-calculator"></i> Calcular Totais</button>
+                    <button class="btn btn-success" disabled><i class="bi bi-check2-circle"></i> Registrar Operação</button>
+                    <div class="btn-row">
+                        <button class="btn btn-outline-secondary btn-sm" disabled><i class="bi bi-file-earmark-pdf"></i> PDF Análise</button>
+                        <button class="btn btn-outline-secondary btn-sm" disabled><i class="bi bi-file-earmark-person"></i> PDF Cliente</button>
+                    </div>
+                    <div class="form-check mt-1">
+                        <input class="form-check-input" type="checkbox" id="notif">
+                        <label class="form-check-label small" for="notif">
+                            <i class="bi bi-envelope"></i> Notificar sacados por e-mail
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty-state demo (mostra como ficaria antes de calcular) -->
+            <div class="summary-panel mt-4" style="opacity:.55;">
+                <div class="summary-head" style="background:#6c757d;">
+                    <h3>Estado vazio (referência)</h3>
+                </div>
+                <div class="empty-summary">
+                    <i class="bi bi-graph-up"></i>
+                    <div class="mt-2">Preencha os campos e clique em <strong>Calcular Totais</strong> para ver o resumo da operação.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-center text-muted small my-4">
+        Mockup · proposta de UX/UI · 01/05/2026
+    </p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

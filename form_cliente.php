@@ -13,7 +13,7 @@ $cliente = [ // Valores padrão para um novo cliente
     'email' => '',
     'telefone' => '',
     'whatsapp' => '',
-    'tipo_pessoa' => 'JURIDICA', // Padrão pessoa jurídica
+    'tipo_pessoa' => 'JURIDICA', // Apenas PJ
     'porte' => '',
     'documento_principal' => '',
     'empresa' => '',
@@ -57,7 +57,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
              header("Location: listar_clientes.php?status=error&msg=" . urlencode("Cliente não encontrado."));
              exit;
         }
-        
+
         $cliente = array_merge($cliente, $fetchedData);
 
         // Buscar sócios do cliente
@@ -90,13 +90,8 @@ if ($alertStatus === 'error' && $flashAplicaNoContextoAtual) {
 
 unset($_SESSION['cliente_form_flash']);
 
-$contaTitularReadonlyValue = $cliente['conta_titular'] ?? '';
-$contaDocumentoReadonlyValue = $cliente['conta_documento'] ?? '';
-
-if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
-    $contaTitularReadonlyValue = $cliente['empresa'] ?? '';
-    $contaDocumentoReadonlyValue = $cliente['documento_principal'] ?? '';
-}
+$contaTitularReadonlyValue = $cliente['empresa'] ?? '';
+$contaDocumentoReadonlyValue = $cliente['documento_principal'] ?? '';
 
 ?>
 <!DOCTYPE html>
@@ -108,30 +103,286 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        .socio-item {
-            border: 1px solid #dee2e6;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            background-color: #f8f9fa;
+        :root {
+            --hero-bg-grad: linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%);
+            --profit: #198754;
+            --profit-soft: #d1f0dc;
+            --warn: #b76b00;
+            --warn-soft: #fff3d6;
+            --danger: #b02a37;
+            --danger-soft: #fde2e4;
+            --neutral: #6c757d;
+            --surface: #ffffff;
+            --surface-2: #f6f8fb;
+            --border: #e3e8ef;
         }
-        .btn-remove-socio {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
+        body { background: #eef2f7; font-size: 0.95rem; }
+
+        /* Toolbar */
+        .page-toolbar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
         }
-        .socio-item {
+        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
+        .page-toolbar h1 .subtitle {
+            font-size: 0.95rem;
+            font-weight: 400;
+            color: var(--neutral);
+            margin-left: 8px;
+        }
+        .id-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #eef4ff;
+            color: #0a4ea8;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 6px;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-badge.editing { background: #fff3d6; color: #8a5a00; }
+        .status-badge.new { background: #eef4ff; color: #0a4ea8; }
+
+        /* Section card */
+        .section-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+        .section-card .section-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+        .section-card .section-head .step-num {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background: #0d6efd;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .section-card .section-head h2 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin: 0;
+            flex: 1;
+        }
+        .section-card .section-body { padding: 18px; }
+
+        .section-card.s-people .section-head .step-num { background: #6f42c1; }
+        .section-card.s-rep    .section-head .step-num { background: #d63384; }
+        .section-card.s-addr   .section-head .step-num { background: #fd7e14; }
+        .section-card.s-bank   .section-head .step-num { background: #0a8754; }
+
+        .section-status {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 999px;
+        }
+        .section-status.ok    { background: var(--profit-soft); color: var(--profit); }
+        .section-status.warn  { background: var(--warn-soft); color: var(--warn); }
+        .section-status.empty { background: var(--surface-2); color: var(--neutral); }
+
+        /* Form polish */
+        .form-label-strong {
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--neutral);
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .form-label-strong .req { color: var(--danger); margin-left: 2px; }
+        .field-hint {
+            font-size: 0.74rem;
+            color: var(--neutral);
+            margin-top: 4px;
+        }
+        .field-locked input,
+        .field-locked select { background: #f1f3f5; color: #495057; }
+
+        /* Sticky panel */
+        .sticky-panel {
+            position: sticky;
+            top: 16px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: #fff;
+        }
+        .sticky-panel .panel-head {
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #fff;
+            background: var(--hero-bg-grad);
+        }
+        .sticky-panel .panel-head h3 {
+            font-size: 0.85rem;
+            margin: 0;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            opacity: 0.92;
+        }
+
+        .completion-hero {
+            background: var(--hero-bg-grad);
+            color: #fff;
+            padding: 8px 18px 22px;
+        }
+        .completion-hero .pct-label {
+            font-size: 0.78rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .completion-hero .pct-value {
+            font-size: 2.1rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .completion-hero .progress {
+            margin-top: 10px;
+            height: 8px;
+            background: rgba(255,255,255,0.18);
+        }
+        .completion-hero .progress-bar { background: #ffd166; transition: width 0.3s ease; }
+
+        .panel-section-list {
+            list-style: none;
+            margin: 0;
+            padding: 8px 0;
+        }
+        .panel-section-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 18px;
+            font-size: 0.88rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .panel-section-list li:hover { background: var(--surface-2); }
+        .panel-section-list li:last-child { border-bottom: none; }
+        .panel-section-list .ico {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+            color: #fff;
+        }
+        .panel-section-list .ico.ok    { background: var(--profit); }
+        .panel-section-list .ico.warn  { background: var(--warn); }
+        .panel-section-list .ico.empty { background: #adb5bd; }
+        .panel-section-list .label { flex: 1; font-weight: 500; }
+        .panel-section-list .meta  { font-size: 0.74rem; color: var(--neutral); }
+
+        .panel-actions {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--surface);
+        }
+        .panel-actions .btn { font-weight: 600; }
+
+        /* Sócios cards */
+        .socio-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            background: var(--surface-2);
             position: relative;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            margin-bottom: 0;
         }
-        .loading-cep {
-            display: none;
+        .socio-card:hover { border-color: #adb5bd; }
+        .socio-card .socio-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
         }
+        .socio-card .badge-num {
+            background: #6f42c1;
+            color: #fff;
+            font-size: 0.72rem;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+        .socio-card .btn-remove-socio {
+            background: transparent;
+            border: none;
+            color: var(--danger);
+            font-size: 0.95rem;
+            padding: 2px 6px;
+            cursor: pointer;
+        }
+        .socio-card .btn-remove-socio:hover { background: var(--danger-soft); border-radius: 6px; }
+
+        .empty-block {
+            padding: 28px 18px;
+            text-align: center;
+            color: var(--neutral);
+            font-size: 0.88rem;
+        }
+        .empty-block i { font-size: 2.2rem; opacity: 0.4; }
+
+        .info-tabs {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 18px;
+        }
+
+        .loading-cep { display: none; }
+        .loading-cep.show { display: block; }
     </style>
 </head>
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container-fluid px-3 px-md-4 mt-4">
+    <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
         <?php if (in_array($alertStatus, ['success', 'error'], true) && $alertMessage !== ''): ?>
             <div class="alert alert-<?php echo $alertStatus === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show" role="alert">
                 <i class="bi <?php echo $alertStatus === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'; ?>"></i>
@@ -141,305 +392,421 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
         <?php endif; ?>
 
         <form action="salvar_cliente.php" method="post" id="form-cliente">
-            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-3">
-                    <h1 class="mb-0">
-                        <?php echo htmlspecialchars($pageTitle); ?>
-                        <?php if ($editMode && !empty($cliente['empresa'])): ?>
-                            <small class="text-muted fs-4">- <?php echo htmlspecialchars($cliente['empresa']); ?></small>
-                        <?php endif; ?>
-                    </h1>
-                    <?php if ($editMode): ?>
-                        <span class="badge bg-primary badge-id" style="font-size: 1.1rem; padding: 0.5rem 1rem;">ID: <?php echo $cliente['id']; ?></span>
-                    <?php endif; ?>
-                </div>
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save-fill"></i> Salvar Cliente
-                    </button>
-                    <a href="listar_clientes.php" class="btn btn-secondary">
-                        Cancelar
-                    </a>
-                </div>
-            </div>
-
             <?php if ($editMode): ?>
                 <input type="hidden" name="id" value="<?php echo htmlspecialchars($cliente['id']); ?>">
             <?php endif; ?>
+            <input type="hidden" id="tipo_pessoa" name="tipo_pessoa" value="JURIDICA">
 
-            <!-- Dados da Empresa -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-building"></i> Dados da Empresa</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="empresa" class="form-label">Nome / Razão Social <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="empresa" name="empresa" value="<?php echo htmlspecialchars($cliente['empresa'] ?? ''); ?>" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="tipo_pessoa_display" class="form-label">Tipo de Pessoa <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="tipo_pessoa_display" value="Pessoa Jurídica" readonly>
-                            <input type="hidden" id="tipo_pessoa" name="tipo_pessoa" value="JURIDICA">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="documento_principal" class="form-label">
-                                <span id="documento_label">CNPJ</span> <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" class="form-control" id="documento_principal" name="documento_principal" value="<?php echo htmlspecialchars($cliente['documento_principal'] ?? ''); ?>" required>
-                            <div class="invalid-feedback" id="documento_principal-feedback"></div>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="porte" class="form-label">Porte</label>
-                            <select class="form-select" id="porte" name="porte">
-                                <option value="">Selecione...</option>
-                                <option value="MEI" <?php echo ($cliente['porte'] ?? '') == 'MEI' ? 'selected' : ''; ?>>MEI → até R$ 81 mil</option>
-                                <option value="ME" <?php echo ($cliente['porte'] ?? '') == 'ME' ? 'selected' : ''; ?>>ME → até R$ 360 mil</option>
-                                <option value="EPP" <?php echo ($cliente['porte'] ?? '') == 'EPP' ? 'selected' : ''; ?>>EPP → até R$ 4,8 milhões</option>
-                                <option value="MEDIO" <?php echo ($cliente['porte'] ?? '') == 'MEDIO' ? 'selected' : ''; ?>>Médio</option>
-                                <option value="GRANDE" <?php echo ($cliente['porte'] ?? '') == 'GRANDE' ? 'selected' : ''; ?>>Grande</option>
-                            </select>
-                        </div>
-                        <div class="col-md-8">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($cliente['email'] ?? ''); ?>">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="telefone">Telefone</label>
-                            <input type="tel" class="form-control" id="telefone" name="telefone"
-                                   value="<?php echo htmlspecialchars($cliente['telefone'] ?? ''); ?>"
-                                   placeholder="(99) 99999-9999">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="whatsapp">WhatsApp</label>
-                            <input type="tel" class="form-control" id="whatsapp" name="whatsapp"
-                                   value="<?php echo htmlspecialchars($cliente['whatsapp'] ?? ''); ?>"
-                                   placeholder="(99) 99999-9999">
-                        </div>
-                        <div class="col-12">
-                            <label for="anotacoes" class="form-label">Anotações</label>
-                            <textarea class="form-control" id="anotacoes" name="anotacoes" rows="3"><?php echo htmlspecialchars($cliente['anotacoes'] ?? ''); ?></textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sócios -->
-            <div class="card mb-4" id="socios_card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-people"></i> Sócios da Empresa</h5>
-                    <button type="button" class="btn btn-success btn-sm" id="btn-adicionar-socio">
-                        <i class="bi bi-plus-circle"></i> Adicionar Sócio
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div id="socios-container">
-                        <?php if (!empty($socios)): ?>
-                            <?php foreach ($socios as $index => $socio): ?>
-                                <div class="socio-item" data-index="<?php echo $index; ?>">
-                                    <button type="button" class="btn btn-danger btn-sm btn-remove-socio">
-                                        <i class="bi bi-x"></i>
-                                    </button>
-                                    <div class="row g-3">
-                                        <div class="col-md-8">
-                                            <label class="form-label">Nome do Sócio <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control socio-nome" name="socios[<?php echo $index; ?>][nome]" value="<?php echo htmlspecialchars($socio['nome']); ?>" required>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label">CPF <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control socio-cpf" name="socios[<?php echo $index; ?>][cpf]" value="<?php echo htmlspecialchars($socio['cpf']); ?>" required>
-                                            <div class="invalid-feedback"></div>
-                                        </div>
-                                    </div>
-                                    <?php if (isset($socio['id'])): ?>
-                                        <input type="hidden" name="socios[<?php echo $index; ?>][id]" value="<?php echo $socio['id']; ?>">
-                                    <?php endif; ?>
-                                </div>
-                            <?php endforeach; ?>
+            <!-- Toolbar -->
+            <div class="page-toolbar">
+                <div>
+                    <h1>
+                        <?php if ($editMode): ?>
+                            <i class="bi bi-pencil-square text-warning"></i>
+                            Editar Cliente
+                            <?php if (!empty($cliente['empresa'])): ?>
+                                <span class="subtitle">— <?php echo htmlspecialchars($cliente['empresa']); ?></span>
+                            <?php endif; ?>
+                            <span class="id-pill"><i class="bi bi-hash"></i>ID <?php echo (int) $cliente['id']; ?></span>
+                        <?php else: ?>
+                            <i class="bi bi-plus-circle text-primary"></i>
+                            Novo Cliente
+                        <?php endif; ?>
+                    </h1>
+                    <div class="text-muted small mt-1">
+                        <?php if ($editMode): ?>
+                            <span class="status-badge editing"><i class="bi bi-pencil-fill"></i> Modo edição</span>
+                        <?php else: ?>
+                            Preencha os dados básicos para começar ·
+                            <span class="status-badge new"><i class="bi bi-stars"></i> Em rascunho</span>
                         <?php endif; ?>
                     </div>
-                    <div id="no-socios-message" class="text-muted text-center py-3" <?php echo !empty($socios) ? 'style="display: none;"' : ''; ?>>
-                        <i class="bi bi-info-circle"></i> Nenhum sócio cadastrado. Clique em "Adicionar Sócio" para incluir.
-                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <a href="<?php echo $editMode ? 'visualizar_cliente.php?id=' . (int)$cliente['id'] : 'listar_clientes.php'; ?>" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x-lg"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save-fill"></i> <?php echo $editMode ? 'Salvar Alterações' : 'Salvar Cliente'; ?>
+                    </button>
                 </div>
             </div>
 
-            <!-- Dados do Representante -->
-            <div class="card mb-4" id="representante_card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-person-badge"></i> Dados do Representante</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-12 mb-2" id="representante_socio_container">
-                            <label for="representante_socio_select" class="form-label">Selecionar Sócio como Representante</label>
-                            <select class="form-select" id="representante_socio_select">
-                                <option value="">Selecione um Sócio...</option>
-                            </select>
+            <div class="row g-4">
+
+                <!-- ====== LEFT: form ====== -->
+                <div class="col-xl-8">
+
+                    <!-- 1. Dados Empresa -->
+                    <div class="section-card" data-section="empresa">
+                        <div class="section-head">
+                            <span class="step-num">1</span>
+                            <h2>Dados da Empresa</h2>
+                            <span class="section-status empty" data-status-for="empresa">—</span>
                         </div>
-                        <div class="col-md-6">
-                            <label for="representante_nome" class="form-label">Nome Completo</label>
-                            <input type="text" class="form-control bg-light" id="representante_nome" name="representante_nome" value="<?php echo htmlspecialchars($cliente['representante_nome'] ?? ''); ?>" readonly>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="representante_cpf" class="form-label">CPF</label>
-                            <input type="text" class="form-control cpf-mask bg-light" id="representante_cpf" name="representante_cpf" value="<?php echo htmlspecialchars($cliente['representante_cpf'] ?? ''); ?>" readonly>
-                        </div>
-                        <div class="col-12" id="campos_adicionais_representante" style="display: none;">
+                        <div class="section-body">
                             <div class="row g-3">
-                                <div class="col-md-3">
-                                    <label for="representante_rg" class="form-label">RG</label>
-                                    <input type="text" class="form-control" id="representante_rg" name="representante_rg" value="<?php echo htmlspecialchars($cliente['representante_rg'] ?? ''); ?>">
+                                <div class="col-md-7">
+                                    <label class="form-label-strong" for="empresa">Razão Social <span class="req">*</span></label>
+                                    <input type="text" class="form-control" id="empresa" name="empresa"
+                                           value="<?php echo htmlspecialchars($cliente['empresa'] ?? ''); ?>"
+                                           placeholder="Ex.: ACME Indústria Ltda." required>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label-strong" for="documento_principal">CNPJ <span class="req">*</span></label>
+                                    <input type="text" class="form-control" id="documento_principal" name="documento_principal"
+                                           value="<?php echo htmlspecialchars($cliente['documento_principal'] ?? ''); ?>"
+                                           placeholder="00.000.000/0000-00" required>
+                                    <div class="invalid-feedback" id="documento_principal-feedback"></div>
+                                    <div class="field-hint">Formatação automática enquanto digita.</div>
                                 </div>
                                 <div class="col-md-4">
-                                    <label for="representante_nacionalidade" class="form-label">Nacionalidade</label>
-                                    <input type="text" class="form-control" id="representante_nacionalidade" name="representante_nacionalidade" value="<?php echo htmlspecialchars($cliente['representante_nacionalidade'] ?? 'brasileiro(a)'); ?>">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="representante_estado_civil" class="form-label">Estado Civil</label>
-                                    <select class="form-select" id="representante_estado_civil" name="representante_estado_civil">
-                                        <option value="">Selecione...</option>
-                                        <option value="Solteiro(a)" <?php echo ($cliente['representante_estado_civil'] ?? '') === 'Solteiro(a)' ? 'selected' : ''; ?>>Solteiro(a)</option>
-                                        <option value="Casado(a)" <?php echo ($cliente['representante_estado_civil'] ?? '') === 'Casado(a)' ? 'selected' : ''; ?>>Casado(a)</option>
-                                        <option value="Separado(a)" <?php echo ($cliente['representante_estado_civil'] ?? '') === 'Separado(a)' ? 'selected' : ''; ?>>Separado(a)</option>
-                                        <option value="Divorciado(a)" <?php echo ($cliente['representante_estado_civil'] ?? '') === 'Divorciado(a)' ? 'selected' : ''; ?>>Divorciado(a)</option>
-                                        <option value="Viúvo(a)" <?php echo ($cliente['representante_estado_civil'] ?? '') === 'Viúvo(a)' ? 'selected' : ''; ?>>Viúvo(a)</option>
+                                    <label class="form-label-strong" for="porte">Porte</label>
+                                    <select class="form-select" id="porte" name="porte">
+                                        <option value="">Selecione…</option>
+                                        <option value="MEI" <?php echo ($cliente['porte'] ?? '') == 'MEI' ? 'selected' : ''; ?>>MEI → até R$ 81 mil</option>
+                                        <option value="ME" <?php echo ($cliente['porte'] ?? '') == 'ME' ? 'selected' : ''; ?>>ME → até R$ 360 mil</option>
+                                        <option value="EPP" <?php echo ($cliente['porte'] ?? '') == 'EPP' ? 'selected' : ''; ?>>EPP → até R$ 4,8 milhões</option>
+                                        <option value="MEDIO" <?php echo ($cliente['porte'] ?? '') == 'MEDIO' ? 'selected' : ''; ?>>Médio</option>
+                                        <option value="GRANDE" <?php echo ($cliente['porte'] ?? '') == 'GRANDE' ? 'selected' : ''; ?>>Grande</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="representante_profissao" class="form-label">Profissão</label>
-                                    <input type="text" class="form-control" id="representante_profissao" name="representante_profissao" value="<?php echo htmlspecialchars($cliente['representante_profissao'] ?? ''); ?>">
+                                <div class="col-md-8">
+                                    <label class="form-label-strong" for="email">E-mail</label>
+                                    <input type="email" class="form-control" id="email" name="email"
+                                           value="<?php echo htmlspecialchars($cliente['email'] ?? ''); ?>"
+                                           placeholder="contato@empresa.com.br">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label-strong" for="telefone">Telefone</label>
+                                    <input type="tel" class="form-control" id="telefone" name="telefone"
+                                           value="<?php echo htmlspecialchars($cliente['telefone'] ?? ''); ?>"
+                                           placeholder="(00) 0000-0000">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label-strong" for="whatsapp"><i class="bi bi-whatsapp text-success"></i> WhatsApp</label>
+                                    <input type="tel" class="form-control" id="whatsapp" name="whatsapp"
+                                           value="<?php echo htmlspecialchars($cliente['whatsapp'] ?? ''); ?>"
+                                           placeholder="(00) 00000-0000">
                                 </div>
                                 <div class="col-12">
-                                    <label for="representante_endereco" class="form-label">Endereço Completo</label>
-                                    <input type="text" class="form-control" id="representante_endereco" name="representante_endereco" value="<?php echo htmlspecialchars($cliente['representante_endereco'] ?? ''); ?>">
+                                    <label class="form-label-strong" for="anotacoes">Anotações</label>
+                                    <textarea class="form-control" id="anotacoes" name="anotacoes" rows="2"
+                                              placeholder="Observações internas sobre o cliente…"><?php echo htmlspecialchars($cliente['anotacoes'] ?? ''); ?></textarea>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Endereço -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Endereço</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label for="cep" class="form-label">CEP</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="cep" name="cep" value="<?php echo htmlspecialchars($cliente['cep'] ?? ''); ?>" placeholder="00000-000">
-                                <button class="btn btn-outline-secondary" type="button" id="btn-buscar-cep">
-                                    <i class="bi bi-search"></i>
-                                </button>
+                    <!-- 2. Sócios -->
+                    <div class="section-card s-people" id="socios_card" data-section="socios">
+                        <div class="section-head">
+                            <span class="step-num">2</span>
+                            <h2>Sócios da Empresa</h2>
+                            <span class="section-status empty" data-status-for="socios">—</span>
+                            <button type="button" class="btn btn-sm" id="btn-adicionar-socio" style="background:#6f42c1;color:#fff;">
+                                <i class="bi bi-plus-circle"></i> Adicionar Sócio
+                            </button>
+                        </div>
+                        <div class="section-body">
+                            <div id="socios-container" class="row g-2">
+                                <?php if (!empty($socios)): ?>
+                                    <?php foreach ($socios as $index => $socio): ?>
+                                        <div class="col-md-6 socio-item" data-index="<?php echo $index; ?>">
+                                            <div class="socio-card">
+                                                <div class="socio-head">
+                                                    <span class="badge-num">SÓCIO <?php echo $index + 1; ?></span>
+                                                    <button type="button" class="btn-remove-socio" title="Remover sócio">
+                                                        <i class="bi bi-trash-fill"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="row g-2">
+                                                    <div class="col-12">
+                                                        <label class="form-label-strong">Nome <span class="req">*</span></label>
+                                                        <input type="text" class="form-control form-control-sm socio-nome"
+                                                               name="socios[<?php echo $index; ?>][nome]"
+                                                               value="<?php echo htmlspecialchars($socio['nome']); ?>" required>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label-strong">CPF <span class="req">*</span></label>
+                                                        <input type="text" class="form-control form-control-sm socio-cpf"
+                                                               name="socios[<?php echo $index; ?>][cpf]"
+                                                               value="<?php echo htmlspecialchars($socio['cpf']); ?>" required>
+                                                        <div class="invalid-feedback"></div>
+                                                    </div>
+                                                </div>
+                                                <?php if (isset($socio['id'])): ?>
+                                                    <input type="hidden" name="socios[<?php echo $index; ?>][id]" value="<?php echo $socio['id']; ?>">
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
-                            <div class="loading-cep">
-                                <small class="text-muted"><i class="bi bi-arrow-clockwise"></i> Buscando...</small>
+                            <div id="no-socios-message" class="empty-block" <?php echo !empty($socios) ? 'style="display: none;"' : ''; ?>>
+                                <i class="bi bi-people"></i>
+                                <div class="mt-2">Adicione os sócios da empresa para vinculá-los como representantes ou avalistas.</div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="logradouro" class="form-label">Logradouro</label>
-                            <input type="text" class="form-control" id="logradouro" name="logradouro" value="<?php echo htmlspecialchars($cliente['logradouro'] ?? ''); ?>">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="numero" class="form-label">Número</label>
-                            <input type="text" class="form-control" id="numero" name="numero" value="<?php echo htmlspecialchars($cliente['numero'] ?? ''); ?>">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="complemento" class="form-label">Complemento</label>
-                            <input type="text" class="form-control" id="complemento" name="complemento" value="<?php echo htmlspecialchars($cliente['complemento'] ?? ''); ?>">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="bairro" class="form-label">Bairro</label>
-                            <input type="text" class="form-control" id="bairro" name="bairro" value="<?php echo htmlspecialchars($cliente['bairro'] ?? ''); ?>">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="cidade" class="form-label">Cidade</label>
-                            <input type="text" class="form-control" id="cidade" name="cidade" value="<?php echo htmlspecialchars($cliente['cidade'] ?? ''); ?>">
-                        </div>
-                        <div class="col-md-1">
-                            <label for="estado" class="form-label">UF</label>
-                            <input type="text" class="form-control" id="estado" name="estado" value="<?php echo htmlspecialchars($cliente['estado'] ?? ''); ?>" maxlength="2">
-                        </div>
-                        <div class="col-12">
-                            <label for="endereco" class="form-label">Observações do Endereço</label>
-                            <textarea class="form-control" id="endereco" name="endereco" rows="2"><?php echo htmlspecialchars($cliente['endereco'] ?? ''); ?></textarea>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Dados Bancários -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-bank"></i> Dados Bancários</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="conta_titular" class="form-label">Titular da Conta</label>
-                            <input type="text" class="form-control bg-light" id="conta_titular" name="conta_titular" value="<?php echo htmlspecialchars($contaTitularReadonlyValue); ?>" readonly>
+                    <!-- 3. Representante -->
+                    <div class="section-card s-rep" id="representante_card" data-section="representante">
+                        <div class="section-head">
+                            <span class="step-num">3</span>
+                            <h2>Representante Legal</h2>
+                            <span class="section-status empty" data-status-for="representante">—</span>
                         </div>
-                        <div class="col-md-6">
-                            <label for="conta_documento" class="form-label">CNPJ Titular da Conta</label>
-                            <input type="text" class="form-control bg-light" id="conta_documento" name="conta_documento" value="<?php echo htmlspecialchars($contaDocumentoReadonlyValue); ?>" readonly>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="conta_banco" class="form-label">Banco</label>
-                            <input type="text" class="form-control" id="conta_banco" name="conta_banco" value="<?php echo htmlspecialchars($cliente['conta_banco'] ?? ''); ?>" placeholder="Ex: Itaú, Bradesco">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="conta_agencia" class="form-label">Agência</label>
-                            <input type="text" class="form-control" id="conta_agencia" name="conta_agencia" value="<?php echo htmlspecialchars($cliente['conta_agencia'] ?? ''); ?>" placeholder="0000">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="conta_numero" class="form-label">Conta</label>
-                            <input type="text" class="form-control" id="conta_numero" name="conta_numero" value="<?php echo htmlspecialchars($cliente['conta_numero'] ?? ''); ?>" placeholder="00000-0">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="conta_tipo" class="form-label">Tipo de Conta</label>
-                            <select class="form-select" id="conta_tipo" name="conta_tipo">
-                                <option value="" <?php echo empty($cliente['conta_tipo']) ? 'selected' : ''; ?>>Selecione...</option>
-                                <option value="Corrente" <?php echo ($cliente['conta_tipo'] ?? '') === 'Corrente' ? 'selected' : ''; ?>>Conta Corrente</option>
-                                <option value="Poupanca" <?php echo ($cliente['conta_tipo'] ?? '') === 'Poupanca' ? 'selected' : ''; ?>>Conta Poupança</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="conta_pix_tipo" class="form-label">Tipo PIX</label>
-                            <select class="form-select" id="conta_pix_tipo" name="conta_pix_tipo">
-                                <option value="" <?php echo empty($cliente['conta_pix_tipo']) ? 'selected' : ''; ?>>Selecione...</option>
-                                <option value="CPF" <?php echo ($cliente['conta_pix_tipo'] ?? '') === 'CPF' ? 'selected' : ''; ?>>CPF</option>
-                                <option value="CNPJ" <?php echo ($cliente['conta_pix_tipo'] ?? '') === 'CNPJ' ? 'selected' : ''; ?>>CNPJ</option>
-                                <option value="Email" <?php echo ($cliente['conta_pix_tipo'] ?? '') === 'Email' ? 'selected' : ''; ?>>E-mail</option>
-                                <option value="Telefone" <?php echo ($cliente['conta_pix_tipo'] ?? '') === 'Telefone' ? 'selected' : ''; ?>>Telefone</option>
-                                <option value="Aleatoria" <?php echo ($cliente['conta_pix_tipo'] ?? '') === 'Aleatoria' ? 'selected' : ''; ?>>Chave Aleatória</option>
-                            </select>
-                        </div>
-                        <div class="col-md-9">
-                            <label for="conta_pix" class="form-label">Chave PIX</label>
-                            <input type="text" class="form-control" id="conta_pix" name="conta_pix" value="<?php echo htmlspecialchars($cliente['conta_pix'] ?? ''); ?>" placeholder="Informe a chave PIX">
+                        <div class="section-body">
+                            <div class="row g-3">
+                                <div class="col-12" id="representante_socio_container">
+                                    <label class="form-label-strong" for="representante_socio_select">Selecionar sócio como representante</label>
+                                    <select class="form-select" id="representante_socio_select">
+                                        <option value="">Selecione um sócio…</option>
+                                    </select>
+                                    <div class="field-hint"><i class="bi bi-info-circle"></i> Os campos abaixo são preenchidos automaticamente.</div>
+                                </div>
+                                <div class="col-md-8 field-locked">
+                                    <label class="form-label-strong" for="representante_nome">Nome</label>
+                                    <input type="text" class="form-control" id="representante_nome" name="representante_nome"
+                                           value="<?php echo htmlspecialchars($cliente['representante_nome'] ?? ''); ?>" readonly>
+                                </div>
+                                <div class="col-md-4 field-locked">
+                                    <label class="form-label-strong" for="representante_cpf">CPF</label>
+                                    <input type="text" class="form-control cpf-mask" id="representante_cpf" name="representante_cpf"
+                                           value="<?php echo htmlspecialchars($cliente['representante_cpf'] ?? ''); ?>" readonly>
+                                </div>
+                                <div class="col-12" id="campos_adicionais_representante" style="display: none;">
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label-strong" for="representante_rg">RG</label>
+                                            <input type="text" class="form-control" id="representante_rg" name="representante_rg"
+                                                   value="<?php echo htmlspecialchars($cliente['representante_rg'] ?? ''); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label-strong" for="representante_nacionalidade">Nacionalidade</label>
+                                            <input type="text" class="form-control" id="representante_nacionalidade" name="representante_nacionalidade"
+                                                   value="<?php echo htmlspecialchars($cliente['representante_nacionalidade'] ?? 'brasileiro(a)'); ?>">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label-strong" for="representante_estado_civil">Estado Civil</label>
+                                            <select class="form-select" id="representante_estado_civil" name="representante_estado_civil">
+                                                <option value="">Selecione...</option>
+                                                <option value="Solteiro(a)" <?php echo ($cliente['representante_estado_civil'] ?? '') === 'Solteiro(a)' ? 'selected' : ''; ?>>Solteiro(a)</option>
+                                                <option value="Casado(a)" <?php echo ($cliente['representante_estado_civil'] ?? '') === 'Casado(a)' ? 'selected' : ''; ?>>Casado(a)</option>
+                                                <option value="Separado(a)" <?php echo ($cliente['representante_estado_civil'] ?? '') === 'Separado(a)' ? 'selected' : ''; ?>>Separado(a)</option>
+                                                <option value="Divorciado(a)" <?php echo ($cliente['representante_estado_civil'] ?? '') === 'Divorciado(a)' ? 'selected' : ''; ?>>Divorciado(a)</option>
+                                                <option value="Viúvo(a)" <?php echo ($cliente['representante_estado_civil'] ?? '') === 'Viúvo(a)' ? 'selected' : ''; ?>>Viúvo(a)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label-strong" for="representante_profissao">Profissão</label>
+                                            <input type="text" class="form-control" id="representante_profissao" name="representante_profissao"
+                                                   value="<?php echo htmlspecialchars($cliente['representante_profissao'] ?? ''); ?>">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label-strong" for="representante_endereco">Endereço Completo</label>
+                                            <input type="text" class="form-control" id="representante_endereco" name="representante_endereco"
+                                                   value="<?php echo htmlspecialchars($cliente['representante_endereco'] ?? ''); ?>">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- 4. Endereço -->
+                    <div class="section-card s-addr" data-section="endereco">
+                        <div class="section-head">
+                            <span class="step-num">4</span>
+                            <h2>Endereço da Empresa</h2>
+                            <span class="section-status empty" data-status-for="endereco">—</span>
+                        </div>
+                        <div class="section-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label-strong" for="cep">CEP</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="cep" name="cep"
+                                               value="<?php echo htmlspecialchars($cliente['cep'] ?? ''); ?>" placeholder="00000-000">
+                                        <button class="btn btn-outline-secondary" type="button" id="btn-buscar-cep" title="Buscar CEP">
+                                            <i class="bi bi-search"></i>
+                                        </button>
+                                    </div>
+                                    <div class="loading-cep field-hint">
+                                        <i class="bi bi-arrow-clockwise"></i> Buscando…
+                                    </div>
+                                </div>
+                                <div class="col-md-7">
+                                    <label class="form-label-strong" for="logradouro">Logradouro</label>
+                                    <input type="text" class="form-control" id="logradouro" name="logradouro"
+                                           value="<?php echo htmlspecialchars($cliente['logradouro'] ?? ''); ?>">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label-strong" for="numero">Número</label>
+                                    <input type="text" class="form-control" id="numero" name="numero"
+                                           value="<?php echo htmlspecialchars($cliente['numero'] ?? ''); ?>">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label-strong" for="complemento">Complemento</label>
+                                    <input type="text" class="form-control" id="complemento" name="complemento"
+                                           value="<?php echo htmlspecialchars($cliente['complemento'] ?? ''); ?>">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label-strong" for="bairro">Bairro</label>
+                                    <input type="text" class="form-control" id="bairro" name="bairro"
+                                           value="<?php echo htmlspecialchars($cliente['bairro'] ?? ''); ?>">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label-strong" for="cidade">Cidade</label>
+                                    <input type="text" class="form-control" id="cidade" name="cidade"
+                                           value="<?php echo htmlspecialchars($cliente['cidade'] ?? ''); ?>">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label-strong" for="estado">UF</label>
+                                    <input type="text" class="form-control" id="estado" name="estado"
+                                           value="<?php echo htmlspecialchars($cliente['estado'] ?? ''); ?>" maxlength="2">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label-strong" for="endereco">Observações</label>
+                                    <textarea class="form-control" id="endereco" name="endereco" rows="2"><?php echo htmlspecialchars($cliente['endereco'] ?? ''); ?></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Bancário -->
+                    <div class="section-card s-bank" data-section="bancario">
+                        <div class="section-head">
+                            <span class="step-num">5</span>
+                            <h2>Dados Bancários</h2>
+                            <span class="section-status empty" data-status-for="bancario">—</span>
+                        </div>
+                        <div class="section-body">
+                            <div class="row g-3">
+                                <div class="col-md-7 field-locked">
+                                    <label class="form-label-strong" for="conta_titular">Titular da Conta <span class="text-muted small">(auto)</span></label>
+                                    <input type="text" class="form-control" id="conta_titular" name="conta_titular"
+                                           value="<?php echo htmlspecialchars($contaTitularReadonlyValue); ?>" readonly>
+                                </div>
+                                <div class="col-md-5 field-locked">
+                                    <label class="form-label-strong" for="conta_documento">CNPJ Titular <span class="text-muted small">(auto)</span></label>
+                                    <input type="text" class="form-control" id="conta_documento" name="conta_documento"
+                                           value="<?php echo htmlspecialchars($contaDocumentoReadonlyValue); ?>" readonly>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label-strong" for="conta_banco">Banco</label>
+                                    <input type="text" class="form-control" id="conta_banco" name="conta_banco"
+                                           value="<?php echo htmlspecialchars($cliente['conta_banco'] ?? ''); ?>" placeholder="Ex.: Itaú">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label-strong" for="conta_agencia">Agência</label>
+                                    <input type="text" class="form-control" id="conta_agencia" name="conta_agencia"
+                                           value="<?php echo htmlspecialchars($cliente['conta_agencia'] ?? ''); ?>" placeholder="0000">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label-strong" for="conta_numero">Conta</label>
+                                    <input type="text" class="form-control" id="conta_numero" name="conta_numero"
+                                           value="<?php echo htmlspecialchars($cliente['conta_numero'] ?? ''); ?>" placeholder="00000-0">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label-strong" for="conta_tipo">Tipo</label>
+                                    <select class="form-select" id="conta_tipo" name="conta_tipo">
+                                        <option value="" <?php echo empty($cliente['conta_tipo']) ? 'selected' : ''; ?>>Selecione...</option>
+                                        <option value="Corrente" <?php echo ($cliente['conta_tipo'] ?? '') === 'Corrente' ? 'selected' : ''; ?>>Conta Corrente</option>
+                                        <option value="Poupanca" <?php echo ($cliente['conta_tipo'] ?? '') === 'Poupanca' ? 'selected' : ''; ?>>Conta Poupança</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label-strong" for="conta_pix_tipo">Tipo PIX</label>
+                                    <select class="form-select" id="conta_pix_tipo" name="conta_pix_tipo">
+                                        <option value="" <?php echo empty($cliente['conta_pix_tipo']) ? 'selected' : ''; ?>>Selecione...</option>
+                                        <option value="CPF" <?php echo ($cliente['conta_pix_tipo'] ?? '') === 'CPF' ? 'selected' : ''; ?>>CPF</option>
+                                        <option value="CNPJ" <?php echo ($cliente['conta_pix_tipo'] ?? '') === 'CNPJ' ? 'selected' : ''; ?>>CNPJ</option>
+                                        <option value="Email" <?php echo ($cliente['conta_pix_tipo'] ?? '') === 'Email' ? 'selected' : ''; ?>>E-mail</option>
+                                        <option value="Telefone" <?php echo ($cliente['conta_pix_tipo'] ?? '') === 'Telefone' ? 'selected' : ''; ?>>Telefone</option>
+                                        <option value="Aleatoria" <?php echo ($cliente['conta_pix_tipo'] ?? '') === 'Aleatoria' ? 'selected' : ''; ?>>Chave Aleatória</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-9">
+                                    <label class="form-label-strong" for="conta_pix">Chave PIX</label>
+                                    <input type="text" class="form-control" id="conta_pix" name="conta_pix"
+                                           value="<?php echo htmlspecialchars($cliente['conta_pix'] ?? ''); ?>" placeholder="Informe a chave PIX">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-            </div>
 
+                <!-- ====== RIGHT: progresso + ações ====== -->
+                <div class="col-xl-4">
+                    <div class="sticky-panel">
+                        <div class="panel-head">
+                            <h3><i class="bi bi-list-check"></i> Progresso do Cadastro</h3>
+                            <span class="badge bg-light text-primary"><?php echo $editMode ? 'Editando' : 'Novo'; ?></span>
+                        </div>
 
+                        <div class="completion-hero">
+                            <div class="pct-label">Completo</div>
+                            <div class="pct-value" id="completion-pct">0%</div>
+                            <div class="progress">
+                                <div class="progress-bar" id="completion-bar" style="width:0%;"></div>
+                            </div>
+                        </div>
 
-            <!-- Omitindo botoes redundantes do rodape
-            <div class="row">
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save-fill"></i> Salvar Cliente
-                    </button>
-                    <a href="listar_clientes.php" class="btn btn-secondary">
-                         Cancelar
-                    </a>
+                        <ul class="panel-section-list">
+                            <li data-jump="empresa">
+                                <span class="ico empty" data-ico-for="empresa"><i class="bi bi-circle"></i></span>
+                                <span class="label">Dados da Empresa</span>
+                                <span class="meta" data-meta-for="empresa">obrigatório</span>
+                            </li>
+                            <li data-jump="socios">
+                                <span class="ico empty" data-ico-for="socios"><i class="bi bi-circle"></i></span>
+                                <span class="label">Sócios</span>
+                                <span class="meta" data-meta-for="socios">recomendado</span>
+                            </li>
+                            <li data-jump="representante">
+                                <span class="ico empty" data-ico-for="representante"><i class="bi bi-circle"></i></span>
+                                <span class="label">Representante</span>
+                                <span class="meta" data-meta-for="representante">após sócios</span>
+                            </li>
+                            <li data-jump="endereco">
+                                <span class="ico empty" data-ico-for="endereco"><i class="bi bi-circle"></i></span>
+                                <span class="label">Endereço</span>
+                                <span class="meta" data-meta-for="endereco">opcional</span>
+                            </li>
+                            <li data-jump="bancario">
+                                <span class="ico empty" data-ico-for="bancario"><i class="bi bi-circle"></i></span>
+                                <span class="label">Dados Bancários</span>
+                                <span class="meta" data-meta-for="bancario">opcional</span>
+                            </li>
+                        </ul>
+
+                        <div class="panel-actions">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-save-fill"></i> <?php echo $editMode ? 'Salvar Alterações' : 'Salvar Cliente'; ?>
+                            </button>
+                            <a href="<?php echo $editMode ? 'visualizar_cliente.php?id=' . (int)$cliente['id'] : 'listar_clientes.php'; ?>" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-lg"></i> Cancelar
+                            </a>
+                        </div>
+                    </div>
+
+                    <?php if (!$editMode): ?>
+                    <div class="info-tabs mt-3" style="background:#fff8e1;border-color:#f1d999;">
+                        <div class="px-3 py-2" style="background:#fff3d6;border-bottom:1px solid #f1d999;">
+                            <strong class="small text-uppercase" style="color:#8a5a00;"><i class="bi bi-lightbulb-fill"></i> Dica</strong>
+                        </div>
+                        <div class="p-3 small" style="color:#7a5500;">
+                            Você só precisa preencher <strong>Razão Social</strong> e <strong>CNPJ</strong> para salvar.
+                            Os demais dados podem ser completados depois.
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
+
             </div>
-            -->
         </form>
 
     </div>
@@ -449,13 +816,12 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.9/jquery.inputmask.min.js"></script>
 
     <script>
-        // Função para validar e-mail
+        // ===== Validações =====
         function isValidEmail(email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return emailRegex.test(email);
         }
 
-        // Funções para validar CPF e CNPJ
         function isValidCPF(cpf) {
             cpf = cpf.replace(/[^\d]+/g, '');
             if (cpf.length !== 11) return false;
@@ -503,205 +869,137 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
         $(document).ready(function(){
             let socioIndex = <?php echo count($socios); ?>;
 
-            // Função para atualizar máscara do documento principal
-            function updateDocumentoMask() {
-                const documentoInput = $('#documento_principal');
-                const documentoLabel = $('#documento_label');
-                
-                documentoLabel.text('CNPJ');
-                documentoInput.inputmask('remove');
-                documentoInput.attr('placeholder', '00.000.000/0000-00');
-                documentoInput.inputmask("99.999.999/9999-99", {
-                    clearIncomplete: true,
-                    placeholder: "_"
-                });
-                
-                // Mostrar e habilitar card de sócios e representante
-                $('#socios_card').show();
-                $('#socios_card').find('input, button').prop('disabled', false);
-                $('#representante_card').show();
-                $('#representante_card').find('input, select, button').prop('disabled', false);
-                
-                // Mostrar campo porte
-                $('#porte').closest('div[class^="col-"]').show();
-            }
-
-            // Máscaras iniciais
-            $('#telefone').inputmask({
-                mask: "(99) 9999[9]-9999",
-                greedy: false,
-                clearIncomplete: true,
-                placeholder: "_"
-            });
-
-            $('#whatsapp').inputmask({
-                mask: "(99) 9999[9]-9999",
-                greedy: false,
-                clearIncomplete: true,
-                placeholder: "_"
-            });
-
-            $('#cep').inputmask("99999-999", {
-                clearIncomplete: true,
-                placeholder: "_"
-            });
-
-            
-            // Aplicar máscara inicial do documento
-            updateDocumentoMask();
-
-            // Aplicar máscara de CPF aos sócios existentes
+            // Máscaras
+            $('#documento_principal').inputmask("99.999.999/9999-99", { clearIncomplete: true, placeholder: "_" });
+            $('#telefone').inputmask({ mask: "(99) 9999[9]-9999", greedy: false, clearIncomplete: true, placeholder: "_" });
+            $('#whatsapp').inputmask({ mask: "(99) 9999[9]-9999", greedy: false, clearIncomplete: true, placeholder: "_" });
+            $('#cep').inputmask("99999-999", { clearIncomplete: true, placeholder: "_" });
+            $('.cpf-mask').inputmask("999.999.999-99", { clearIncomplete: true, placeholder: "_" });
             $('.socio-cpf').each(function() {
-                $(this).inputmask("999.999.999-99", {
-                    clearIncomplete: true,
-                    placeholder: "_"
-                });
+                $(this).inputmask("999.999.999-99", { clearIncomplete: true, placeholder: "_" });
             });
 
-            // Event listener para mudança de tipo de pessoa
-            $('#tipo_pessoa').on('change', updateDocumentoMask);
-
-            // Buscar CEP via ViaCEP
-            $('#btn-buscar-cep').on('click', function(e) {
-                e.preventDefault();
-                buscarCEP(true);
-            });
-            
+            // ===== Buscar CEP via ViaCEP =====
+            $('#btn-buscar-cep').on('click', function(e) { e.preventDefault(); buscarCEP(true); });
             $('#cep').on('keypress', function(e) {
-                if (e.which === 13) {
-                    e.preventDefault();
-                    buscarCEP(true);
-                }
+                if (e.which === 13) { e.preventDefault(); buscarCEP(true); }
             });
+            $('#cep').on('blur', function() { buscarCEP(false); });
 
-            function buscarCEP(mostrarAlerta = false) {
+            function buscarCEP(mostrarAlerta) {
                 const cep = $('#cep').val().replace(/\D/g, '');
-                
                 if (cep.length !== 8) {
-                    if (mostrarAlerta) {
-                        alert('CEP deve ter 8 dígitos');
-                    }
+                    if (mostrarAlerta) alert('CEP deve ter 8 dígitos');
                     return;
                 }
-
-                $('.loading-cep').show();
-                
+                $('.loading-cep').addClass('show');
                 $.ajax({
                     url: `https://viacep.com.br/ws/${cep}/json/`,
                     type: 'GET',
                     dataType: 'json',
                     success: function(data) {
-                        $('.loading-cep').hide();
-                        
+                        $('.loading-cep').removeClass('show');
                         if (data.erro) {
-                            alert('CEP não encontrado');
+                            if (mostrarAlerta) alert('CEP não encontrado');
                             return;
                         }
-
                         $('#logradouro').val(data.logradouro || '');
                         $('#bairro').val(data.bairro || '');
                         $('#cidade').val(data.localidade || '');
                         $('#estado').val(data.uf || '');
-                        
                         $('#numero').focus();
+                        atualizarProgresso();
                     },
                     error: function() {
-                        $('.loading-cep').hide();
-                        alert('Erro ao buscar CEP. Verifique sua conexão.');
+                        $('.loading-cep').removeClass('show');
+                        if (mostrarAlerta) alert('Erro ao buscar CEP. Verifique sua conexão.');
                     }
                 });
             }
 
-            // Adicionar sócio
+            // ===== Sócios =====
             $('#btn-adicionar-socio').click(function() {
+                const numero = socioIndex + 1;
                 const socioHtml = `
-                    <div class="socio-item" data-index="${socioIndex}">
-                        <button type="button" class="btn btn-danger btn-sm btn-remove-socio">
-                            <i class="bi bi-x"></i>
-                        </button>
-                        <div class="row g-3">
-                            <div class="col-md-8">
-                                <label class="form-label">Nome do Sócio <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control socio-nome" name="socios[${socioIndex}][nome]" required>
+                    <div class="col-md-6 socio-item" data-index="${socioIndex}">
+                        <div class="socio-card">
+                            <div class="socio-head">
+                                <span class="badge-num">SÓCIO ${numero}</span>
+                                <button type="button" class="btn-remove-socio" title="Remover sócio">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label">CPF <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control socio-cpf" name="socios[${socioIndex}][cpf]" required>
-                                <div class="invalid-feedback"></div>
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <label class="form-label-strong">Nome <span class="req">*</span></label>
+                                    <input type="text" class="form-control form-control-sm socio-nome" name="socios[${socioIndex}][nome]" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label-strong">CPF <span class="req">*</span></label>
+                                    <input type="text" class="form-control form-control-sm socio-cpf" name="socios[${socioIndex}][cpf]" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 `;
-                
                 $('#socios-container').append(socioHtml);
                 $('#no-socios-message').hide();
-                
-                // Aplicar máscara ao novo campo CPF
                 $(`.socio-item[data-index="${socioIndex}"] .socio-cpf`).inputmask("999.999.999-99", {
-                    clearIncomplete: true,
-                    placeholder: "_"
+                    clearIncomplete: true, placeholder: "_"
                 });
-                
                 socioIndex++;
+                renumerarSocios();
+                updateDynamicSelects();
+                atualizarProgresso();
             });
 
-            // Remover sócio
             $(document).on('click', '.btn-remove-socio', function() {
                 $(this).closest('.socio-item').remove();
-                
-                if ($('.socio-item').length === 0) {
-                    $('#no-socios-message').show();
-                }
+                if ($('.socio-item').length === 0) $('#no-socios-message').show();
+                renumerarSocios();
                 updateDynamicSelects();
+                atualizarProgresso();
             });
 
+            function renumerarSocios() {
+                $('.socio-item').each(function(idx) {
+                    $(this).find('.badge-num').text('SÓCIO ' + (idx + 1));
+                });
+            }
+
+            // ===== Representante (vinculado a sócio) =====
             function normalizeRepresentativeName(value) {
                 return (value || '').trim().replace(/\s+/g, ' ').toLowerCase();
             }
-
             function normalizeRepresentativeDocument(value) {
                 return (value || '').replace(/\D/g, '');
             }
-
             function findRepresentativeOptionValue() {
                 const nomeAtual = normalizeRepresentativeName($('#representante_nome').val());
                 const cpfAtual = normalizeRepresentativeDocument($('#representante_cpf').val());
-
-                if (!nomeAtual || !cpfAtual) {
-                    return '';
-                }
-
+                if (!nomeAtual || !cpfAtual) return '';
                 let matchedValue = '';
-
                 $('#representante_socio_select option').each(function() {
                     const optionValue = $(this).val();
-                    if (!optionValue) {
-                        return;
-                    }
-
+                    if (!optionValue) return;
                     const parts = optionValue.split('|');
                     const optionNome = normalizeRepresentativeName(parts[0] || '');
                     const optionCpf = normalizeRepresentativeDocument(parts[1] || '');
-
                     if (optionNome === nomeAtual && optionCpf === cpfAtual) {
                         matchedValue = optionValue;
                         return false;
                     }
                 });
-
                 return matchedValue;
             }
-
             function updateRepresentativeDetailsVisibility() {
                 const hasRepresentative = Boolean(
                     normalizeRepresentativeName($('#representante_nome').val()) &&
                     normalizeRepresentativeDocument($('#representante_cpf').val())
                 );
-
                 $('#campos_adicionais_representante').toggle(hasRepresentative);
             }
-
-            // Lógica para preenchimento dinâmico de representante
             function updateDynamicSelects() {
                 let sociosOptions = '';
                 $('.socio-item').each(function() {
@@ -711,77 +1009,68 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
                         sociosOptions += `<option value="${nome}|${cpf}">${nome} (Sócio)</option>`;
                     }
                 });
-
-                // Update representante_socio_select
                 const repSelect = $('#representante_socio_select');
                 const currentRep = repSelect.val();
-                repSelect.html('<option value="">Selecione um Sócio...</option>');
+                repSelect.html('<option value="">Selecione um sócio…</option>');
                 repSelect.append(sociosOptions);
-
                 const hasCurrentRepOption = repSelect.find('option').filter(function() {
                     return $(this).val() === currentRep;
                 }).length > 0;
-
                 if (currentRep && hasCurrentRepOption) {
                     repSelect.val(currentRep);
                 } else {
                     repSelect.val(findRepresentativeOptionValue());
                 }
             }
-
-            // Atualiza selects dinâmicos ao modificar inputs
-            $(document).on('input', '.socio-nome, .socio-cpf', updateDynamicSelects);
+            $(document).on('input', '.socio-nome, .socio-cpf', function() {
+                updateDynamicSelects();
+                atualizarProgresso();
+            });
             updateDynamicSelects();
 
-            function syncContaTitularFields() {
-                const tipoPessoa = $('#tipo_pessoa').val();
-                if (tipoPessoa === 'JURIDICA') {
-                    $('#conta_titular').val($('#empresa').val());
-                    $('#conta_documento').val($('#documento_principal').val()).trigger('input');
-                }
-            }
-
-            // Sincroniza dinamicamente Empresa e Documento com Dados Bancários
-            $('#empresa').on('input', syncContaTitularFields);
-            $('#documento_principal').on('input', syncContaTitularFields);
-
-            // Sincronização inicial na carga da página
-            syncContaTitularFields();
-
-            // Preenche representante ao selecionar sócio
             $('#representante_socio_select').on('change', function() {
                 const val = $(this).val();
                 if (val) {
                     const parts = val.split('|');
-                    const nome = parts[0];
-                    const doc = parts[1];
-                    $('#representante_nome').val(nome);
-                    $('#representante_cpf').val(doc);
+                    $('#representante_nome').val(parts[0]);
+                    $('#representante_cpf').val(parts[1]);
                     $('#campos_adicionais_representante').slideDown();
                 } else {
                     $('#representante_nome').val('');
                     $('#representante_cpf').val('');
                     $('#campos_adicionais_representante').slideUp();
                     $('#representante_rg, #representante_nacionalidade, #representante_estado_civil, #representante_profissao, #representante_endereco').val('');
-                    $('#representante_nacionalidade').val('brasileiro(a)'); // Valor padrão
+                    $('#representante_nacionalidade').val('brasileiro(a)');
                 }
+                atualizarProgresso();
             });
-            
             updateRepresentativeDetailsVisibility();
 
-            // Função para validar email
-            function isValidEmail(email) {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return emailRegex.test(email);
+            // ===== Sync titular da conta =====
+            function syncContaTitularFields() {
+                $('#conta_titular').val($('#empresa').val());
+                $('#conta_documento').val($('#documento_principal').val()).trigger('input');
             }
+            $('#empresa').on('input', function() { syncContaTitularFields(); atualizarProgresso(); });
+            $('#documento_principal').on('input', function() { syncContaTitularFields(); atualizarProgresso(); });
+            syncContaTitularFields();
 
-            // Validação em tempo real para email
+            $('#conta_documento').on('input', function() {
+                let val = $(this).val().replace(/\D/g, '');
+                if (val.length <= 11) {
+                    $(this).inputmask("999.999.999-99", { clearIncomplete: false });
+                } else {
+                    $(this).inputmask("99.999.999/9999-99", { clearIncomplete: false });
+                }
+            });
+
+            // ===== Validações em tempo real =====
             $('#email').on('blur', function() {
                 const email = $(this).val().trim();
                 if (email && !isValidEmail(email)) {
                     $(this).addClass('is-invalid');
                     if (!$(this).next('.invalid-feedback').length) {
-                        $(this).after('<div class="invalid-feedback">Por favor, insira um email válido.</div>');
+                        $(this).after('<div class="invalid-feedback">Por favor, insira um e-mail válido.</div>');
                     }
                 } else {
                     $(this).removeClass('is-invalid');
@@ -789,56 +1078,27 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
                 }
             });
 
-            // Validação em tempo real do CNPJ/CPF
             $('#documento_principal').on('blur', function() {
-                const tipoPessoa = $('#tipo_pessoa').val();
                 const documento = $(this).val().replace(/\D/g, '');
-                const expectedLength = 14;
-                const documentoTipo = 'CNPJ';
-                let valid = true;
-                if (documento.length !== expectedLength) {
-                    valid = false;
-                } else if (!isValidCNPJ(documento)) {
-                    valid = false;
-                }
-
+                let valid = documento.length === 14 && isValidCNPJ(documento);
                 if (!valid) {
                     $(this).addClass('is-invalid');
-                    $('#documento_principal-feedback').text(`${documentoTipo} inválido`);
+                    $('#documento_principal-feedback').text('CNPJ inválido');
                 } else {
                     $(this).removeClass('is-invalid');
                     $('#documento_principal-feedback').text('');
                 }
             });
 
-            $('.cpf-mask').inputmask("999.999.999-99", {
-                clearIncomplete: true,
-                placeholder: "_"
-            });
-
-            $('#conta_documento').on('input', function() {
-                let val = $(this).val().replace(/\D/g, '');
-                const tipoPessoa = $('#tipo_pessoa').val();
-                if (tipoPessoa === 'JURIDICA') {
-                    $(this).inputmask("99.999.999/9999-99", { clearIncomplete: false });
-                } else if (val.length <= 11) {
-                    $(this).inputmask("999.999.999-99", { clearIncomplete: false });
-                } else {
-                    $(this).inputmask("99.999.999/9999-99", { clearIncomplete: false });
-                }
-            });
-
-            // Validação do formulário
+            // ===== Submit validation =====
             $('#form-cliente').on('submit', function(e) {
                 let isValid = true;
-                const tipoPessoa = $('#tipo_pessoa').val();
 
-                // Validar email
                 const email = $('#email').val().trim();
                 if (email && !isValidEmail(email)) {
                     $('#email').addClass('is-invalid');
                     if (!$('#email').next('.invalid-feedback').length) {
-                        $('#email').after('<div class="invalid-feedback">Por favor, insira um email válido.</div>');
+                        $('#email').after('<div class="invalid-feedback">Por favor, insira um e-mail válido.</div>');
                     }
                     isValid = false;
                 } else {
@@ -846,27 +1106,15 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
                     $('#email').next('.invalid-feedback').remove();
                 }
 
-                // Validar documento principal
                 const documento = $('#documento_principal').val().replace(/\D/g, '');
-                const expectedLength = 14;
-                const documentoTipo = 'CNPJ';
-                
-                let isDocValid = true;
-                if (documento.length !== expectedLength) {
-                    isDocValid = false;
-                } else if (!isValidCNPJ(documento)) {
-                    isDocValid = false;
-                }
-
-                if (!isDocValid) {
+                if (documento.length !== 14 || !isValidCNPJ(documento)) {
                     $('#documento_principal').addClass('is-invalid');
-                    $('#documento_principal-feedback').text(`${documentoTipo} inválido`);
+                    $('#documento_principal-feedback').text('CNPJ inválido');
                     isValid = false;
                 } else {
                     $('#documento_principal').removeClass('is-invalid');
                 }
 
-                // Validar CPFs dos sócios
                 $('.socio-cpf').each(function() {
                     const cpf = $(this).val().replace(/\D/g, '');
                     if (cpf.length !== 11 || !isValidCPF(cpf)) {
@@ -878,7 +1126,6 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
                     }
                 });
 
-                // Validar Representante CPF
                 const repCpf = $('#representante_cpf').val().replace(/\D/g, '');
                 if (repCpf && (repCpf.length !== 11 || !isValidCPF(repCpf))) {
                     $('#representante_cpf').addClass('is-invalid');
@@ -887,21 +1134,126 @@ if (($cliente['tipo_pessoa'] ?? 'JURIDICA') === 'JURIDICA') {
                     $('#representante_cpf').removeClass('is-invalid');
                 }
 
-                // Validar CNPJ Titular da Conta
                 const contaDoc = $('#conta_documento').val().replace(/\D/g, '');
-                if (contaDoc) {
-                    if (contaDoc.length !== 14 || !isValidCNPJ(contaDoc)) {
-                        $('#conta_documento').addClass('is-invalid');
-                        isValid = false;
-                    } else {
-                        $('#conta_documento').removeClass('is-invalid');
-                    }
+                if (contaDoc && (contaDoc.length !== 14 || !isValidCNPJ(contaDoc))) {
+                    $('#conta_documento').addClass('is-invalid');
+                    isValid = false;
+                } else {
+                    $('#conta_documento').removeClass('is-invalid');
                 }
 
-                if (!isValid) {
-                    e.preventDefault();
+                if (!isValid) e.preventDefault();
+            });
+
+            // ===== Painel de progresso =====
+            function setStatus(section, state, label) {
+                const $badge = $(`[data-status-for="${section}"]`);
+                const $ico = $(`[data-ico-for="${section}"]`);
+                const $meta = $(`[data-meta-for="${section}"]`);
+
+                $badge.removeClass('ok warn empty').addClass(state);
+                $ico.removeClass('ok warn empty').addClass(state);
+
+                let badgeIcon = '';
+                if (state === 'ok')   badgeIcon = '<i class="bi bi-check-circle-fill"></i> ';
+                if (state === 'warn') badgeIcon = '<i class="bi bi-exclamation-circle-fill"></i> ';
+                $badge.html(badgeIcon + label);
+                if ($meta.length) $meta.text(label);
+
+                $ico.html(state === 'ok' ? '<i class="bi bi-check-lg"></i>'
+                       : state === 'warn' ? '<i class="bi bi-exclamation"></i>'
+                       : '<i class="bi bi-circle"></i>');
+            }
+
+            function val(id) { return ($('#' + id).val() || '').trim(); }
+
+            function atualizarProgresso() {
+                let totalSec = 5;
+                let okSec = 0;
+
+                // Empresa: razão social, cnpj válido, telefone, email, porte
+                const empresaCampos = ['empresa', 'documento_principal'];
+                const empresaOpcionais = ['email', 'telefone', 'whatsapp', 'porte'];
+                const cnpjLimpo = val('documento_principal').replace(/\D/g, '');
+                const empresaOk = val('empresa') && cnpjLimpo.length === 14 && isValidCNPJ(cnpjLimpo);
+                const empresaOpcPreench = empresaOpcionais.filter(c => val(c)).length;
+                if (empresaOk && empresaOpcPreench >= 2) {
+                    setStatus('empresa', 'ok', 'Completo');
+                    okSec++;
+                } else if (empresaOk) {
+                    setStatus('empresa', 'warn', 'Faltam contatos');
+                } else {
+                    setStatus('empresa', 'empty', 'obrigatório');
+                }
+
+                // Sócios
+                const numSocios = $('.socio-item').length;
+                if (numSocios > 0) {
+                    setStatus('socios', 'ok', numSocios + (numSocios === 1 ? ' sócio' : ' sócios'));
+                    okSec++;
+                } else {
+                    setStatus('socios', 'empty', 'recomendado');
+                }
+
+                // Representante
+                const temRep = val('representante_nome') && val('representante_cpf');
+                if (temRep) {
+                    const opcionais = ['representante_rg', 'representante_nacionalidade', 'representante_estado_civil', 'representante_profissao', 'representante_endereco'];
+                    const preench = opcionais.filter(c => val(c)).length;
+                    if (preench >= 4) {
+                        setStatus('representante', 'ok', 'Completo');
+                        okSec++;
+                    } else {
+                        setStatus('representante', 'warn', (5 - preench) + ' campos vazios');
+                    }
+                } else {
+                    setStatus('representante', 'empty', numSocios > 0 ? 'selecione um sócio' : 'após sócios');
+                }
+
+                // Endereço
+                const enderecoCampos = ['cep', 'logradouro', 'numero', 'bairro', 'cidade', 'estado'];
+                const endPreench = enderecoCampos.filter(c => val(c)).length;
+                if (endPreench === enderecoCampos.length) {
+                    setStatus('endereco', 'ok', 'Completo');
+                    okSec++;
+                } else if (endPreench > 0) {
+                    setStatus('endereco', 'warn', endPreench + '/' + enderecoCampos.length);
+                } else {
+                    setStatus('endereco', 'empty', 'opcional');
+                }
+
+                // Bancário
+                const bancCampos = ['conta_banco', 'conta_agencia', 'conta_numero', 'conta_tipo'];
+                const bancPreench = bancCampos.filter(c => val(c)).length;
+                const temPix = val('conta_pix') && val('conta_pix_tipo');
+                if (bancPreench === bancCampos.length || temPix) {
+                    setStatus('bancario', 'ok', temPix && bancPreench === bancCampos.length ? 'Conta + PIX' : (temPix ? 'Só PIX' : 'Conta'));
+                    okSec++;
+                } else if (bancPreench > 0) {
+                    setStatus('bancario', 'warn', bancPreench + '/' + bancCampos.length);
+                } else {
+                    setStatus('bancario', 'empty', 'opcional');
+                }
+
+                const pct = Math.round((okSec / totalSec) * 100);
+                $('#completion-pct').text(pct + '%');
+                $('#completion-bar').css('width', pct + '%');
+            }
+
+            // Atualiza progresso ao digitar/alterar qualquer campo do form
+            $('#form-cliente').on('input change', 'input, select, textarea', atualizarProgresso);
+
+            // Jump nav
+            $('.panel-section-list li').on('click', function() {
+                const target = $(this).data('jump');
+                const $sec = $(`[data-section="${target}"]`);
+                if ($sec.length) {
+                    $('html, body').animate({ scrollTop: $sec.offset().top - 12 }, 250);
                 }
             });
+
+            // Cálculo inicial
+            atualizarProgresso();
         });
     </script>
 </body>

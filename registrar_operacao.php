@@ -187,7 +187,8 @@ try {
         $totalIOF_recalc = $resultadoCalculo['totalIOF'];
         $totalLiquidoPago_recalc = $resultadoCalculo['totalLiquidoPago'];
         $totalLucroLiquido_recalc = $resultadoCalculo['lucroAjustado']; // Usar lucro ajustado
-        $totalPresente_recalc = $resultadoCalculo['totalPresente'];
+        // calcularLucroOperacao não retorna 'totalPresente'; somamos os valores presentes dos detalhes
+        $totalPresente_recalc = array_sum(array_column($resultadoCalculo['detalhesRecebiveis'] ?? [], 'valorPresente'));
         
         // Se for empréstimo e valorEmprestimo for válido, reescrever
         if ($tipoOperacao === 'emprestimo' && $valorEmprestimo > 0) {

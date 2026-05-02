@@ -16,11 +16,26 @@ try {
     $ano = $_GET['ano'] ?? date('Y');
 
     // 1. Recebimentos no mês (capital retornado + lucro bruto = total recebido)
+    // Para "Parcialmente Compensado", usa valor_recebido e aplica pro-rata no capital/lucro
     $sqlRecebimentos = "
-        SELECT 
-            SUM(r.valor_liquido_calc) as retorno_capital,
-            SUM(r.valor_original - r.valor_liquido_calc) as lucro_bruto,
-            SUM(r.valor_original) as total_recebido
+        SELECT
+            SUM(CASE
+                WHEN r.status IN ('Recebido', 'Compensado') THEN r.valor_liquido_calc
+                WHEN r.status = 'Parcialmente Compensado' AND r.valor_original > 0
+                    THEN r.valor_liquido_calc * (COALESCE(r.valor_recebido, 0) / r.valor_original)
+                ELSE 0
+            END) as retorno_capital,
+            SUM(CASE
+                WHEN r.status IN ('Recebido', 'Compensado') THEN (r.valor_original - r.valor_liquido_calc)
+                WHEN r.status = 'Parcialmente Compensado' AND r.valor_original > 0
+                    THEN COALESCE(r.valor_recebido, 0) - (r.valor_liquido_calc * (COALESCE(r.valor_recebido, 0) / r.valor_original))
+                ELSE 0
+            END) as lucro_bruto,
+            SUM(CASE
+                WHEN r.status IN ('Recebido', 'Compensado') THEN r.valor_original
+                WHEN r.status = 'Parcialmente Compensado' THEN COALESCE(r.valor_recebido, 0)
+                ELSE 0
+            END) as total_recebido
         FROM recebiveis r
         WHERE r.status IN ('Recebido', 'Compensado', 'Parcialmente Compensado')
           AND MONTH(r.data_recebimento) = ?
@@ -44,12 +59,28 @@ try {
     $stmtDespesas->execute([$mes, $ano]);
     $total_despesas = (float) ($stmtDespesas->fetchColumn() ?: 0);
 
-    // 3. Lucro Líquido
+    // 3. Lucro Líquido (antes da distribuição)
     $lucro_liquido = $lucro_bruto - $total_despesas;
 
-    // 4. Títulos Atrasados (vencidos no mês filtrado)
+    // 3.1. Total Distribuído no mês
+    $sqlDistribuido = "
+        SELECT SUM(valor) as total_distribuido
+        FROM distribuicao_lucros
+        WHERE MONTH(data) = ? AND YEAR(data) = ?
+    ";
+    $stmtDistribuido = $pdo->prepare($sqlDistribuido);
+    $stmtDistribuido->execute([$mes, $ano]);
+    $total_distribuido = (float) ($stmtDistribuido->fetchColumn() ?: 0);
+
+    // 3.2. Lucro Retido (após distribuição aos sócios)
+    $lucro_retido = $lucro_liquido - $total_distribuido;
+
+    // 4. Títulos Atrasados — snapshot ao final do mês filtrado.
+    // Mostra todos os recebíveis ainda em aberto cujo vencimento já tinha passado
+    // até o último dia do mês selecionado (visão cumulativa, não só vencidos no mês).
+    $ultimoDiaMes = date('Y-m-t', strtotime("$ano-$mes-01"));
     $sqlAtrasados = "
-        SELECT 
+        SELECT
             r.id,
             r.data_vencimento,
             r.valor_original,
@@ -61,12 +92,11 @@ try {
         LEFT JOIN clientes c ON o.cedente_id = c.id
         WHERE r.status IN ('Problema', 'Em Aberto')
           AND r.data_vencimento < CURDATE()
-          AND MONTH(r.data_vencimento) = ?
-          AND YEAR(r.data_vencimento) = ?
-        ORDER BY dias_atraso DESC
+          AND r.data_vencimento <= ?
+        ORDER BY r.data_vencimento ASC
     ";
     $stmtAtrasados = $pdo->prepare($sqlAtrasados);
-    $stmtAtrasados->execute([$mes, $ano]);
+    $stmtAtrasados->execute([$ultimoDiaMes]);
     $titulos_atrasados = $stmtAtrasados->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
@@ -77,6 +107,8 @@ try {
             'lucro_bruto' => $lucro_bruto,
             'total_despesas' => $total_despesas,
             'lucro_liquido' => $lucro_liquido,
+            'total_distribuido' => $total_distribuido,
+            'lucro_retido' => $lucro_retido,
             'titulos_atrasados' => $titulos_atrasados
         ]
     ]);

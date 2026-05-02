@@ -80,8 +80,17 @@ try {
     $from_name = $config['resend_from_name'] ?? 'Notificações';
     $template_raw = $config['email_template'] ?? '';
     $subject_raw = $config['email_subject'] ?? 'Notificação de Cessão de Crédito - Op #[BORDERO_NUMERO]';
-    $cc_email = $config['resend_cc_email'] ?? '';
-    $bcc_email = $config['resend_bcc_email'] ?? '';
+    // CC/BCC: prioriza valores enviados pelo modal; senão, usa config.json
+    if (array_key_exists('cc', $input)) {
+        $cc_email = trim((string)$input['cc']);
+    } else {
+        $cc_email = $config['resend_cc_email'] ?? '';
+    }
+    if (array_key_exists('bcc', $input)) {
+        $bcc_email = trim((string)$input['bcc']);
+    } else {
+        $bcc_email = $config['resend_bcc_email'] ?? '';
+    }
 
     if (empty($api_key) || empty($from_email) || empty($template_raw)) {
         echo json_encode(['success' => false, 'error' => 'Configurações de e-mail (Resend) incompletas no painel de configurações.']);

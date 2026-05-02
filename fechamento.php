@@ -19,6 +19,11 @@ require_once 'auth_check.php';
         .border-bruto { border-color: #ffc107; }
         .border-despesas { border-color: #dc3545; }
         .border-liquido { border-color: #198754; }
+        .border-distribuido { border-color: #6610f2; }
+        .border-retido { border-color: #0dcaf0; }
+        .scroll-list { max-height: 260px; overflow-y: auto; }
+        .scroll-list thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 1; }
+        .totals-row { background-color: #f8f9fa; border-top: 2px solid #dee2e6; }
     </style>
 </head>
 <body class="bg-light">
@@ -92,6 +97,28 @@ require_once 'auth_check.php';
                 <div class="card-body">
                     <h6 class="text-muted mb-1">Lucro Líquido</h6>
                     <h3 class="mb-0 text-success" id="cardLucroLiquido">R$ 0,00</h3>
+                    <small class="text-muted">Bruto − Despesas</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Linha 2: Distribuição + Retido -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm summary-card border-distribuido">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1">Distribuído aos Sócios</h6>
+                    <h3 class="mb-0" style="color:#6610f2" id="cardDistribuido">R$ 0,00</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm summary-card border-retido">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1">Lucro Retido</h6>
+                    <h3 class="mb-0" style="color:#0dcaf0" id="cardLucroRetido">R$ 0,00</h3>
+                    <small class="text-muted">Líquido − Distribuído</small>
                 </div>
             </div>
         </div>
@@ -159,7 +186,7 @@ require_once 'auth_check.php';
             <h5 class="mb-0 text-danger"><i class="bi bi-exclamation-triangle"></i> Títulos Atrasados/Inadimplentes</h5>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="scroll-list">
                 <table class="table table-hover table-striped mb-0">
                     <thead class="table-light">
                         <tr>
@@ -174,6 +201,10 @@ require_once 'auth_check.php';
                         <!-- Preenchido via JS -->
                     </tbody>
                 </table>
+            </div>
+            <div class="totals-row d-flex justify-content-between align-items-center px-3 py-2">
+                <span class="fw-bold" id="atrasadosCount">0 títulos</span>
+                <span class="fw-bold text-danger fs-5" id="atrasadosTotal">R$ 0,00</span>
             </div>
         </div>
     </div>
@@ -340,14 +371,20 @@ async function carregarDados() {
             document.getElementById('cardLucroBruto').textContent = formatCurrency(d.lucro_bruto);
             document.getElementById('cardDespesas').textContent = formatCurrency(d.total_despesas);
             document.getElementById('cardLucroLiquido').textContent = formatCurrency(d.lucro_liquido);
+            document.getElementById('cardDistribuido').textContent = formatCurrency(d.total_distribuido || 0);
+            document.getElementById('cardLucroRetido').textContent = formatCurrency(d.lucro_retido || 0);
             
             atualizarGraficos(d);
 
             // Carregar Títulos Atrasados
             const tbodyAtrasados = document.getElementById('tabelaAtrasados');
+            const countEl = document.getElementById('atrasadosCount');
+            const totalEl = document.getElementById('atrasadosTotal');
             tbodyAtrasados.innerHTML = '';
             if (d.titulos_atrasados && d.titulos_atrasados.length > 0) {
+                let total = 0;
                 d.titulos_atrasados.forEach(titulo => {
+                    total += parseFloat(titulo.valor_original);
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${formatDate(titulo.data_vencimento)}</td>
@@ -358,8 +395,13 @@ async function carregarDados() {
                     `;
                     tbodyAtrasados.appendChild(tr);
                 });
+                const n = d.titulos_atrasados.length;
+                countEl.textContent = `${n} título${n > 1 ? 's' : ''}`;
+                totalEl.textContent = formatCurrency(total);
             } else {
-                tbodyAtrasados.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">Nenhum título em atraso neste mês.</td></tr>';
+                tbodyAtrasados.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">Nenhum título em atraso até o fim do mês.</td></tr>';
+                countEl.textContent = '0 títulos';
+                totalEl.textContent = formatCurrency(0);
             }
 
         } else {

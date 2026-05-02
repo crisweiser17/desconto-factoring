@@ -171,6 +171,31 @@ try {
     $total_pages = 0;
 }
 
+// --- Totais filtrados (respeitam $whereSql, ignoram paginação) ---
+$filtered_total_original = 0.0;
+$filtered_total_recebido = 0.0;
+$filtered_total_em_aberto = 0.0;
+$filtered_qtd_em_aberto = 0;
+try {
+    $totalsSql = "SELECT
+                    COALESCE(SUM(r.valor_original), 0) AS total_original,
+                    COALESCE(SUM(CASE WHEN r.status = 'Recebido' THEN r.valor_recebido END), 0) AS total_recebido,
+                    COALESCE(SUM(CASE WHEN r.status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') THEN r.valor_original ELSE 0 END), 0) AS total_em_aberto,
+                    COALESCE(SUM(CASE WHEN r.status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado') THEN 1 ELSE 0 END), 0) AS qtd_em_aberto
+                  FROM recebiveis r
+                  LEFT JOIN operacoes o ON r.operacao_id = o.id
+                  LEFT JOIN clientes s ON o.cedente_id = s.id
+                  LEFT JOIN clientes sac ON r.sacado_id = sac.id
+                  $whereSql";
+    $stmtTotals = $pdo->prepare($totalsSql);
+    $stmtTotals->execute($params_count);
+    $totalsRow = $stmtTotals->fetch(PDO::FETCH_ASSOC) ?: [];
+    $filtered_total_original  = (float)($totalsRow['total_original']  ?? 0);
+    $filtered_total_recebido  = (float)($totalsRow['total_recebido']  ?? 0);
+    $filtered_total_em_aberto = (float)($totalsRow['total_em_aberto'] ?? 0);
+    $filtered_qtd_em_aberto   = (int)  ($totalsRow['qtd_em_aberto']   ?? 0);
+} catch (PDOException $e) { /* ignora — totais são informativos */ }
+
 $total_pages = ($results_per_page > 0) ? ceil($total_results / $results_per_page) : 0;
 if ($total_pages == 0) $total_pages = 1;
 
@@ -249,8 +274,44 @@ try {
     echo "<div class='alert alert-danger'>Erro Crítico [Data Recebíveis]: " . htmlspecialchars($e->getMessage()) . "</div>";
 }
 
+// --- KPIs gerais (independem de filtros, mostram visão geral) ---
+$kpis = ['total' => 0, 'em_aberto_qtd' => 0, 'em_aberto_valor' => 0, 'inadimplentes_qtd' => 0, 'inadimplentes_valor' => 0, 'recebidos_valor' => 0];
+try {
+    $kpis['total'] = (int) $pdo->query("SELECT COUNT(*) FROM recebiveis")->fetchColumn();
+
+    $row = $pdo->query("
+        SELECT COUNT(*) AS qtd, COALESCE(SUM(valor_original), 0) AS valor
+        FROM recebiveis
+        WHERE status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado')
+    ")->fetch(PDO::FETCH_ASSOC);
+    $kpis['em_aberto_qtd']   = (int) ($row['qtd'] ?? 0);
+    $kpis['em_aberto_valor'] = (float) ($row['valor'] ?? 0);
+
+    $row = $pdo->query("
+        SELECT COUNT(*) AS qtd, COALESCE(SUM(valor_original), 0) AS valor
+        FROM recebiveis
+        WHERE status NOT IN ('Recebido', 'Compensado', 'Totalmente Compensado')
+        AND data_vencimento < CURDATE()
+    ")->fetch(PDO::FETCH_ASSOC);
+    $kpis['inadimplentes_qtd']   = (int) ($row['qtd'] ?? 0);
+    $kpis['inadimplentes_valor'] = (float) ($row['valor'] ?? 0);
+
+    $kpis['recebidos_valor'] = (float) $pdo->query("
+        SELECT COALESCE(SUM(valor_original), 0)
+        FROM recebiveis
+        WHERE status IN ('Recebido', 'Compensado', 'Totalmente Compensado')
+        AND data_vencimento >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    ")->fetchColumn();
+} catch (PDOException $e) { /* ignora */ }
+
 // --- Helpers de Formatação HTML ---
 function formatHtmlCurrency($value) { return 'R$ ' . number_format($value ?? 0, 2, ',', '.'); }
+function moedaCompact($v) {
+    $v = (float)$v;
+    if ($v >= 1000000) return 'R$ ' . number_format($v / 1000000, 2, ',', '.') . ' mi';
+    if ($v >= 10000)   return 'R$ ' . number_format($v / 1000, 1, ',', '.') . ' mil';
+    return formatHtmlCurrency($v);
+}
 
 function formatHtmlDate($value) {
   if(!$value) return '-';
@@ -351,290 +412,454 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        th, td { vertical-align: middle; }
-        /* Layout final otimizado */
-        .table { table-layout: auto; }
-        .table th { white-space: nowrap; font-size: 0.9em; padding: 0.5rem; }
-        .table td { font-size: 0.85em; line-height: 1.2; padding: 0.4rem; }
-        @media (max-width: 768px) {
-            .table th, .table td { font-size: 0.75em; padding: 0.3rem; }
+        :root {
+            --profit: #198754; --profit-soft: #d1f0dc;
+            --warn: #b76b00; --warn-soft: #fff3d6;
+            --danger: #b02a37; --danger-soft: #fde2e4;
+            --info: #0a4ea8; --info-soft: #eef4ff;
+            --neutral: #6c757d;
+            --surface: #ffffff; --surface-2: #f6f8fb;
+            --border: #e3e8ef;
         }
+        body { background: #eef2f7; font-size: 0.95rem; }
+
+        .page-toolbar {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px 18px; margin-bottom: 18px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
+        .id-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 999px;
+            background: var(--info-soft); color: var(--info);
+            font-size: 0.78rem; font-weight: 700; margin-left: 6px;
+        }
+
+        .kpi-strip {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 12px; margin-bottom: 18px;
+        }
+        @media (max-width: 992px) { .kpi-strip { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 576px) { .kpi-strip { grid-template-columns: 1fr; } }
+        .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+        .kpi-card .k-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; margin-bottom: 6px;
+        }
+        .k-icon.b-blue   { background: var(--info-soft); color: var(--info); }
+        .k-icon.b-green  { background: var(--profit-soft); color: var(--profit); }
+        .k-icon.b-warn   { background: var(--warn-soft); color: var(--warn); }
+        .k-icon.b-danger { background: var(--danger-soft); color: var(--danger); }
+        .kpi-card .k-label { font-size: 0.72rem; color: var(--neutral); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+        .kpi-card .k-value { font-size: 1.4rem; font-weight: 700; line-height: 1.1; margin-top: 2px; }
+        .kpi-card .k-trend { font-size: 0.78rem; color: var(--neutral); margin-top: 4px; }
+
+        /* Filter chips */
+        .filter-bar {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 10px 14px; margin-bottom: 18px;
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+        .filter-label {
+            font-size: 0.74rem; color: var(--neutral);
+            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+            margin-right: 4px;
+        }
+        .filter-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 999px;
+            background: var(--surface-2); color: var(--neutral);
+            font-size: 0.82rem; font-weight: 600;
+            border: 1px solid var(--border); text-decoration: none;
+            cursor: pointer;
+        }
+        .filter-chip:hover { background: #e9ecef; color: #212529; }
+        .filter-chip.active { background: var(--info-soft); color: var(--info); border-color: #c8dafc; }
+        .filter-chip.active.f-green  { background: var(--profit-soft); color: var(--profit); border-color: #b3e3c4; }
+        .filter-chip.active.f-warn   { background: var(--warn-soft); color: var(--warn); border-color: #f1d999; }
+        .filter-chip.active.f-danger { background: var(--danger-soft); color: var(--danger); border-color: #f5b7be; }
+        .filter-chip.btn-add {
+            background: var(--surface-2); color: var(--neutral);
+            border: 1px dashed var(--border);
+        }
+        .filter-chip.btn-add:hover { color: var(--info); border-color: var(--info); }
+
+        /* Filter form (collapsible) */
+        .filter-form-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; margin-bottom: 18px;
+        }
+        .filter-form-card .head {
+            padding: 12px 16px; border-bottom: 1px solid var(--border);
+            background: var(--surface-2); font-weight: 600; font-size: 0.9rem;
+        }
+        .filter-form-card .body { padding: 16px; }
+        .form-label-strong {
+            font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em;
+            color: var(--neutral); font-weight: 600; margin-bottom: 4px; display: block;
+        }
+        .check-group {
+            border: 1px solid var(--border); border-radius: 8px;
+            padding: 8px 10px; background: var(--surface);
+            display: flex; flex-wrap: wrap; gap: 4px 12px;
+        }
+        .check-group .form-check { margin: 0; }
+        .check-group .form-check-label { font-size: 0.85rem; }
+
+        /* Data table */
+        .data-table-wrap {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; overflow: hidden;
+        }
+        .data-table-head {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+            flex-wrap: wrap; gap: 10px;
+        }
+        .data-table-head h3 { margin: 0; font-size: 0.95rem; font-weight: 600; }
+        .data-table-head .meta { font-size: 0.82rem; color: var(--neutral); }
+        .data-table-head .meta strong { color: #212529; }
+
+        .data-table { width: 100%; margin-bottom: 0; font-size: 0.85rem; }
+        /* Colunas centradas/alinhadas-direita encolhem ao conteúdo; sobra vai para Cedente/Sacado */
+        .data-table th.text-center,
+        .data-table th.text-end,
+        .data-table td.text-center,
+        .data-table td.text-end { width: 1%; white-space: nowrap; }
+        .data-table thead th {
+            background: var(--surface-2);
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em;
+            color: var(--neutral); font-weight: 700;
+            border-bottom: 1px solid var(--border); border-top: none;
+            padding: 10px 8px; white-space: nowrap;
+        }
+        .data-table thead th a { color: inherit; text-decoration: none; }
+        .data-table thead th a:hover { color: var(--info); }
+        .data-table tbody td {
+            padding: 10px 8px; vertical-align: middle;
+            border-top: 1px solid var(--border);
+        }
+        .data-table tbody td.nowrap { white-space: nowrap; }
+        .data-table tbody tr:hover { background: #fafbfd; }
+        .data-table .num { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+        .data-table tfoot td {
+            background: var(--surface-2); font-weight: 700;
+            border-top: 2px solid var(--border);
+            padding: 10px 8px; font-size: 0.82rem;
+        }
+        /* Status row tints (ainda usados pelo JS via classe) */
+        .data-table tr.table-danger td { background-color: #fbe7ea; }
+        .data-table tr.table-light td { background-color: #f7f8fa; color: var(--neutral); }
+        .data-table tr.table-warning td { background-color: #fff3d6; }
+        .data-table tr.table-primary td { background-color: var(--info-soft); }
+
+        .pill-tipo {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 8px; border-radius: 999px;
+            font-size: 0.72rem; font-weight: 600;
+        }
+        .pill-tipo.antecip { background: var(--profit-soft); color: var(--profit); }
+        .pill-tipo.empr    { background: var(--warn-soft); color: var(--warn); }
+
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 8px; border-radius: 999px;
+            font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+        }
+        .status-pill.s-aberto    { background: var(--info-soft); color: var(--info); }
+        .status-pill.s-recebido  { background: var(--profit-soft); color: var(--profit); }
+        .status-pill.s-problema  { background: var(--danger-soft); color: var(--danger); }
+        .status-pill.s-parcial   { background: var(--warn-soft); color: var(--warn); }
+        .status-pill.s-compensado{ background: #efe8fa; color: #6f42c1; }
+
+        /* Action button (preservar classe .action-btn pq o JS reinjeta esse HTML) */
+        .row-actions { display: inline-flex; gap: 0; }
         .action-btn {
-            margin: 0 1px;
-            padding: 0.15rem 0.3rem;
-            font-size: 0.8em;
-            display: inline-block;
-            white-space: nowrap;
+            width: 28px; height: 28px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 6px; padding: 0;
+            font-size: 0.85rem; line-height: 1;
+            margin: 0;
         }
-        .acoes-col { width: 140px; min-width: 140px; }
-        th a { text-decoration: none; color: inherit; }
-        th a:hover { color: #0056b3; }
-        .pagination .page-link { color: #007bff; }
-        .pagination .page-item.active .page-link { z-index: 3; color: #fff; background-color: #007bff; border-color: #007bff;}
-        .pagination .page-item.disabled .page-link { color: #6c757d; pointer-events: none; background-color: #fff; border-color: #dee2e6; }
-        
-        /* Tooltip customizado */
-        .tooltip-wrapper {
-            position: relative;
-            display: inline-block;
-        }
-        .tooltip-wrapper .tooltip-text {
-            visibility: hidden;
-            width: auto;
-            min-width: 220px;
-            max-width: 300px;
-            background-color: #000 !important;
-            color: #fff !important;
-            text-align: center;
-            border-radius: 6px;
-            padding: 10px 15px;
-            position: absolute;
-            z-index: 1000;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.2s;
-            font-size: 0.75rem;
-            white-space: normal;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-            border: 1px solid #333;
-        }
-        .tooltip-wrapper .tooltip-text::after {
-            content: "";
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
-            border-color: #000 transparent transparent transparent;
-        }
-        .tooltip-wrapper:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-        
-        /* Ações Fixas na direita */
-        .table-responsive {
-            overflow-x: auto;
-        }
-        .valor-col { white-space: nowrap; }
+        .action-btn:not(:last-child) { margin-right: 2px; }
+
+        /* Coluna de ações sticky à direita */
         .acoes-col {
-            position: sticky;
-            right: 0;
+            position: sticky; right: 0;
             background-color: #fff;
-            z-index: 1;
             box-shadow: -2px 0 5px rgba(0,0,0,0.05);
             white-space: nowrap;
         }
-        thead .acoes-col {
-            background-color: #f8f9fa; /* igual ao .table-light */
-            z-index: 2;
+        .data-table thead th.acoes-col { background: var(--surface-2); }
+        .data-table tbody tr:hover td.acoes-col { background: #fafbfd; }
+        .data-table tr.table-danger td.acoes-col { background-color: #fbe7ea; }
+        .data-table tr.table-light td.acoes-col { background-color: #f7f8fa; }
+        .data-table tr.table-warning td.acoes-col { background-color: #fff3d6; }
+        .data-table tr.table-primary td.acoes-col { background-color: var(--info-soft); }
+        .data-table tfoot td.acoes-col { background: var(--surface-2); }
+
+        .pagination-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 18px;
+            border-top: 1px solid var(--border);
+            background: var(--surface-2);
+            flex-wrap: wrap; gap: 10px;
         }
-        tfoot .acoes-col {
-            background-color: #e2e3e5; /* igual ao .table-secondary */
-            z-index: 2;
+        .pagination-bar .info { font-size: 0.82rem; color: var(--neutral); }
+        .pagination-bar .pagination { margin: 0; }
+        .pagination-bar .page-link { padding: 4px 10px; font-size: 0.82rem; color: var(--info); border-color: var(--border); }
+        .pagination-bar .page-item.active .page-link { background: var(--info); border-color: var(--info); color: #fff; }
+
+        .empty-state {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; padding: 60px 20px;
+            text-align: center; color: var(--neutral);
         }
-        .table-striped tbody tr:nth-of-type(odd) td.acoes-col {
-            background-color: rgba(0, 0, 0, 0.05);
+        .empty-state i { font-size: 3.5rem; opacity: 0.4; }
+
+        /* Tooltip customizado (preservado — usado por status Recebido) */
+        .tooltip-wrapper { position: relative; display: inline-block; }
+        .tooltip-wrapper .tooltip-text {
+            visibility: hidden; width: auto; min-width: 220px; max-width: 300px;
+            background-color: #000 !important; color: #fff !important;
+            text-align: center; border-radius: 6px; padding: 10px 15px;
+            position: absolute; z-index: 1000; bottom: 125%; left: 50%;
+            transform: translateX(-50%); opacity: 0; transition: opacity 0.2s;
+            font-size: 0.75rem; white-space: normal;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5); border: 1px solid #333;
         }
-        .table-hover tbody tr:hover td.acoes-col {
-            background-color: rgba(0, 0, 0, 0.075);
+        .tooltip-wrapper .tooltip-text::after {
+            content: ""; position: absolute; top: 100%; left: 50%;
+            margin-left: -5px; border-width: 5px; border-style: solid;
+            border-color: #000 transparent transparent transparent;
         }
-        
-        /* Animação suave para o ícone do collapse */
-        .card-header i.bi-chevron-down {
-            transition: transform 0.3s ease;
-        }
+        .tooltip-wrapper:hover .tooltip-text { visibility: visible; opacity: 1; }
     </style>
 </head>
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container-fluid px-3 px-md-4 mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-            <h1 class="mb-0">Lista de Recebíveis</h1>
-            
-            <form method="GET" action="listar_recebiveis.php" class="d-flex flex-grow-1" style="max-width: 300px;">
-                <input type="hidden" name="sort" value="<?php echo htmlspecialchars($sort); ?>">
-                <input type="hidden" name="dir" value="<?php echo htmlspecialchars($dir); ?>">
-                <?php if ($quick_filter !== 'todos'): ?>
-                    <input type="hidden" name="quick_filter" value="<?php echo htmlspecialchars($quick_filter); ?>">
-                <?php endif; ?>
-                <input class="form-control form-control-sm me-2" type="search" name="search" placeholder="Buscar ID/Valor/Nome..." aria-label="Buscar" value="<?php echo htmlspecialchars($search); ?>">
-                <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
-                <?php if (!empty($search)): ?>
-                    <a href="?sort=<?php echo htmlspecialchars($sort); ?>&dir=<?php echo htmlspecialchars($dir); ?>" class="btn btn-sm btn-outline-danger ms-2" title="Limpar Busca"><i class="bi bi-x-lg"></i></a>
-                <?php endif; ?>
-            </form>
+    <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
 
+        <!-- Toolbar -->
+        <div class="page-toolbar">
             <div>
-                <a href="exportar_ics.php?<?php echo http_build_query($current_filters_for_links);?>" class="btn btn-sm btn-outline-primary me-2" target="_blank" title="Exportar Lembretes (.ics) dos resultados filtrados">
+                <h1>
+                    <i class="bi bi-list-check text-primary"></i>
+                    Recebíveis
+                    <span class="id-pill"><i class="bi bi-hash"></i><?php echo $kpis['total']; ?> registrados</span>
+                </h1>
+                <div class="text-muted small mt-1">Acompanhamento de títulos a receber, recebidos e em problema</div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <form method="GET" action="listar_recebiveis.php" class="d-flex gap-2">
+                    <input type="hidden" name="sort" value="<?php echo htmlspecialchars($sort); ?>">
+                    <input type="hidden" name="dir" value="<?php echo htmlspecialchars($dir); ?>">
+                    <?php if ($quick_filter !== 'todos'): ?>
+                        <input type="hidden" name="quick_filter" value="<?php echo htmlspecialchars($quick_filter); ?>">
+                    <?php endif; ?>
+                    <div class="input-group input-group-sm" style="width: 280px;">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="search" class="form-control" name="search"
+                               placeholder="Buscar ID, valor, cedente, sacado…"
+                               value="<?php echo htmlspecialchars($search); ?>">
+                        <?php if ($search !== ''): ?>
+                            <a href="?<?php echo http_build_query(['sort'=>$sort,'dir'=>$dir,'quick_filter'=>$quick_filter]); ?>"
+                               class="btn btn-outline-secondary" title="Limpar busca"><i class="bi bi-x-lg"></i></a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+                <a href="exportar_ics.php?<?php echo http_build_query($current_filters_for_links);?>"
+                   class="btn btn-outline-primary btn-sm" target="_blank" title="Exportar lembretes (.ics)">
                     <i class="bi bi-calendar-plus"></i> .ics
                 </a>
-                <a href="exportar_csv.php?<?php echo http_build_query($current_filters_for_links);?>" class="btn btn-sm btn-outline-success" target="_blank" title="Exportar Lista (.csv) dos resultados filtrados">
+                <a href="exportar_csv.php?<?php echo http_build_query($current_filters_for_links);?>"
+                   class="btn btn-outline-success btn-sm" target="_blank" title="Exportar lista (.csv)">
                     <i class="bi bi-file-earmark-spreadsheet"></i> .csv
                 </a>
             </div>
         </div>
 
-        <!-- Formulário de Filtros -->
-        
-        <!-- Filtros Rápidos -->
-        <div class="mb-3 d-flex flex-wrap gap-2">
-            <a href="listar_recebiveis.php?quick_filter=todos" class="btn btn-sm <?php echo $quick_filter === 'todos' ? 'btn-primary' : 'btn-outline-primary'; ?>">Todos</a>
-            <a href="listar_recebiveis.php?quick_filter=inadimplentes" class="btn btn-sm <?php echo $quick_filter === 'inadimplentes' ? 'btn-danger' : 'btn-outline-danger'; ?>">Inadimplentes</a>
-            <a href="listar_recebiveis.php?quick_filter=a_receber" class="btn btn-sm <?php echo $quick_filter === 'a_receber' ? 'btn-secondary' : 'btn-outline-secondary'; ?>">A Receber</a>
-            <a href="listar_recebiveis.php?quick_filter=recebidos" class="btn btn-sm <?php echo $quick_filter === 'recebidos' ? 'btn-success' : 'btn-outline-success'; ?>">Recebidos</a>
-            <a href="listar_recebiveis.php?quick_filter=vencendo_7_dias" class="btn btn-sm <?php echo $quick_filter === 'vencendo_7_dias' ? 'btn-info' : 'btn-outline-info'; ?>">Vencendo em 7 dias</a>
-            <a href="listar_recebiveis.php?quick_filter=vencendo_hoje" class="btn btn-sm <?php echo $quick_filter === 'vencendo_hoje' ? 'btn-warning' : 'btn-outline-warning'; ?>">Vencendo Hoje</a>
-            <a href="listar_recebiveis.php?quick_filter=problemas" class="btn btn-sm <?php echo $quick_filter === 'problemas' ? 'btn-dark' : 'btn-outline-dark'; ?>">Problemas</a>
+        <!-- KPIs -->
+        <div class="kpi-strip">
+            <div class="kpi-card">
+                <div class="k-icon b-blue"><i class="bi bi-list-ol"></i></div>
+                <div class="k-label">Total cadastrados</div>
+                <div class="k-value"><?php echo $kpis['total']; ?></div>
+                <div class="k-trend">recebíveis no sistema</div>
+            </div>
+            <div class="kpi-card">
+                <div class="k-icon b-warn"><i class="bi bi-hourglass-split"></i></div>
+                <div class="k-label">Em aberto</div>
+                <div class="k-value"><?php echo moedaCompact($kpis['em_aberto_valor']); ?></div>
+                <div class="k-trend"><?php echo $kpis['em_aberto_qtd']; ?> a receber</div>
+            </div>
+            <div class="kpi-card">
+                <div class="k-icon b-danger"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                <div class="k-label">Inadimplentes</div>
+                <div class="k-value"><?php echo moedaCompact($kpis['inadimplentes_valor']); ?></div>
+                <div class="k-trend"><?php echo $kpis['inadimplentes_qtd']; ?> vencidos</div>
+            </div>
+            <div class="kpi-card">
+                <div class="k-icon b-green"><i class="bi bi-check-circle-fill"></i></div>
+                <div class="k-label">Recebidos (12m)</div>
+                <div class="k-value"><?php echo moedaCompact($kpis['recebidos_valor']); ?></div>
+                <div class="k-trend">total liquidado</div>
+            </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse" aria-expanded="false" aria-controls="filtrosCollapse">
-                <h5 class="mb-0">
-                    <i class="bi bi-funnel"></i> Filtros
-                    <i class="bi bi-chevron-down float-end"></i>
-                </h5>
-            </div>
-            <div class="collapse" id="filtrosCollapse">
-                <div class="card-body">
+        <!-- Filtros rápidos (chips) -->
+        <?php
+        $quickLink = function($k) {
+            $params = [];
+            if ($k !== 'todos') $params['quick_filter'] = $k;
+            return 'listar_recebiveis.php' . (empty($params) ? '' : '?' . http_build_query($params));
+        };
+        ?>
+        <div class="filter-bar">
+            <span class="filter-label">Filtros rápidos:</span>
+            <a href="<?php echo $quickLink('todos'); ?>" class="filter-chip <?php echo $quick_filter === 'todos' ? 'active' : ''; ?>">Todos</a>
+            <a href="<?php echo $quickLink('a_receber'); ?>" class="filter-chip <?php echo $quick_filter === 'a_receber' ? 'active' : ''; ?>">A receber</a>
+            <a href="<?php echo $quickLink('vencendo_hoje'); ?>" class="filter-chip <?php echo $quick_filter === 'vencendo_hoje' ? 'active f-warn' : ''; ?>">Vencendo hoje</a>
+            <a href="<?php echo $quickLink('vencendo_7_dias'); ?>" class="filter-chip <?php echo $quick_filter === 'vencendo_7_dias' ? 'active f-warn' : ''; ?>">Vence em 7 dias</a>
+            <a href="<?php echo $quickLink('inadimplentes'); ?>" class="filter-chip <?php echo $quick_filter === 'inadimplentes' ? 'active f-danger' : ''; ?>">Inadimplentes</a>
+            <a href="<?php echo $quickLink('problemas'); ?>" class="filter-chip <?php echo $quick_filter === 'problemas' ? 'active f-danger' : ''; ?>">Problemas</a>
+            <a href="<?php echo $quickLink('recebidos'); ?>" class="filter-chip <?php echo $quick_filter === 'recebidos' ? 'active f-green' : ''; ?>">Recebidos</a>
+            <button class="filter-chip btn-add ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse">
+                <i class="bi bi-funnel"></i> Filtros avançados
+            </button>
+        </div>
+
+        <!-- Filtros avançados (collapse) -->
+        <div class="collapse" id="filtrosCollapse">
+            <div class="filter-form-card">
+                <div class="head"><i class="bi bi-funnel"></i> Filtros avançados</div>
+                <div class="body">
                     <form method="GET" action="listar_recebiveis.php">
-                        <!-- Preservar parâmetros de ordenação -->
                         <input type="hidden" name="sort" value="<?php echo htmlspecialchars($sort); ?>">
                         <input type="hidden" name="dir" value="<?php echo htmlspecialchars($dir); ?>">
                         <input type="hidden" name="search" value="<?php echo htmlspecialchars($search); ?>">
                         <?php if ($quick_filter !== 'todos'): ?>
                             <input type="hidden" name="quick_filter" value="<?php echo htmlspecialchars($quick_filter); ?>">
                         <?php endif; ?>
-                        
-                        <div class="row g-2 align-items-end">
-                            <!-- Filtro por Status -->
-                            <div class="col-md-2">
-                                <label class="form-label small mb-1">Status</label>
-                                <div class="border rounded p-1 bg-white" style="max-height: 85px; overflow-y: auto; font-size: 0.8em;">
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label-strong">Status</label>
+                                <div class="check-group">
                                     <?php
                                     $status_options = ['Em Aberto', 'Recebido', 'Problema', 'Parcialmente Compensado', 'Totalmente Compensado'];
                                     foreach ($status_options as $status_option):
                                         $checked = in_array($status_option, $filtro_status) ? 'checked' : '';
+                                        $sid = 'st_' . md5($status_option);
                                     ?>
-                                        <div class="form-check mb-0">
+                                        <div class="form-check">
                                             <input class="form-check-input" type="checkbox" name="status[]"
                                                    value="<?php echo htmlspecialchars($status_option); ?>"
-                                                   id="status_<?php echo str_replace([' ', 'ç'], ['_', 'c'], strtolower($status_option)); ?>" <?php echo $checked; ?>>
-                                            <label class="form-check-label" for="status_<?php echo str_replace([' ', 'ç'], ['_', 'c'], strtolower($status_option)); ?>">
+                                                   id="<?php echo $sid; ?>" <?php echo $checked; ?>>
+                                            <label class="form-check-label" for="<?php echo $sid; ?>">
                                                 <?php echo htmlspecialchars($status_option); ?>
                                             </label>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
                             </div>
-                            
-                            <!-- Filtro por Tipo de Pagamento -->
-                            <div class="col-md-2">
-                                <label class="form-label small mb-1">Pagamento</label>
-                                <div class="border rounded p-1 bg-white" style="max-height: 85px; overflow-y: auto; font-size: 0.8em;">
-                                    <?php
-                                    $tipo_pagamento_options = ['direto', 'escrow', 'indireto'];
-                                    foreach ($tipo_pagamento_options as $tipo_option):
-                                        $checked = in_array($tipo_option, $filtro_tipo_pagamento) ? 'checked' : '';
+                            <div class="col-md-4">
+                                <label class="form-label-strong">Tipo de pagamento</label>
+                                <div class="check-group">
+                                    <?php foreach (['direto'=>'Direto','escrow'=>'Escrow','indireto'=>'Indireto'] as $val => $lab):
+                                        $checked = in_array($val, $filtro_tipo_pagamento) ? 'checked' : '';
                                     ?>
-                                        <div class="form-check mb-0">
+                                        <div class="form-check">
                                             <input class="form-check-input" type="checkbox" name="tipo_pagamento[]"
-                                                   value="<?php echo htmlspecialchars($tipo_option); ?>"
-                                                   id="tipo_<?php echo htmlspecialchars($tipo_option); ?>" <?php echo $checked; ?>>
-                                            <label class="form-check-label" for="tipo_<?php echo htmlspecialchars($tipo_option); ?>">
-                                                <?php echo ucfirst(htmlspecialchars($tipo_option)); ?>
-                                            </label>
+                                                   value="<?php echo $val; ?>" id="tp_<?php echo $val; ?>" <?php echo $checked; ?>>
+                                            <label class="form-check-label" for="tp_<?php echo $val; ?>"><?php echo $lab; ?></label>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
                             </div>
-                            
-                            <!-- Filtro por Tipo de Operação -->
-                            <div class="col-md-2">
-                                <label class="form-label small mb-1">Operação</label>
-                                <div class="border rounded p-1 bg-white" style="max-height: 85px; overflow-y: auto; font-size: 0.8em;">
-                                    <?php
-                                    $tipo_operacao_options = ['antecipacao', 'emprestimo'];
-                                    foreach ($tipo_operacao_options as $tipo_option):
-                                        $checked = in_array($tipo_option, $filtro_tipo_operacao) ? 'checked' : '';
+                            <div class="col-md-4">
+                                <label class="form-label-strong">Tipo de operação</label>
+                                <div class="check-group">
+                                    <?php foreach (['antecipacao'=>'Antecipação','emprestimo'=>'Empréstimo'] as $val => $lab):
+                                        $checked = in_array($val, $filtro_tipo_operacao) ? 'checked' : '';
                                     ?>
-                                        <div class="form-check mb-0">
+                                        <div class="form-check">
                                             <input class="form-check-input" type="checkbox" name="tipo_operacao[]"
-                                                   value="<?php echo htmlspecialchars($tipo_option); ?>"
-                                                   id="tipo_op_<?php echo htmlspecialchars($tipo_option); ?>" <?php echo $checked; ?>>
-                                            <label class="form-check-label" for="tipo_op_<?php echo htmlspecialchars($tipo_option); ?>">
-                                                <?php echo ucfirst(htmlspecialchars($tipo_option)); ?>
-                                            </label>
+                                                   value="<?php echo $val; ?>" id="to_<?php echo $val; ?>" <?php echo $checked; ?>>
+                                            <label class="form-check-label" for="to_<?php echo $val; ?>"><?php echo $lab; ?></label>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
                             </div>
-                            
-                            <!-- Filtro por Data de Vencimento -->
-                            <div class="col-md-2">
-                                <label for="data_inicio" class="form-label small mb-1">Vencimento De</label>
-                                <input type="date" name="data_inicio" id="data_inicio" class="form-control form-control-sm" value="<?php echo htmlspecialchars($filtro_data_inicio); ?>">
+                            <div class="col-md-3">
+                                <label for="data_inicio" class="form-label-strong">Vencimento de</label>
+                                <input type="date" name="data_inicio" id="data_inicio" class="form-control" value="<?php echo htmlspecialchars($filtro_data_inicio); ?>">
                             </div>
-                            
-                            <div class="col-md-2">
-                                <label for="data_fim" class="form-label small mb-1">Vencimento Até</label>
-                                <input type="date" name="data_fim" id="data_fim" class="form-control form-control-sm" value="<?php echo htmlspecialchars($filtro_data_fim); ?>">
+                            <div class="col-md-3">
+                                <label for="data_fim" class="form-label-strong">Vencimento até</label>
+                                <input type="date" name="data_fim" id="data_fim" class="form-control" value="<?php echo htmlspecialchars($filtro_data_fim); ?>">
                             </div>
-                            
-                            <!-- Items por página -->
-                            <div class="col-md-2">
-                                <label for="per_page" class="form-label small mb-1">Itens/Página</label>
-                                <select name="per_page" id="per_page" class="form-select form-select-sm">
+                            <div class="col-md-3">
+                                <label for="per_page" class="form-label-strong">Itens por página</label>
+                                <select name="per_page" id="per_page" class="form-select">
                                     <?php foreach ($items_per_page_options as $option): ?>
                                         <option value="<?php echo $option; ?>" <?php echo ($items_per_page == $option) ? 'selected' : ''; ?>><?php echo $option; ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>
-                        
-                        <div class="row mt-3">
-                            <div class="col-12 text-end">
-                                <a href="?sort=<?php echo htmlspecialchars($sort); ?>&dir=<?php echo htmlspecialchars($dir); ?>"
-                                   class="btn btn-sm btn-outline-secondary me-2">
-                                    <i class="bi bi-x-circle"></i> Limpar Filtros
-                                </a>
-                                <button type="submit" class="btn btn-sm btn-primary">
-                                    <i class="bi bi-search"></i> Aplicar Filtros
-                                </button>
-                            </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Aplicar filtros</button>
+                            <a href="?<?php echo http_build_query(['sort'=>$sort,'dir'=>$dir,'search'=>$search]); ?>"
+                               class="btn btn-outline-secondary"><i class="bi bi-x-circle"></i> Limpar</a>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
+
         <div id="status-feedback" class="mt-2 mb-3" style="min-height: 1.5em;"></div>
-        <?php if (empty($recebiveis) && $total_results == 0 && empty($filtro_status) && empty($filtro_tipo_pagamento) && empty($filtro_data_inicio) && empty($filtro_data_fim) && empty($search)): ?>
-            <div class="alert alert-info">Nenhum recebível registrado ainda.</div>
-        <?php elseif (empty($recebiveis) && $total_results > 0): ?>
-             <p class="alert alert-warning">Nenhum recebível encontrado para os filtros/busca selecionados nesta página.</p>
-             <?php // Inclui paginação mesmo se página vazia ?>
-               <?php // include 'includes/pagination_recebiveis.php'; // Ou coloque o código da paginação aqui ?>
-        <?php elseif (empty($recebiveis) && $total_results == 0): ?>
-            <div class="alert alert-warning">Nenhum recebível encontrado para os filtros/busca selecionados.</div>
+        <?php if (empty($recebiveis) && $total_results == 0 && empty($filtro_status) && empty($filtro_tipo_pagamento) && empty($filtro_data_inicio) && empty($filtro_data_fim) && empty($search) && $quick_filter === 'todos'): ?>
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <h4 class="mt-3 text-muted">Nenhum recebível registrado</h4>
+                <p>Os recebíveis aparecem aqui quando você cria operações.</p>
+            </div>
+        <?php elseif (empty($recebiveis)): ?>
+            <div class="empty-state">
+                <i class="bi bi-search"></i>
+                <h4 class="mt-3 text-muted">Nenhum resultado</h4>
+                <p>Não encontramos recebíveis para os filtros/busca atuais.</p>
+                <a href="listar_recebiveis.php" class="btn btn-outline-primary"><i class="bi bi-x-circle"></i> Limpar filtros</a>
+            </div>
         <?php else: ?>
-            <div class="table-responsive">
-                <table class="table table-striped table-bordered table-hover mb-3">
-                  <thead class="table-light">
+            <div class="data-table-wrap">
+                <div class="data-table-head">
+                    <h3>Resultado</h3>
+                    <div class="meta">
+                        <strong><?php echo $total_results; ?></strong> recebíve<?php echo $total_results === 1 ? 'l' : 'is'; ?>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
                           <tr>
                               <th class="text-center"><?php echo getRecebivelSortLink('operacao_id', 'ID Op.', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center"><?php echo getRecebivelSortLink('id', 'Id Rec.', $sort, $dir, $current_filters_for_links); ?></th>
                               <th><?php echo getRecebivelSortLink('cedente_nome', 'Cedente', $sort, $dir, $current_filters_for_links); ?></th>
                               <th><?php echo getRecebivelSortLink('sacado_nome', 'Sacado', $sort, $dir, $current_filters_for_links); ?></th>
-                              <th class="text-center"><?php echo getRecebivelSortLink('data_operacao', 'Data Operacao', $sort, $dir, $current_filters_for_links); ?></th>
-                              <th class="text-center"><?php echo getRecebivelSortLink('tipo_pagamento', 'Tipo Pagamento', $sort, $dir, $current_filters_for_links); ?></th>
-                              <th class="text-center"><?php echo getRecebivelSortLink('tipo_operacao', 'Tipo Op.', $sort, $dir, $current_filters_for_links); ?></th>
-                              <th class="text-center">Tipo Recebível</th>
+                              <th class="text-center"><?php echo getRecebivelSortLink('data_operacao', 'Data Op.', $sort, $dir, $current_filters_for_links); ?></th>
+                              <th class="text-center"><?php echo getRecebivelSortLink('tipo_pagamento', 'Pagto', $sort, $dir, $current_filters_for_links); ?></th>
+                              <th class="text-center"><?php echo getRecebivelSortLink('tipo_operacao', 'Tipo', $sort, $dir, $current_filters_for_links); ?></th>
+                              <th class="text-center">Tipo Rec.</th>
                               <th class="text-center"><?php echo getRecebivelSortLink('data_vencimento', 'Vencimento', $sort, $dir, $current_filters_for_links); ?></th>
-                              <th class="text-center">Dias p/ Vencimento</th> <th class="text-end valor-col"><?php echo getRecebivelSortLink('valor_original', 'Valor Original', $sort, $dir, $current_filters_for_links); ?></th>
+                              <th class="text-end"><?php echo getRecebivelSortLink('valor_original', 'Valor', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center"><?php echo getRecebivelSortLink('status', 'Status', $sort, $dir, $current_filters_for_links); ?></th>
                               <th class="text-center acoes-col">Ações</th>
                           </tr>
@@ -646,8 +871,21 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                             <?php
                             $rowClass = getTableRowClass($r['status_real'], $r['data_vencimento']);
 
-                            // Usar a nova função que considera apenas datas (sem horário)
-                            $dias_p_vencimento = calcularDiasParaVencimento($r['data_vencimento']);
+                            // Dias entre hoje e vencimento (negativo se vencido)
+                            $dias_atraso_hoje = 0;
+                            try {
+                                $_hoje = new DateTime('today');
+                                $_venc = new DateTime($r['data_vencimento']);
+                                $_venc->setTime(0, 0, 0);
+                                $_diff = $_hoje->diff($_venc);
+                                $dias_atraso_hoje = $_venc < $_hoje ? -$_diff->days : $_diff->days;
+                            } catch (Exception $e) { $dias_atraso_hoje = 0; }
+
+                            $valor_original = (float)$r['valor_original'];
+                            $valor_recebido_db = isset($r['valor_recebido']) && is_numeric($r['valor_recebido']) ? (float)$r['valor_recebido'] : null;
+                            $is_recebido = $r['status_real'] === 'Recebido';
+                            $is_compensado = in_array($r['status_real'], ['Compensado', 'Totalmente Compensado']);
+                            $is_vencido_aberto = $dias_atraso_hoje < 0 && !$is_recebido && !$is_compensado;
                             ?>
                             <tr id="recebivel-row-<?php echo $r['id']; ?>" class="<?php echo $rowClass; ?>">
                                 <td class="text-center"><a href="detalhes_operacao.php?id=<?php echo (int)$r['operacao_id']; ?>" title="Ver detalhes da Operação <?php echo (int)$r['operacao_id']; ?>">
@@ -657,29 +895,55 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                                 <td><?php echo htmlspecialchars($r['cedente_nome'] ?? 'N/A'); ?></td>
                                 <td><?php echo htmlspecialchars($r['sacado_nome'] ?? 'N/A'); ?></td>
                                 <td class="text-center"><?php echo formatHtmlDate($r['data_operacao']); ?></td>
-                                <td class="text-center"><?php echo htmlspecialchars($r['tipo_pagamento'] ?? 'N/A'); ?></td>
+                                <td class="text-center text-muted"><?php echo htmlspecialchars(ucfirst($r['tipo_pagamento'] ?? '—')); ?></td>
                                 <td class="text-center">
-                                    <?php 
+                                    <?php
                                     if (($r['tipo_operacao'] ?? 'antecipacao') == 'emprestimo') {
-                                        echo '<span class="badge bg-warning text-dark rounded-pill"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
+                                        echo '<span class="pill-tipo empr"><i class="bi bi-cash-coin"></i> Empréstimo</span>';
                                     } else {
-                                        echo '<span class="badge bg-success text-white rounded-pill"><i class="bi bi-arrow-return-left"></i> Antecipação</span>';
+                                        echo '<span class="pill-tipo antecip"><i class="bi bi-arrow-return-left"></i> Antecipação</span>';
                                     }
                                     ?>
                                 </td>
-                                <td class="text-center"><?php echo htmlspecialchars($r['tipo_recebivel'] ?? 'N/A'); ?></td>
-                                <td class="text-center"><?php echo formatHtmlDate($r['data_vencimento']); ?></td>
-                                <td class="text-center"><?php echo htmlspecialchars($dias_p_vencimento); ?></td> <td class="text-end valor-col">
-                                    <?php 
-                                    $valor_original = $r['valor_original'];
-                                    if ($dias_p_vencimento < 0 && $r['status_real'] !== 'Recebido' && $r['status_real'] !== 'Compensado' && $r['status_real'] !== 'Totalmente Compensado') {
+                                <td class="text-center text-muted small"><?php echo htmlspecialchars($r['tipo_recebivel'] ?? '—'); ?></td>
+                                <td class="text-center nowrap">
+                                    <div class="nowrap"><?php echo formatHtmlDate($r['data_vencimento']); ?></div>
+                                    <?php
+                                    if ($is_recebido && !empty($r['data_recebimento'])) {
+                                        echo '<div class="small text-success nowrap"><i class="bi bi-check-circle"></i> pago em ' . formatHtmlDate($r['data_recebimento']) . '</div>';
+                                    } elseif ($is_compensado) {
+                                        echo '<div class="small text-muted">—</div>';
+                                    } elseif ($dias_atraso_hoje < 0) {
+                                        echo '<div class="small text-danger fw-bold nowrap">' . abs($dias_atraso_hoje) . ' dias em atraso</div>';
+                                    } elseif ($dias_atraso_hoje === 0) {
+                                        echo '<div class="small text-warning fw-bold">vence hoje</div>';
+                                    } else {
+                                        echo '<div class="small text-muted nowrap">em ' . htmlspecialchars($dias_atraso_hoje) . ' dias</div>';
+                                    }
+                                    ?>
+                                </td>
+                                <td class="text-end num">
+                                    <?php
+                                    $valor_exibicao = $valor_original;
+                                    if ($is_vencido_aberto) {
                                         $calc = calcularValorCorrigido($valor_original, $r['data_vencimento']);
                                         $valor_exibicao = $calc['valor_corrigido'];
-                                        echo '<div><span class="text-decoration-line-through text-muted small">' . formatHtmlCurrency($valor_original) . '</span></div>';
-                                        echo '<div class="text-danger fw-bold" title="Atraso de ' . $calc['dias_atraso'] . ' dias. Juros: ' . formatHtmlCurrency($calc['valor_juros']) . ' / Multa: ' . formatHtmlCurrency($calc['valor_multa']) . '">' . formatHtmlCurrency($valor_exibicao) . ' <i class="bi bi-info-circle small"></i></div>';
+                                        echo '<div class="nowrap"><span class="text-decoration-line-through text-muted small">' . formatHtmlCurrency($valor_original) . '</span></div>';
+                                        echo '<div class="text-danger fw-bold nowrap" title="Atraso de ' . $calc['dias_atraso'] . ' dias. Juros: ' . formatHtmlCurrency($calc['valor_juros']) . ' / Multa: ' . formatHtmlCurrency($calc['valor_multa']) . '">' . formatHtmlCurrency($valor_exibicao) . ' <i class="bi bi-info-circle small"></i></div>';
+                                    } elseif ($is_recebido && $valor_recebido_db !== null && abs($valor_recebido_db - $valor_original) > 0.01) {
+                                        $diferenca = $valor_recebido_db - $valor_original;
+                                        $is_acrescimo = $diferenca > 0;
+                                        $cor = $is_acrescimo ? 'text-success' : 'text-warning';
+                                        $sinal = $is_acrescimo ? '+' : '−';
+                                        $tooltip = $is_acrescimo
+                                            ? 'Acréscimo de ' . formatHtmlCurrency(abs($diferenca)) . ' (juros/mora).'
+                                            : 'Desconto de ' . formatHtmlCurrency(abs($diferenca)) . '.';
+                                        echo '<div class="text-muted small nowrap">' . formatHtmlCurrency($valor_original) . '</div>';
+                                        echo '<div class="' . $cor . ' fw-bold nowrap" title="' . htmlspecialchars($tooltip) . '">' . formatHtmlCurrency($valor_recebido_db) . '</div>';
+                                        echo '<div class="small ' . $cor . ' nowrap">' . $sinal . formatHtmlCurrency(abs($diferenca)) . ' vs original</div>';
+                                        $valor_exibicao = $valor_recebido_db;
                                     } else {
-                                        $valor_exibicao = $valor_original;
-                                        echo '<div>' . formatHtmlCurrency($valor_original) . '</div>';
+                                        echo '<div class="nowrap">' . formatHtmlCurrency($valor_original) . '</div>';
                                     }
                                     ?>
                                     <?php if ($r['total_compensado'] > 0): ?>
@@ -708,98 +972,81 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
                         <?php endforeach; ?>
                     </tbody>
                     <?php if (!empty($recebiveis)): ?>
-                    <tfoot class="table-secondary">
+                    <tfoot>
                         <tr>
-                            <th colspan="10" class="text-end"><strong>TOTAIS:</strong></th>
-                            <th class="text-end valor-col">
-                                <?php
-                                // Calcular total dos valores originais dos recebíveis filtrados
-                                $total_valor_original = 0;
-                                $total_saldo_disponivel = 0;
-                                foreach ($recebiveis as $r) {
-                                    $total_valor_original += $r['valor_original'] ?? 0;
-                                    $total_saldo_disponivel += $r['saldo_disponivel'] ?? $r['valor_original'] ?? 0;
-                                }
-                                ?>
-                                <div><strong><?php echo formatHtmlCurrency($total_valor_original); ?></strong></div>
-                                <small class="text-muted">Saldo: <?php echo formatHtmlCurrency($total_saldo_disponivel); ?></small>
-                            </th>
-                            <th colspan="2" class="text-center acoes-col">
-                                <small><?php echo count($recebiveis); ?> recebíveis na página</small>
-                                <?php if ($total_results > count($recebiveis)): ?>
-                                    <br><small class="text-muted">Total geral: <?php echo $total_results; ?> recebíveis</small>
-                                <?php endif; ?>
-                            </th>
+                            <td colspan="9" class="text-end">TOTAIS (filtros aplicados):</td>
+                            <td class="text-end num">
+                                <div class="fw-bold"><?php echo formatHtmlCurrency($filtered_total_original); ?></div>
+                                <div class="small text-success" title="Recebido (soma de valor_recebido nos títulos com status Recebido)">
+                                    <i class="bi bi-check-circle"></i> <?php echo formatHtmlCurrency($filtered_total_recebido); ?>
+                                </div>
+                                <div class="small text-warning" title="Em aberto (soma de valor_original nos títulos não recebidos)">
+                                    <i class="bi bi-hourglass-split"></i> <?php echo formatHtmlCurrency($filtered_total_em_aberto); ?>
+                                    <?php if ($filtered_qtd_em_aberto > 0): ?>
+                                        <span class="text-muted">(<?php echo $filtered_qtd_em_aberto; ?>)</span>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                            <td colspan="2" class="text-center text-muted small acoes-col">
+                                <?php echo count($recebiveis); ?> de <?php echo $total_results; ?>
+                            </td>
                         </tr>
                     </tfoot>
                     <?php endif; ?>
                 </table>
-            </div>
-
-            <?php if ($total_results > 0): ?>
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-3 mb-4 gap-3">
-                <div class="text-muted small">
-                    Total: <?php echo (int)$total_results; ?> recebíve<?php echo (int)$total_results == 1 ? 'l' : 'is'; ?>
-                    <?php if ($total_pages > 1): ?>
-                        | Página <?php echo (int)$page; ?> de <?php echo (int)$total_pages; ?>
-                    <?php endif; ?>
                 </div>
-
-                <?php if ($total_pages > 1): ?>
-                <div>
-                    <nav aria-label="Paginação Recebíveis">
-                        <ul class="pagination mb-0">
-                            <?php $baseUrl = "?" . http_build_query($current_filters_for_pagination); ?>
-                            <li class="page-item <?php echo ((int)$page <= 1) ? 'disabled' : ''; ?>">
-                                <a class="page-link" href="<?php echo $baseUrl . '&page=' . ((int)$page - 1); ?>">&laquo;</a>
-                            </li>
-                            <?php
-                                $start_page = max(1, (int)$page - 2);
-                                $end_page = min((int)$total_pages, (int)$page + 2);
-                                if ((int)$page <= 3) $end_page = min((int)$total_pages, 5);
-                                if ((int)$page >= ((int)$total_pages - 2)) $start_page = max(1, ((int)$total_pages - 4));
-
-                                if ($start_page > 1) {
-                                    echo '<li class="page-item"><a class="page-link" href="' . $baseUrl . '&page=1">1</a></li>';
-                                    if ($start_page > 2) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                                }
-                                for ($i = (int)$start_page; $i <= (int)$end_page; $i++):
-                            ?>
-                                <li class="page-item <?php echo ((int)$i == (int)$page) ? 'active' : ''; ?>">
-                                    <a class="page-link" href="<?php echo $baseUrl . '&page=' . (int)$i; ?>"><?php echo (int)$i; ?></a>
-                                </li>
-                            <?php endfor;
-                                if ((int)$end_page < (int)$total_pages) {
-                                    if ((int)$end_page < ((int)$total_pages - 1)) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                                    echo '<li class="page-item"><a class="page-link" href="' . $baseUrl . '&page=' . (int)$total_pages . '">' . (int)$total_pages . '</a></li>';
-                                 }
-                            ?>
-                            <li class="page-item <?php echo ((int)$page >= (int)$total_pages) ? 'disabled' : ''; ?>">
-                                <a class="page-link" href="<?php echo $baseUrl . '&page=' . ((int)$page + 1); ?>">&raquo;</a>
-                            </li>
-                        </ul>
-                    </nav>
+                <?php
+                $first = $offset + 1;
+                $last  = min($offset + count($recebiveis), $total_results);
+                $page = (int)$page; $total_pages = (int)$total_pages;
+                $pgUrl = function($p) use ($current_filters_for_pagination) {
+                    $params = $current_filters_for_pagination; $params['page'] = $p;
+                    return '?' . http_build_query($params);
+                };
+                $perPageUrl = function($pp) use ($current_filters_for_links) {
+                    $params = $current_filters_for_links; $params['per_page'] = $pp;
+                    unset($params['page']);
+                    return '?' . http_build_query($params);
+                };
+                ?>
+                <?php if ($total_results > 0): ?>
+                <div class="pagination-bar">
+                    <div class="info">
+                        Mostrando <strong><?php echo $first; ?>–<?php echo $last; ?></strong> de <strong><?php echo $total_results; ?></strong> recebíveis
+                    </div>
+                    <?php if ($total_pages > 1): ?>
+                    <ul class="pagination">
+                        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>"><a class="page-link" href="<?php echo $pgUrl($page - 1); ?>">«</a></li>
+                        <?php
+                        $start_page = max(1, $page - 2); $end_page = min($total_pages, $page + 2);
+                        if ($page <= 3) $end_page = min($total_pages, 5);
+                        if ($page >= $total_pages - 2) $start_page = max(1, $total_pages - 4);
+                        if ($start_page > 1) {
+                            echo '<li class="page-item"><a class="page-link" href="' . $pgUrl(1) . '">1</a></li>';
+                            if ($start_page > 2) echo '<li class="page-item disabled"><span class="page-link">…</span></li>';
+                        }
+                        for ($i = $start_page; $i <= $end_page; $i++) { ?>
+                            <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>"><a class="page-link" href="<?php echo $pgUrl($i); ?>"><?php echo $i; ?></a></li>
+                        <?php }
+                        if ($end_page < $total_pages) {
+                            if ($end_page < $total_pages - 1) echo '<li class="page-item disabled"><span class="page-link">…</span></li>';
+                            echo '<li class="page-item"><a class="page-link" href="' . $pgUrl($total_pages) . '">' . $total_pages . '</a></li>';
+                        }
+                        ?>
+                        <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>"><a class="page-link" href="<?php echo $pgUrl($page + 1); ?>">»</a></li>
+                    </ul>
+                    <?php endif; ?>
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="per_page_bottom" class="small text-muted mb-0">Por página:</label>
+                        <select id="per_page_bottom" class="form-select form-select-sm" style="width: 80px;" onchange="window.location.href=this.value">
+                            <?php foreach ($items_per_page_options as $option): ?>
+                                <option value="<?php echo htmlspecialchars($perPageUrl($option)); ?>" <?php echo ($items_per_page == $option) ? 'selected' : ''; ?>><?php echo $option; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
                 <?php endif; ?>
-
-                <div class="d-flex align-items-center">
-                    <label for="per_page_bottom" class="me-2 small text-muted text-nowrap">Itens/Página:</label>
-                    <?php 
-                    $filters_without_per_page = $current_filters_for_links;
-                    unset($filters_without_per_page['per_page']);
-                    $base_url_for_per_page = '?' . http_build_query($filters_without_per_page);
-                    if (!empty($filters_without_per_page)) {
-                        $base_url_for_per_page .= '&';
-                    }
-                    ?>
-                    <select id="per_page_bottom" class="form-select form-select-sm" style="width: auto;" onchange="window.location.href='<?php echo $base_url_for_per_page; ?>per_page=' + this.value">
-                        <?php foreach ($items_per_page_options as $option): ?>
-                            <option value="<?php echo $option; ?>" <?php echo ($items_per_page == $option) ? 'selected' : ''; ?>><?php echo $option; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
             </div>
-            <?php endif; ?>
 
         <?php endif; ?>
     </div>

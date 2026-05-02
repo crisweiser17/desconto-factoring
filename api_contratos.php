@@ -357,23 +357,47 @@ function gerarContrato($pdo, $operacao_id) {
 
     // Identificar de onde vem os dados do Devedor/Cedente (Cedente para Antecipação, Sacado para Empréstimo)
     if (($operacao['tipo_operacao'] ?? 'antecipacao') === 'emprestimo') {
-        // Para Empréstimo, o Devedor é o Cliente (cedente_id)
-        $stmtSacado = $pdo->prepare("
-            SELECT c.nome as sacado_nome, c.documento_principal as sacado_documento_principal, c.cpf as sacado_cpf, c.cnpj as sacado_cnpj, c.endereco as sacado_endereco,
-                   c.cidade as cedente_cidade, c.estado as cedente_estado, c.tipo_pessoa, c.empresa,
-                   c.representante_nome, c.representante_cpf, c.representante_rg, c.representante_estado_civil, c.representante_profissao, c.representante_nacionalidade, c.representante_endereco,
-                   c.conta_banco, c.conta_agencia, c.conta_numero, c.conta_tipo, c.conta_pix, c.email, c.whatsapp,
-                   c.logradouro as cedente_logradouro, c.numero as cedente_numero, c.complemento as cedente_complemento, c.bairro as cedente_bairro, c.cep as cedente_cep
-            FROM clientes c
-            JOIN operacoes o ON c.id = o.cedente_id
-            WHERE o.id = ?
-            LIMIT 1
-        ");
-        $stmtSacado->execute([$operacao_id]);
-        $sacado = $stmtSacado->fetch(PDO::FETCH_ASSOC);
-        if ($sacado) {
-            $operacao = array_merge($operacao, $sacado);
+        // Para Empréstimo, o Devedor é o Cliente (cedente_id).
+        // Se cedente_id estiver vazio, faz fallback para o sacado dos recebíveis vinculados.
+        $clienteSelectFields = "
+            c.id AS devedor_cliente_id,
+            c.nome as sacado_nome, c.documento_principal as sacado_documento_principal, c.cpf as sacado_cpf, c.cnpj as sacado_cnpj, c.endereco as sacado_endereco,
+            c.cidade as cedente_cidade, c.estado as cedente_estado, c.tipo_pessoa, c.empresa,
+            c.representante_nome, c.representante_cpf, c.representante_rg, c.representante_estado_civil, c.representante_profissao, c.representante_nacionalidade, c.representante_endereco,
+            c.conta_banco, c.conta_agencia, c.conta_numero, c.conta_tipo, c.conta_pix, c.email, c.whatsapp,
+            c.logradouro as cedente_logradouro, c.numero as cedente_numero, c.complemento as cedente_complemento, c.bairro as cedente_bairro, c.cep as cedente_cep
+        ";
+
+        $sacado = null;
+        if (!empty($operacao['cedente_id'])) {
+            $stmtSacado = $pdo->prepare("
+                SELECT $clienteSelectFields
+                FROM clientes c
+                WHERE c.id = ?
+                LIMIT 1
+            ");
+            $stmtSacado->execute([$operacao['cedente_id']]);
+            $sacado = $stmtSacado->fetch(PDO::FETCH_ASSOC);
         }
+
+        if (!$sacado) {
+            // Fallback: busca o sacado dos recebíveis vinculados à operação
+            $stmtSacadoFallback = $pdo->prepare("
+                SELECT $clienteSelectFields
+                FROM recebiveis r
+                JOIN clientes c ON c.id = r.sacado_id
+                WHERE r.operacao_id = ?
+                LIMIT 1
+            ");
+            $stmtSacadoFallback->execute([$operacao_id]);
+            $sacado = $stmtSacadoFallback->fetch(PDO::FETCH_ASSOC);
+        }
+
+        if (!$sacado) {
+            throw new Exception("Não foi possível localizar o cliente vinculado a esta operação de empréstimo. Edite a operação e vincule um cliente antes de gerar o contrato.");
+        }
+
+        $operacao = array_merge($operacao, $sacado);
     } else {
         // Para Antecipação, o Devedor/Cedente é o Cedente
         if (empty($operacao['cedente_id'])) {

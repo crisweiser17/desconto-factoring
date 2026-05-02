@@ -30,38 +30,151 @@ function pdfText($text) {
 
 // 3. Definição da Classe PDF personalizada
 class PDF extends FPDF {
-    function Header() { $this->SetFont('Arial','B',14); $this->Cell(0,10,pdfText('Análise Interna da Operação'),0,1,'C'); $this->Ln(5); }
-    function Footer() { $this->SetY(-15); $this->SetFont('Arial','I',8); $this->Cell(0,10,pdfText('Página ').$this->PageNo().'/{nb}',0,0,'C'); }
-    function SectionTitle($label) { $this->SetFont('Arial','B',11); $this->SetFillColor(230,230,230); $this->Cell(0,7,pdfText($label),0,1,'L',true); $this->Ln(4); $this->SetFont('Arial','',10); }
-    function ParameterLine($key, $value) {
-        $this->SetFont('Arial','B',10);
-        $this->Cell(100, 6, pdfText($key.': '), 0, 0, 'L'); // Aumentei de 60 para 100
-        $this->SetFont('Arial','',10);
-        $this->Cell(0, 6, pdfText($value), 0, 1, 'L'); // Usar Cell simples em vez de MultiCell
-        $this->Ln(1); // Espaçamento mínimo entre linhas
+    public $companyName = '';
+    public $companyDoc = '';
+    public $documentTitle = 'Análise Interna da Operação';
+    public $documentSubtitle = '';
+
+    function setBranding($companyName, $companyDoc, $documentTitle, $documentSubtitle = '') {
+        $this->companyName = $companyName;
+        $this->companyDoc = $companyDoc;
+        $this->documentTitle = $documentTitle;
+        $this->documentSubtitle = $documentSubtitle;
     }
+
+    function Header() {
+        $this->SetFont('Arial','B',9);
+        $this->SetTextColor(100, 100, 100);
+        $this->Cell(95, 5, pdfText($this->companyName), 0, 0, 'L');
+        $this->SetFont('Arial','B',16);
+        $this->SetTextColor(31, 58, 95);
+        $this->Cell(0, 5, pdfText($this->documentTitle), 0, 1, 'R');
+
+        $this->SetFont('Arial','',8);
+        $this->SetTextColor(120, 120, 120);
+        $this->Cell(95, 4, pdfText($this->companyDoc), 0, 0, 'L');
+        $this->Cell(0, 4, pdfText($this->documentSubtitle), 0, 1, 'R');
+
+        $this->Ln(2);
+        $this->SetDrawColor(31, 58, 95);
+        $this->SetLineWidth(0.5);
+        $this->Line(15, $this->GetY(), 195, $this->GetY());
+        $this->SetLineWidth(0.2);
+        $this->SetDrawColor(0, 0, 0);
+        $this->SetTextColor(0, 0, 0);
+        $this->Ln(6);
+    }
+
+    function Footer() {
+        $this->SetY(-15);
+        $this->SetDrawColor(200, 210, 220);
+        $this->Line(15, $this->GetY(), 195, $this->GetY());
+        $this->SetDrawColor(0, 0, 0);
+        $this->Ln(2);
+        $this->SetFont('Arial','I',8);
+        $this->SetTextColor(120, 120, 120);
+        $this->Cell(95, 5, pdfText('Gerado em ' . date('d/m/Y H:i')), 0, 0, 'L');
+        $this->Cell(0, 5, pdfText('Página ') . $this->PageNo() . '/{nb}', 0, 0, 'R');
+        $this->SetTextColor(0, 0, 0);
+    }
+
+    function SectionTitle($label) {
+        $this->Ln(1);
+        $this->SetFont('Arial','B',11);
+        $this->SetTextColor(31, 58, 95);
+        $this->Cell(0, 6, pdfText($label), 0, 1, 'L');
+        $y = $this->GetY();
+        $this->SetDrawColor(31, 58, 95);
+        $this->SetLineWidth(0.4);
+        $this->Line(15, $y, 195, $y);
+        $this->SetLineWidth(0.2);
+        $this->SetDrawColor(0, 0, 0);
+        $this->SetTextColor(0, 0, 0);
+        $this->Ln(3);
+        $this->SetFont('Arial','',10);
+    }
+
+    function ParameterLine($key, $value) {
+        $this->SetFont('Arial','',10);
+        $this->SetTextColor(90, 90, 90);
+        $this->Cell(85, 6, pdfText($key), 0, 0, 'L');
+        $this->SetFont('Arial','B',10);
+        $this->SetTextColor(0, 0, 0);
+        $this->Cell(0, 6, pdfText($value), 0, 1, 'L');
+    }
+
+    function HighlightBox($label, $value, $type = 'info') {
+        switch ($type) {
+            case 'success':
+                $bg = [220, 240, 220]; $fg = [30, 100, 30]; break;
+            case 'warning':
+                $bg = [255, 246, 205]; $fg = [140, 90, 10]; break;
+            default:
+                $bg = [232, 238, 245]; $fg = [31, 58, 95];
+        }
+        $this->SetFillColor($bg[0], $bg[1], $bg[2]);
+        $this->SetTextColor($fg[0], $fg[1], $fg[2]);
+        $this->SetFont('Arial','B',10);
+        $this->Cell(110, 10, '  ' . pdfText($label), 0, 0, 'L', true);
+        $this->SetFont('Arial','B',12);
+        $this->Cell(70, 10, pdfText($value) . '  ', 0, 1, 'R', true);
+        $this->SetTextColor(0, 0, 0);
+        $this->SetFillColor(255, 255, 255);
+        $this->Ln(2);
+    }
+
     function BasicTable($header, $data) {
-        $this->SetFillColor(230,230,230);
+        $widths = [30, 24, 14, 30, 24, 36, 22]; // total 180
+
+        // Header
+        $this->SetFillColor(31, 58, 95);
+        $this->SetTextColor(255, 255, 255);
+        $this->SetDrawColor(31, 58, 95);
         $this->SetFont('Arial','B',8);
-        $widths = [30, 25, 15, 30, 25, 30, 20];
-        for($i=0;$i<count($header);$i++) {
-            $this->Cell($widths[$i],7,pdfText($header[$i]),1,0,'C',true);
+        for ($i = 0; $i < count($header); $i++) {
+            $this->Cell($widths[$i], 8, pdfText($header[$i]), 1, 0, 'C', true);
         }
         $this->Ln();
+
+        // Body com zebra striping
         $this->SetFont('Arial','',8);
-        $this->SetFillColor(255);
-        foreach($data as $row){
-            $this->Cell($widths[0],6,pdfFormatCurrency($row['original']),'LR',0,'R');
-            $this->Cell($widths[1],6,pdfFormatDate($row['vencimento']),'LR',0,'C');
-            $this->Cell($widths[2],6,$row['dias'],'LR',0,'C');
-            $this->Cell($widths[3],6,pdfFormatCurrency($row['presente']),'LR',0,'R');
-            $this->Cell($widths[4],6,pdfFormatCurrency($row['iof']),'LR',0,'R');
-            $this->Cell($widths[5],6,pdfFormatCurrency($row['liquido']),'LR',0,'R');
-            $this->Cell($widths[6],6,pdfText($row['status']),'LR',0,'C');
+        $this->SetTextColor(0, 0, 0);
+        $this->SetDrawColor(220, 225, 232);
+        $fill = false;
+        $totalOriginal = 0; $totalPresente = 0; $totalIof = 0; $totalLiquido = 0;
+        foreach ($data as $row) {
+            if ($fill) $this->SetFillColor(247, 249, 252);
+            else $this->SetFillColor(255, 255, 255);
+            $this->Cell($widths[0], 6, pdfFormatCurrency($row['original']), 'B', 0, 'R', true);
+            $this->Cell($widths[1], 6, pdfFormatDate($row['vencimento']), 'B', 0, 'C', true);
+            $this->Cell($widths[2], 6, $row['dias'], 'B', 0, 'C', true);
+            $this->Cell($widths[3], 6, pdfFormatCurrency($row['presente']), 'B', 0, 'R', true);
+            $this->Cell($widths[4], 6, pdfFormatCurrency($row['iof']), 'B', 0, 'R', true);
+            $this->Cell($widths[5], 6, pdfFormatCurrency($row['liquido']), 'B', 0, 'R', true);
+            $this->Cell($widths[6], 6, pdfText($row['status']), 'B', 0, 'C', true);
             $this->Ln();
+            $totalOriginal += $row['original'];
+            $totalPresente += $row['presente'];
+            $totalIof += $row['iof'];
+            $totalLiquido += $row['liquido'];
+            $fill = !$fill;
         }
-        $this->Cell(array_sum($widths),0,'','T');
-        $this->Ln(5);
+
+        // Linha de totais
+        $this->SetFont('Arial','B',8);
+        $this->SetFillColor(232, 238, 245);
+        $this->SetTextColor(31, 58, 95);
+        $this->SetDrawColor(31, 58, 95);
+        $this->Cell($widths[0], 7, pdfFormatCurrency($totalOriginal), 'T', 0, 'R', true);
+        $this->Cell($widths[1] + $widths[2], 7, pdfText('Totais'), 'T', 0, 'C', true);
+        $this->Cell($widths[3], 7, pdfFormatCurrency($totalPresente), 'T', 0, 'R', true);
+        $this->Cell($widths[4], 7, pdfFormatCurrency($totalIof), 'T', 0, 'R', true);
+        $this->Cell($widths[5], 7, pdfFormatCurrency($totalLiquido), 'T', 0, 'R', true);
+        $this->Cell($widths[6], 7, '', 'T', 0, 'C', true);
+        $this->Ln(9);
+        $this->SetTextColor(0, 0, 0);
+        $this->SetDrawColor(0, 0, 0);
+        $this->SetFillColor(255, 255, 255);
     }
 }
 
@@ -305,8 +418,8 @@ if (!empty($recebiveis_db)) {
     }
 }
 
-// Validações básicas
-if (!$error && $taxaMensal <= 0) { $error = 'Taxa mensal da operação deve ser maior que zero.'; }
+// Validações básicas (taxa zero é permitida — operação sem juros)
+if (!$error && $taxaMensal < 0) { $error = 'Taxa mensal da operação não pode ser negativa.'; }
 if (!$error && empty($calculatedTitles)) { $error = 'Nenhum recebível válido encontrado para esta operação.'; }
 
 // 7. Processar e Salvar Imagem do Gráfico (copiado do export_pdf.php)
@@ -343,13 +456,29 @@ if ($error) {
 }
 
 // 9. Gerar o PDF
+// Carregar dados da empresa para branding do cabeçalho
+$brandingConfig = [];
+$brandingPath = __DIR__ . '/config.json';
+if (file_exists($brandingPath)) {
+    $brandingConfig = json_decode(file_get_contents($brandingPath), true) ?: [];
+}
+$empresaNome = $brandingConfig['empresa_razao_social'] ?? ($brandingConfig['conta_titular'] ?? '');
+$empresaDoc = $brandingConfig['empresa_documento'] ?? ($brandingConfig['conta_documento'] ?? '');
+
 $pdf = new PDF('P','mm','A4');
 $pdf->AliasNbPages();
 $pdf->SetAutoPageBreak(true, 20);
-$pdf->AddPage();
-$pdf->SetFont('Arial','',10);
 $pdf->SetLeftMargin(15);
 $pdf->SetRightMargin(15);
+$pdf->SetTopMargin(12);
+
+$subtituloDoc = $isSimulacao
+    ? 'Simulação • ' . pdfFormatDate($dataOperacaoStr)
+    : 'Operação #' . ($operacao_id ?? '—') . ' • ' . pdfFormatDate($dataOperacaoStr);
+$pdf->setBranding($empresaNome, $empresaDoc, 'Análise Interna da Operação', $subtituloDoc);
+
+$pdf->AddPage();
+$pdf->SetFont('Arial','',10);
 
 // Adicionar Conteúdo
 $pdf->SectionTitle('Informações da Operação');
@@ -405,26 +534,15 @@ $custoAntecipacao = (!empty($compensacao) && isset($compensacao['custoAntecipaca
     ? $compensacao['custoAntecipacao']
     : 0; // CORREÇÃO: Zero quando não há antecipação de recebíveis
 
-$pdf->SetFont('Arial','B',10);
-$pdf->SetFillColor(255, 255, 200); // Fundo amarelo claro
-$pdf->Cell(100, 8, pdfText('Crédito Oferecido ao Cliente: '), 1, 0, 'L', true);
-$pdf->SetFont('Arial','B',10);
-$pdf->Cell(0, 8, pdfFormatCurrency($custoAntecipacao), 1, 1, 'L', true);
-$pdf->SetFillColor(255, 255, 255); // Voltar ao fundo branco
-$pdf->Ln(3); // Espaçamento normal após caixa destacada
+$pdf->HighlightBox('Crédito Oferecido ao Cliente', pdfFormatCurrency($custoAntecipacao), 'warning');
 
 $pdf->ParameterLine('Total Valor Presente (Base de Cálculo)', pdfFormatCurrency($totalPresente));
 $pdf->ParameterLine('Total IOF Calculado', pdfFormatCurrency($totalIOF));
 $pdf->ParameterLine('Total Líquido Pago ao Cliente', pdfFormatCurrency($totalLiquidoPago));
+$pdf->Ln(2);
 
 // DESTACAR O LUCRO CORRETO DA OPERAÇÃO
-$pdf->SetFont('Arial','B',10);
-$pdf->SetFillColor(200, 255, 200); // Fundo verde claro
-$pdf->Cell(100, 8, pdfText('Lucro Líquido da Operação: '), 1, 0, 'L', true);
-$pdf->SetFont('Arial','B',10);
-$pdf->Cell(0, 8, pdfFormatCurrency($totalLucroLiquido), 1, 1, 'L', true);
-$pdf->SetFillColor(255, 255, 255); // Voltar ao fundo branco
-$pdf->Ln(3); // Espaçamento normal após caixa destacada
+$pdf->HighlightBox('Lucro Líquido da Operação', pdfFormatCurrency($totalLucroLiquido), 'success');
 
 // Usar ParameterLine para consistência no espaçamento
 $pdf->ParameterLine('Margem Total (% / Original)', pdfFormatPercent($totalLucroPercentual));

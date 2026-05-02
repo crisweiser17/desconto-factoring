@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[MOCKUP] Cadastro de Cliente — Proposta UX/UI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --hero-bg: #0d3a6e;
+            --hero-bg-grad: linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%);
+            --view-grad: linear-gradient(135deg, #0a8754 0%, #15b079 100%);
+            --profit: #198754;
+            --profit-soft: #d1f0dc;
+            --warn: #b76b00;
+            --warn-soft: #fff3d6;
+            --danger: #b02a37;
+            --danger-soft: #fde2e4;
+            --neutral: #6c757d;
+            --surface: #ffffff;
+            --surface-2: #f6f8fb;
+            --border: #e3e8ef;
+        }
+
+        body { background: #eef2f7; font-size: 0.95rem; }
+
+        /* ===== Mockup mode picker ===== */
+        .mode-picker {
+            background: #fff8e1;
+            border: 1px dashed #d6a300;
+            color: #7a5500;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .mode-picker strong { color: #5a3f00; }
+        .mode-picker .btn-group .btn { font-size: 0.85rem; }
+
+        /* ===== Toolbar ===== */
+        .page-toolbar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
+        .page-toolbar h1 .subtitle {
+            font-size: 0.95rem;
+            font-weight: 400;
+            color: var(--neutral);
+            margin-left: 8px;
+        }
+        .id-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #eef4ff;
+            color: #0a4ea8;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-badge.active { background: var(--profit-soft); color: #0f5132; }
+        .status-badge.editing { background: #fff3d6; color: #8a5a00; }
+        .status-badge.new { background: #eef4ff; color: #0a4ea8; }
+
+        /* ===== Section card ===== */
+        .section-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+        .section-card .section-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+        .section-card .section-head .step-num {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background: #0d6efd;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .section-card .section-head h2 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin: 0;
+            flex: 1;
+        }
+        .section-card .section-head .head-meta {
+            font-size: 0.78rem;
+            color: var(--neutral);
+        }
+        .section-card .section-body { padding: 18px; }
+
+        .section-card.s-people .section-head .step-num { background: #6f42c1; }
+        .section-card.s-rep    .section-head .step-num { background: #d63384; }
+        .section-card.s-addr   .section-head .step-num { background: #fd7e14; }
+        .section-card.s-bank   .section-head .step-num { background: #0a8754; }
+
+        /* status dot in section head */
+        .section-status {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 999px;
+        }
+        .section-status.ok    { background: var(--profit-soft); color: var(--profit); }
+        .section-status.warn  { background: var(--warn-soft); color: var(--warn); }
+        .section-status.empty { background: var(--surface-2); color: var(--neutral); }
+
+        /* ===== Form polish ===== */
+        .form-label-strong {
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--neutral);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .form-label-strong .req { color: var(--danger); margin-left: 2px; }
+        .field-hint {
+            font-size: 0.74rem;
+            color: var(--neutral);
+            margin-top: 4px;
+        }
+        .field-locked input,
+        .field-locked select { background: #f1f3f5; color: #495057; }
+
+        /* ===== Sticky panel ===== */
+        .sticky-panel {
+            position: sticky;
+            top: 16px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: #fff;
+        }
+        .sticky-panel .panel-head {
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #fff;
+        }
+        .sticky-panel .panel-head h3 {
+            font-size: 0.85rem;
+            margin: 0;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            opacity: 0.92;
+        }
+        .panel-form .panel-head { background: var(--hero-bg-grad); }
+        .panel-view .panel-head { background: var(--view-grad); }
+
+        /* ===== Form completion panel ===== */
+        .completion-hero {
+            background: var(--hero-bg-grad);
+            color: #fff;
+            padding: 8px 18px 22px;
+        }
+        .completion-hero .pct-label {
+            font-size: 0.78rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .completion-hero .pct-value {
+            font-size: 2.1rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .completion-hero .progress {
+            margin-top: 10px;
+            height: 8px;
+            background: rgba(255,255,255,0.18);
+        }
+        .completion-hero .progress-bar { background: #ffd166; }
+
+        .panel-section-list {
+            list-style: none;
+            margin: 0;
+            padding: 8px 0;
+        }
+        .panel-section-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 18px;
+            font-size: 0.88rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .panel-section-list li:hover { background: var(--surface-2); }
+        .panel-section-list li:last-child { border-bottom: none; }
+        .panel-section-list .ico {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+            color: #fff;
+        }
+        .panel-section-list .ico.ok    { background: var(--profit); }
+        .panel-section-list .ico.warn  { background: var(--warn); }
+        .panel-section-list .ico.empty { background: #adb5bd; }
+        .panel-section-list .label { flex: 1; font-weight: 500; }
+        .panel-section-list .meta  { font-size: 0.74rem; color: var(--neutral); }
+
+        .panel-actions {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--surface);
+        }
+        .panel-actions .btn { font-weight: 600; }
+
+        /* ===== View panel ===== */
+        .view-hero {
+            background: var(--view-grad);
+            color: #fff;
+            padding: 6px 18px 20px;
+        }
+        .view-hero .label {
+            font-size: 0.74rem;
+            opacity: 0.85;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .view-hero .value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            line-height: 1.15;
+        }
+        .view-hero .sub {
+            font-size: 0.82rem;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .view-kpi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 14px;
+            background: var(--surface);
+        }
+        .view-kpi {
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+        }
+        .view-kpi .k-label {
+            font-size: 0.7rem;
+            color: var(--neutral);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-weight: 600;
+        }
+        .view-kpi .k-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+        .view-kpi.span2 { grid-column: 1 / -1; }
+        .view-kpi.k-good  { background: var(--profit-soft); border-color: #b3e3c4; }
+        .view-kpi.k-good .k-value { color: var(--profit); }
+
+        .quick-contacts {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .contact-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            color: #495057;
+            text-decoration: none;
+        }
+        .contact-chip:hover { background: #e9ecef; color: #212529; }
+        .contact-chip.wapp  { background: #e6f7eb; border-color: #b9e6c7; color: #146c43; }
+        .contact-chip.email { background: #eef4ff; border-color: #c8dafc; color: #0a4ea8; }
+        .contact-chip.tel   { background: #f3eeff; border-color: #ddd0f5; color: #5a32a3; }
+
+        /* ===== View mode info display ===== */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 14px 18px;
+        }
+        .info-cell { grid-column: span 4; }
+        .info-cell.col-2  { grid-column: span 2; }
+        .info-cell.col-3  { grid-column: span 3; }
+        .info-cell.col-4  { grid-column: span 4; }
+        .info-cell.col-6  { grid-column: span 6; }
+        .info-cell.col-8  { grid-column: span 8; }
+        .info-cell.col-12 { grid-column: span 12; }
+        .info-cell .info-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--neutral);
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        .info-cell .info-value {
+            font-size: 0.95rem;
+            color: #212529;
+            font-weight: 500;
+            min-height: 22px;
+            word-break: break-word;
+        }
+        .info-cell .info-value.muted { color: #adb5bd; font-style: italic; font-weight: 400; }
+        .info-cell .info-value a { color: #0a58ca; text-decoration: none; }
+        .info-cell .info-value a:hover { text-decoration: underline; }
+
+        /* ===== Sócios cards ===== */
+        .socio-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            background: var(--surface-2);
+            position: relative;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .socio-card:hover { border-color: #adb5bd; }
+        .socio-card .socio-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .socio-card .socio-head .badge-num {
+            background: #6f42c1;
+            color: #fff;
+            font-size: 0.72rem;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+        .socio-card .btn-remove {
+            background: transparent;
+            border: none;
+            color: var(--danger);
+            font-size: 0.95rem;
+            padding: 2px 6px;
+        }
+        .socio-card .btn-remove:hover { background: var(--danger-soft); border-radius: 6px; }
+
+        .socio-view-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .socio-view-card .avatar {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6f42c1, #d63384);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .socio-view-card .name { font-weight: 600; }
+        .socio-view-card .doc  { font-size: 0.82rem; color: var(--neutral); }
+        .socio-view-card .role-chip {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #fce4ec;
+            color: #d63384;
+            margin-left: 6px;
+        }
+
+        /* ===== Tabs (history etc.) ===== */
+        .info-tabs {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 18px;
+        }
+        .info-tabs .nav-tabs {
+            background: var(--surface-2);
+            border-bottom: 1px solid var(--border);
+            padding: 0 12px;
+        }
+        .info-tabs .nav-tabs .nav-link {
+            border: none;
+            color: var(--neutral);
+            font-weight: 600;
+            font-size: 0.88rem;
+            padding: 12px 14px;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+        }
+        .info-tabs .nav-tabs .nav-link.active {
+            color: #0a4ea8;
+            border-bottom-color: #0d6efd;
+            background: transparent;
+        }
+        .info-tabs .tab-content { padding: 16px; }
+
+        /* ===== Operations mini-table (view mode) ===== */
+        .ops-table { font-size: 0.88rem; margin-bottom: 0; }
+        .ops-table thead th {
+            background: var(--surface-2);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            color: var(--neutral);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 8px;
+        }
+        .ops-table tbody td { vertical-align: middle; padding: 10px 8px; }
+        .ops-table .pill-status {
+            font-size: 0.72rem;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+        .ops-table .pill-status.aberto    { background: var(--warn-soft); color: var(--warn); }
+        .ops-table .pill-status.fechado   { background: var(--profit-soft); color: var(--profit); }
+        .ops-table .pill-status.atrasado  { background: var(--danger-soft); color: var(--danger); }
+
+        /* ===== Person-type pill (form) ===== */
+        .person-type-toggle .btn {
+            padding: 10px 16px;
+            font-weight: 600;
+        }
+
+        /* ===== Empty state ===== */
+        .empty-block {
+            padding: 28px 18px;
+            text-align: center;
+            color: var(--neutral);
+            font-size: 0.88rem;
+        }
+        .empty-block i { font-size: 2.2rem; opacity: 0.4; }
+
+        /* ===== Modal mockup row hide/show ===== */
+        .mode-block { display: none; }
+        .mode-block.is-active { display: block; }
+    </style>
+</head>
+<body class="px-3 px-md-4 py-3">
+
+<div class="container-fluid" style="max-width: 1500px;">
+
+    <!-- ============== MODE PICKER ============== -->
+    <div class="mode-picker">
+        <i class="bi bi-palette-fill"></i>
+        <strong>Mockup estático.</strong>
+        <span>Alterne entre os modos para visualizar:</span>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-success" data-mode="view">
+                <i class="bi bi-eye"></i> Visualizar
+            </button>
+            <button type="button" class="btn btn-warning" data-mode="edit">
+                <i class="bi bi-pencil-square"></i> Editar
+            </button>
+            <button type="button" class="btn btn-primary" data-mode="new">
+                <i class="bi bi-plus-circle"></i> Novo Cliente
+            </button>
+        </div>
+        <span class="ms-auto small">Os 3 modos compartilham o mesmo arquivo PHP — só muda o estado/leitura.</span>
+    </div>
+
+    <!-- =================================================== -->
+    <!-- ================ MODO: VISUALIZAR ================== -->
+    <!-- =================================================== -->
+    <div class="mode-block is-active" data-mode-block="view">
+
+        <!-- Toolbar -->
+        <div class="page-toolbar">
+            <div>
+                <h1>
+                    <i class="bi bi-building text-success"></i>
+                    ACME Indústria Ltda.
+                    <span class="id-pill"><i class="bi bi-hash"></i>ID 51</span>
+                </h1>
+                <div class="text-muted small mt-1">
+                    CNPJ <strong>12.345.678/0001-90</strong> ·
+                    Cliente desde 14/03/2024 ·
+                    <span class="status-badge active"><i class="bi bi-check-circle-fill"></i> Ativo</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a href="#" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Lista</a>
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer"></i> Imprimir</button>
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-pdf"></i> Exportar PDF</button>
+                <a href="#" class="btn btn-warning btn-sm" data-go-mode="edit">
+                    <i class="bi bi-pencil-square"></i> Editar Cliente
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- ====== LEFT: dados do cliente ====== -->
+            <div class="col-xl-8">
+
+                <!-- Tabs: Cadastro / Operações / Anexos -->
+                <div class="info-tabs">
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item"><button class="nav-link active"><i class="bi bi-card-list"></i> Cadastro</button></li>
+                        <li class="nav-item"><button class="nav-link"><i class="bi bi-cash-stack"></i> Operações <span class="badge bg-secondary ms-1">12</span></button></li>
+                        <li class="nav-item"><button class="nav-link"><i class="bi bi-paperclip"></i> Anexos <span class="badge bg-secondary ms-1">5</span></button></li>
+                        <li class="nav-item"><button class="nav-link"><i class="bi bi-clock-history"></i> Histórico</button></li>
+                    </ul>
+                    <div class="tab-content">
+                        <!-- (Conteúdo de Cadastro abaixo, fora das tabs para não duplicar) -->
+                        <div class="text-muted small">Aba <strong>Cadastro</strong> ativa — dados detalhados nas seções abaixo.</div>
+                    </div>
+                </div>
+
+                <!-- Dados da Empresa -->
+                <div class="section-card">
+                    <div class="section-head">
+                        <span class="step-num">1</span>
+                        <h2>Dados da Empresa</h2>
+                        <span class="head-meta">PJ · Médio porte</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="info-grid">
+                            <div class="info-cell col-6">
+                                <div class="info-label">Razão Social</div>
+                                <div class="info-value">ACME Indústria e Comércio Ltda.</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">CNPJ</div>
+                                <div class="info-value">12.345.678/0001-90</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">Porte</div>
+                                <div class="info-value">EPP <span class="text-muted small">(até R$ 4,8 mi)</span></div>
+                            </div>
+                            <div class="info-cell col-12">
+                                <div class="info-label">Anotações</div>
+                                <div class="info-value">Cliente recorrente. Prefere antecipações na primeira quinzena. Contato preferencial via WhatsApp pelo financeiro.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sócios -->
+                <div class="section-card s-people">
+                    <div class="section-head">
+                        <span class="step-num">2</span>
+                        <h2>Sócios</h2>
+                        <span class="head-meta"><strong>3</strong> sócios cadastrados</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="socio-view-card">
+                                    <div class="avatar">JS</div>
+                                    <div class="flex-grow-1">
+                                        <div class="name">João da Silva <span class="role-chip"><i class="bi bi-person-check-fill"></i> Representante</span></div>
+                                        <div class="doc">CPF 123.456.789-00</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="socio-view-card">
+                                    <div class="avatar">MC</div>
+                                    <div class="flex-grow-1">
+                                        <div class="name">Maria Costa</div>
+                                        <div class="doc">CPF 987.654.321-00</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="socio-view-card">
+                                    <div class="avatar">PA</div>
+                                    <div class="flex-grow-1">
+                                        <div class="name">Pedro Almeida</div>
+                                        <div class="doc">CPF 456.789.123-00</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Representante -->
+                <div class="section-card s-rep">
+                    <div class="section-head">
+                        <span class="step-num">3</span>
+                        <h2>Representante Legal</h2>
+                        <span class="head-meta">Assina os contratos</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="info-grid">
+                            <div class="info-cell col-6">
+                                <div class="info-label">Nome</div>
+                                <div class="info-value">João da Silva</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">CPF</div>
+                                <div class="info-value">123.456.789-00</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">RG</div>
+                                <div class="info-value">12.345.678-9</div>
+                            </div>
+                            <div class="info-cell col-4">
+                                <div class="info-label">Nacionalidade</div>
+                                <div class="info-value">Brasileiro(a)</div>
+                            </div>
+                            <div class="info-cell col-4">
+                                <div class="info-label">Estado Civil</div>
+                                <div class="info-value">Casado(a)</div>
+                            </div>
+                            <div class="info-cell col-4">
+                                <div class="info-label">Profissão</div>
+                                <div class="info-value">Empresário</div>
+                            </div>
+                            <div class="info-cell col-12">
+                                <div class="info-label">Endereço Completo</div>
+                                <div class="info-value">Rua das Flores, 123, apto 45 — Jardim Europa, São Paulo/SP — CEP 01234-567</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Endereço -->
+                <div class="section-card s-addr">
+                    <div class="section-head">
+                        <span class="step-num">4</span>
+                        <h2>Endereço da Empresa</h2>
+                        <span class="head-meta">São Paulo / SP</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="info-grid">
+                            <div class="info-cell col-2">
+                                <div class="info-label">CEP</div>
+                                <div class="info-value">04567-890</div>
+                            </div>
+                            <div class="info-cell col-6">
+                                <div class="info-label">Logradouro</div>
+                                <div class="info-value">Av. Paulista</div>
+                            </div>
+                            <div class="info-cell col-2">
+                                <div class="info-label">Número</div>
+                                <div class="info-value">1000</div>
+                            </div>
+                            <div class="info-cell col-2">
+                                <div class="info-label">Complemento</div>
+                                <div class="info-value">Sala 1502</div>
+                            </div>
+                            <div class="info-cell col-4">
+                                <div class="info-label">Bairro</div>
+                                <div class="info-value">Bela Vista</div>
+                            </div>
+                            <div class="info-cell col-4">
+                                <div class="info-label">Cidade</div>
+                                <div class="info-value">São Paulo</div>
+                            </div>
+                            <div class="info-cell col-2">
+                                <div class="info-label">UF</div>
+                                <div class="info-value">SP</div>
+                            </div>
+                            <div class="info-cell col-12">
+                                <div class="info-label">Observações</div>
+                                <div class="info-value muted">Sem observações.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bancário -->
+                <div class="section-card s-bank">
+                    <div class="section-head">
+                        <span class="step-num">5</span>
+                        <h2>Dados Bancários</h2>
+                        <span class="head-meta">Itaú · Corrente</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="info-grid">
+                            <div class="info-cell col-6">
+                                <div class="info-label">Titular</div>
+                                <div class="info-value">ACME Indústria e Comércio Ltda.</div>
+                            </div>
+                            <div class="info-cell col-6">
+                                <div class="info-label">CNPJ Titular</div>
+                                <div class="info-value">12.345.678/0001-90</div>
+                            </div>
+                            <div class="info-cell col-4">
+                                <div class="info-label">Banco</div>
+                                <div class="info-value">Itaú Unibanco</div>
+                            </div>
+                            <div class="info-cell col-2">
+                                <div class="info-label">Agência</div>
+                                <div class="info-value">3456</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">Conta</div>
+                                <div class="info-value">12345-6</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">Tipo</div>
+                                <div class="info-value">Corrente</div>
+                            </div>
+                            <div class="info-cell col-3">
+                                <div class="info-label">Tipo PIX</div>
+                                <div class="info-value">CNPJ</div>
+                            </div>
+                            <div class="info-cell col-9">
+                                <div class="info-label">Chave PIX</div>
+                                <div class="info-value">12.345.678/0001-90</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ====== RIGHT: sticky panel (resumo + ações) ====== -->
+            <div class="col-xl-4">
+                <div class="sticky-panel panel-view">
+                    <div class="panel-head">
+                        <h3><i class="bi bi-bar-chart-fill"></i> Resumo do Cliente</h3>
+                        <span class="badge bg-light text-success">Ativo</span>
+                    </div>
+
+                    <!-- Hero -->
+                    <div class="view-hero">
+                        <div class="label">Volume operado (12 meses)</div>
+                        <div class="value">R$ 487.250,00</div>
+                        <div class="sub">12 operações · ticket médio R$ 40.604,17</div>
+                    </div>
+
+                    <!-- KPIs -->
+                    <div class="view-kpi-grid">
+                        <div class="view-kpi k-good">
+                            <div class="k-label">Operações ativas</div>
+                            <div class="k-value">3</div>
+                        </div>
+                        <div class="view-kpi">
+                            <div class="k-label">Em aberto</div>
+                            <div class="k-value">R$ 78.400</div>
+                        </div>
+                        <div class="view-kpi">
+                            <div class="k-label">Última operação</div>
+                            <div class="k-value">há 8 dias</div>
+                        </div>
+                        <div class="view-kpi">
+                            <div class="k-label">Margem média</div>
+                            <div class="k-value">9,2%</div>
+                        </div>
+                        <div class="view-kpi span2">
+                            <div class="k-label">Próximo vencimento</div>
+                            <div class="k-value">15/05/2026 — R$ 32.000</div>
+                        </div>
+                    </div>
+
+                    <!-- Quick contacts -->
+                    <div class="quick-contacts">
+                        <a class="contact-chip wapp" href="#"><i class="bi bi-whatsapp"></i> (11) 98765-4321</a>
+                        <a class="contact-chip tel" href="#"><i class="bi bi-telephone-fill"></i> (11) 3000-1234</a>
+                        <a class="contact-chip email" href="#"><i class="bi bi-envelope-fill"></i> contato@acme.com.br</a>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="panel-actions">
+                        <a href="#" class="btn btn-primary"><i class="bi bi-calculator-fill"></i> Nova Simulação</a>
+                        <div class="d-grid gap-2 d-md-flex">
+                            <button class="btn btn-outline-secondary btn-sm flex-fill"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+                            <button class="btn btn-outline-secondary btn-sm flex-fill"><i class="bi bi-printer"></i> Imprimir</button>
+                        </div>
+                        <a href="#" class="btn btn-warning" data-go-mode="edit"><i class="bi bi-pencil-square"></i> Editar Cadastro</a>
+                    </div>
+                </div>
+
+                <!-- Card secundário: últimas operações -->
+                <div class="info-tabs mt-3">
+                    <div class="px-3 py-2 d-flex justify-content-between align-items-center" style="background:var(--surface-2);border-bottom:1px solid var(--border);">
+                        <strong class="small text-uppercase text-muted">Últimas Operações</strong>
+                        <a href="#" class="small">Ver todas →</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table ops-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Data</th>
+                                    <th class="text-end">Valor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>#1247</strong></td>
+                                    <td>23/04/2026</td>
+                                    <td class="text-end">R$ 32.000</td>
+                                    <td><span class="pill-status aberto">Aberto</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>#1198</strong></td>
+                                    <td>10/04/2026</td>
+                                    <td class="text-end">R$ 25.400</td>
+                                    <td><span class="pill-status fechado">Quitado</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>#1165</strong></td>
+                                    <td>02/04/2026</td>
+                                    <td class="text-end">R$ 21.000</td>
+                                    <td><span class="pill-status atrasado">Atrasado</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- =================================================== -->
+    <!-- ================ MODO: EDITAR ====================== -->
+    <!-- =================================================== -->
+    <div class="mode-block" data-mode-block="edit">
+
+        <!-- Toolbar -->
+        <div class="page-toolbar">
+            <div>
+                <h1>
+                    <i class="bi bi-pencil-square text-warning"></i>
+                    Editar Cliente
+                    <span class="subtitle">— ACME Indústria Ltda.</span>
+                    <span class="id-pill"><i class="bi bi-hash"></i>ID 51</span>
+                </h1>
+                <div class="text-muted small mt-1">
+                    Última edição: <strong>02/05/2026 às 14:32</strong> por Cris ·
+                    <span class="status-badge editing"><i class="bi bi-pencil-fill"></i> Modo edição</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button class="btn btn-outline-secondary btn-sm" data-go-mode="view"><i class="bi bi-x-lg"></i> Cancelar</button>
+                <button class="btn btn-primary"><i class="bi bi-save-fill"></i> Salvar Alterações</button>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- ====== LEFT: form (mesma estrutura do "novo", já preenchida) ====== -->
+            <div class="col-xl-8">
+
+                <!-- 1. Dados Empresa -->
+                <div class="section-card">
+                    <div class="section-head">
+                        <span class="step-num">1</span>
+                        <h2>Dados da Empresa</h2>
+                        <span class="section-status ok"><i class="bi bi-check-circle-fill"></i> Completo</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <div class="btn-group person-type-toggle" role="group">
+                                    <input type="radio" class="btn-check" name="tp2" id="tp-pj-e" checked>
+                                    <label class="btn btn-outline-primary" for="tp-pj-e">
+                                        <i class="bi bi-building"></i> Pessoa Jurídica
+                                    </label>
+                                    <input type="radio" class="btn-check" name="tp2" id="tp-pf-e">
+                                    <label class="btn btn-outline-primary" for="tp-pf-e">
+                                        <i class="bi bi-person"></i> Pessoa Física
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label-strong">Razão Social <span class="req">*</span></label>
+                                <input type="text" class="form-control" value="ACME Indústria e Comércio Ltda.">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label-strong">CNPJ <span class="req">*</span></label>
+                                <input type="text" class="form-control" value="12.345.678/0001-90">
+                                <div class="field-hint"><i class="bi bi-check-circle-fill text-success"></i> CNPJ válido</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-strong">Porte</label>
+                                <select class="form-select">
+                                    <option>MEI → até R$ 81 mil</option>
+                                    <option>ME → até R$ 360 mil</option>
+                                    <option selected>EPP → até R$ 4,8 milhões</option>
+                                    <option>Médio</option>
+                                    <option>Grande</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label-strong">E-mail</label>
+                                <input type="email" class="form-control" value="contato@acme.com.br">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-strong">Telefone</label>
+                                <input type="tel" class="form-control" value="(11) 3000-1234">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-strong"><i class="bi bi-whatsapp text-success"></i> WhatsApp</label>
+                                <input type="tel" class="form-control" value="(11) 98765-4321">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label-strong">Anotações</label>
+                                <textarea class="form-control" rows="2">Cliente recorrente. Prefere antecipações na primeira quinzena.</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Sócios -->
+                <div class="section-card s-people">
+                    <div class="section-head">
+                        <span class="step-num">2</span>
+                        <h2>Sócios da Empresa</h2>
+                        <span class="section-status ok"><i class="bi bi-check"></i> 3 cadastrados</span>
+                        <button class="btn btn-sm" style="background:#6f42c1;color:#fff;"><i class="bi bi-plus-circle"></i> Adicionar</button>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="socio-card">
+                                    <div class="socio-head">
+                                        <span class="badge-num">SÓCIO 1</span>
+                                        <button class="btn-remove" title="Remover"><i class="bi bi-trash-fill"></i></button>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label-strong">Nome <span class="req">*</span></label>
+                                            <input type="text" class="form-control form-control-sm" value="João da Silva">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label-strong">CPF <span class="req">*</span></label>
+                                            <input type="text" class="form-control form-control-sm" value="123.456.789-00">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="socio-card">
+                                    <div class="socio-head">
+                                        <span class="badge-num">SÓCIO 2</span>
+                                        <button class="btn-remove" title="Remover"><i class="bi bi-trash-fill"></i></button>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label-strong">Nome <span class="req">*</span></label>
+                                            <input type="text" class="form-control form-control-sm" value="Maria Costa">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label-strong">CPF <span class="req">*</span></label>
+                                            <input type="text" class="form-control form-control-sm" value="987.654.321-00">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="socio-card">
+                                    <div class="socio-head">
+                                        <span class="badge-num">SÓCIO 3</span>
+                                        <button class="btn-remove" title="Remover"><i class="bi bi-trash-fill"></i></button>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label-strong">Nome <span class="req">*</span></label>
+                                            <input type="text" class="form-control form-control-sm" value="Pedro Almeida">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label-strong">CPF <span class="req">*</span></label>
+                                            <input type="text" class="form-control form-control-sm" value="456.789.123-00">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Representante -->
+                <div class="section-card s-rep">
+                    <div class="section-head">
+                        <span class="step-num">3</span>
+                        <h2>Representante Legal</h2>
+                        <span class="section-status warn"><i class="bi bi-exclamation-circle-fill"></i> 1 campo opcional vazio</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label-strong">Selecionar sócio como representante</label>
+                                <select class="form-select">
+                                    <option>Selecione um sócio…</option>
+                                    <option selected>João da Silva (Sócio)</option>
+                                    <option>Maria Costa (Sócio)</option>
+                                    <option>Pedro Almeida (Sócio)</option>
+                                </select>
+                                <div class="field-hint"><i class="bi bi-info-circle"></i> Os campos abaixo são preenchidos automaticamente.</div>
+                            </div>
+                            <div class="col-md-8 field-locked">
+                                <label class="form-label-strong">Nome</label>
+                                <input type="text" class="form-control" value="João da Silva" readonly>
+                            </div>
+                            <div class="col-md-4 field-locked">
+                                <label class="form-label-strong">CPF</label>
+                                <input type="text" class="form-control" value="123.456.789-00" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">RG</label>
+                                <input type="text" class="form-control" value="12.345.678-9">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">Nacionalidade</label>
+                                <input type="text" class="form-control" value="brasileiro(a)">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">Estado Civil</label>
+                                <select class="form-select">
+                                    <option>Solteiro(a)</option>
+                                    <option selected>Casado(a)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">Profissão</label>
+                                <input type="text" class="form-control" value="Empresário">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label-strong">Endereço Completo</label>
+                                <input type="text" class="form-control" value="Rua das Flores, 123, apto 45 — Jardim Europa, São Paulo/SP">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Endereço -->
+                <div class="section-card s-addr">
+                    <div class="section-head">
+                        <span class="step-num">4</span>
+                        <h2>Endereço da Empresa</h2>
+                        <span class="section-status ok"><i class="bi bi-check-circle-fill"></i> Completo</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label-strong">CEP</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" value="04567-890">
+                                    <button class="btn btn-outline-secondary" title="Buscar via ViaCEP"><i class="bi bi-search"></i></button>
+                                </div>
+                                <div class="field-hint"><i class="bi bi-check-circle-fill text-success"></i> Encontrado</div>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label-strong">Logradouro</label>
+                                <input type="text" class="form-control" value="Av. Paulista">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label-strong">Número</label>
+                                <input type="text" class="form-control" value="1000">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-strong">Complemento</label>
+                                <input type="text" class="form-control" value="Sala 1502">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-strong">Bairro</label>
+                                <input type="text" class="form-control" value="Bela Vista">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">Cidade</label>
+                                <input type="text" class="form-control" value="São Paulo">
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label-strong">UF</label>
+                                <input type="text" class="form-control" value="SP" maxlength="2">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label-strong">Observações</label>
+                                <textarea class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Bancário -->
+                <div class="section-card s-bank">
+                    <div class="section-head">
+                        <span class="step-num">5</span>
+                        <h2>Dados Bancários</h2>
+                        <span class="section-status ok"><i class="bi bi-check-circle-fill"></i> Completo</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-7 field-locked">
+                                <label class="form-label-strong">Titular da Conta <span class="text-muted small">(auto)</span></label>
+                                <input type="text" class="form-control" value="ACME Indústria e Comércio Ltda." readonly>
+                            </div>
+                            <div class="col-md-5 field-locked">
+                                <label class="form-label-strong">CNPJ Titular <span class="text-muted small">(auto)</span></label>
+                                <input type="text" class="form-control" value="12.345.678/0001-90" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-strong">Banco</label>
+                                <input type="text" class="form-control" value="Itaú Unibanco">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label-strong">Agência</label>
+                                <input type="text" class="form-control" value="3456">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">Conta</label>
+                                <input type="text" class="form-control" value="12345-6">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">Tipo</label>
+                                <select class="form-select">
+                                    <option selected>Conta Corrente</option>
+                                    <option>Conta Poupança</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">Tipo PIX</label>
+                                <select class="form-select">
+                                    <option>CPF</option>
+                                    <option selected>CNPJ</option>
+                                    <option>E-mail</option>
+                                    <option>Telefone</option>
+                                    <option>Aleatória</option>
+                                </select>
+                            </div>
+                            <div class="col-md-9">
+                                <label class="form-label-strong">Chave PIX</label>
+                                <input type="text" class="form-control" value="12.345.678/0001-90">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ====== RIGHT: progresso + ações ====== -->
+            <div class="col-xl-4">
+                <div class="sticky-panel panel-form">
+                    <div class="panel-head">
+                        <h3><i class="bi bi-list-check"></i> Progresso do Cadastro</h3>
+                        <span class="badge bg-light text-primary">Editando</span>
+                    </div>
+
+                    <!-- Hero -->
+                    <div class="completion-hero">
+                        <div class="pct-label">Completo</div>
+                        <div class="pct-value">96%</div>
+                        <div class="progress">
+                            <div class="progress-bar" style="width:96%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Section status list (jump nav) -->
+                    <ul class="panel-section-list">
+                        <li>
+                            <span class="ico ok"><i class="bi bi-check-lg"></i></span>
+                            <span class="label">Dados da Empresa</span>
+                            <span class="meta">8/8</span>
+                        </li>
+                        <li>
+                            <span class="ico ok"><i class="bi bi-check-lg"></i></span>
+                            <span class="label">Sócios</span>
+                            <span class="meta">3</span>
+                        </li>
+                        <li>
+                            <span class="ico warn"><i class="bi bi-exclamation"></i></span>
+                            <span class="label">Representante</span>
+                            <span class="meta">1 vazio</span>
+                        </li>
+                        <li>
+                            <span class="ico ok"><i class="bi bi-check-lg"></i></span>
+                            <span class="label">Endereço</span>
+                            <span class="meta">7/7</span>
+                        </li>
+                        <li>
+                            <span class="ico ok"><i class="bi bi-check-lg"></i></span>
+                            <span class="label">Dados Bancários</span>
+                            <span class="meta">8/8</span>
+                        </li>
+                    </ul>
+
+                    <div class="panel-actions">
+                        <button class="btn btn-primary btn-lg"><i class="bi bi-save-fill"></i> Salvar Alterações</button>
+                        <button class="btn btn-outline-secondary" data-go-mode="view"><i class="bi bi-x-lg"></i> Cancelar e voltar</button>
+                    </div>
+                </div>
+
+                <!-- Card auxiliar: histórico recente -->
+                <div class="info-tabs mt-3">
+                    <div class="px-3 py-2" style="background:var(--surface-2);border-bottom:1px solid var(--border);">
+                        <strong class="small text-uppercase text-muted"><i class="bi bi-clock-history"></i> Última edição</strong>
+                    </div>
+                    <div class="p-3 small">
+                        <div><strong>02/05/2026 14:32</strong> — Cris</div>
+                        <div class="text-muted">Atualizou WhatsApp e endereço da empresa.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- =================================================== -->
+    <!-- ================ MODO: NOVO ======================== -->
+    <!-- =================================================== -->
+    <div class="mode-block" data-mode-block="new">
+
+        <!-- Toolbar -->
+        <div class="page-toolbar">
+            <div>
+                <h1>
+                    <i class="bi bi-plus-circle text-primary"></i>
+                    Novo Cliente
+                </h1>
+                <div class="text-muted small mt-1">
+                    Preencha os dados básicos para começar ·
+                    <span class="status-badge new"><i class="bi bi-stars"></i> Em rascunho</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-lg"></i> Cancelar</button>
+                <button class="btn btn-primary"><i class="bi bi-save-fill"></i> Salvar Cliente</button>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- ====== LEFT: form vazio ====== -->
+            <div class="col-xl-8">
+
+                <!-- 1. Dados Empresa -->
+                <div class="section-card">
+                    <div class="section-head">
+                        <span class="step-num">1</span>
+                        <h2>Dados da Empresa</h2>
+                        <span class="section-status empty">Comece por aqui</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label-strong">Tipo de pessoa</label>
+                                <div class="btn-group person-type-toggle d-block" role="group">
+                                    <input type="radio" class="btn-check" name="tp1" id="tp-pj-n" checked>
+                                    <label class="btn btn-outline-primary" for="tp-pj-n">
+                                        <i class="bi bi-building"></i> Pessoa Jurídica
+                                    </label>
+                                    <input type="radio" class="btn-check" name="tp1" id="tp-pf-n">
+                                    <label class="btn btn-outline-primary" for="tp-pf-n">
+                                        <i class="bi bi-person"></i> Pessoa Física
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label-strong">Razão Social <span class="req">*</span></label>
+                                <input type="text" class="form-control" placeholder="Ex.: ACME Indústria Ltda.">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label-strong">CNPJ <span class="req">*</span></label>
+                                <input type="text" class="form-control" placeholder="00.000.000/0000-00">
+                                <div class="field-hint">Formatação automática enquanto digita.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-strong">Porte</label>
+                                <select class="form-select">
+                                    <option value="">Selecione…</option>
+                                    <option>MEI → até R$ 81 mil</option>
+                                    <option>ME → até R$ 360 mil</option>
+                                    <option>EPP → até R$ 4,8 milhões</option>
+                                    <option>Médio</option>
+                                    <option>Grande</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label-strong">E-mail</label>
+                                <input type="email" class="form-control" placeholder="contato@empresa.com.br">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-strong">Telefone</label>
+                                <input type="tel" class="form-control" placeholder="(00) 0000-0000">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-strong"><i class="bi bi-whatsapp text-success"></i> WhatsApp</label>
+                                <input type="tel" class="form-control" placeholder="(00) 00000-0000">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label-strong">Anotações</label>
+                                <textarea class="form-control" rows="2" placeholder="Observações internas sobre o cliente…"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Sócios (vazio com CTA) -->
+                <div class="section-card s-people">
+                    <div class="section-head">
+                        <span class="step-num">2</span>
+                        <h2>Sócios da Empresa</h2>
+                        <span class="section-status empty">Nenhum cadastrado</span>
+                        <button class="btn btn-sm" style="background:#6f42c1;color:#fff;"><i class="bi bi-plus-circle"></i> Adicionar Sócio</button>
+                    </div>
+                    <div class="section-body">
+                        <div class="empty-block">
+                            <i class="bi bi-people"></i>
+                            <div class="mt-2">Adicione os sócios da empresa para vinculá-los como representantes ou avalistas.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Representante (bloqueado até ter sócios) -->
+                <div class="section-card s-rep">
+                    <div class="section-head">
+                        <span class="step-num">3</span>
+                        <h2>Representante Legal</h2>
+                        <span class="section-status empty"><i class="bi bi-lock-fill"></i> Adicione um sócio primeiro</span>
+                    </div>
+                    <div class="section-body" style="opacity:0.55;pointer-events:none;">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label-strong">Selecionar sócio como representante</label>
+                                <select class="form-select" disabled>
+                                    <option>Cadastre um sócio primeiro…</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Endereço -->
+                <div class="section-card s-addr">
+                    <div class="section-head">
+                        <span class="step-num">4</span>
+                        <h2>Endereço da Empresa</h2>
+                        <span class="section-status empty">Use o CEP para autopreencher</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label-strong">CEP</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="00000-000">
+                                    <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+                                </div>
+                                <div class="field-hint"><i class="bi bi-magic"></i> Busca automática via ViaCEP.</div>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label-strong">Logradouro</label>
+                                <input type="text" class="form-control" placeholder="—">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label-strong">Número</label>
+                                <input type="text" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-strong">Complemento</label>
+                                <input type="text" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-strong">Bairro</label>
+                                <input type="text" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">Cidade</label>
+                                <input type="text" class="form-control">
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label-strong">UF</label>
+                                <input type="text" class="form-control" maxlength="2">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Bancário -->
+                <div class="section-card s-bank">
+                    <div class="section-head">
+                        <span class="step-num">5</span>
+                        <h2>Dados Bancários</h2>
+                        <span class="section-status empty">Opcional para iniciar</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-7 field-locked">
+                                <label class="form-label-strong">Titular da Conta</label>
+                                <input type="text" class="form-control" placeholder="Sincroniza com a Razão Social" readonly>
+                            </div>
+                            <div class="col-md-5 field-locked">
+                                <label class="form-label-strong">CNPJ Titular</label>
+                                <input type="text" class="form-control" placeholder="Sincroniza com o CNPJ principal" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label-strong">Banco</label>
+                                <input type="text" class="form-control" placeholder="Ex.: Itaú">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label-strong">Agência</label>
+                                <input type="text" class="form-control" placeholder="0000">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">Conta</label>
+                                <input type="text" class="form-control" placeholder="00000-0">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">Tipo</label>
+                                <select class="form-select">
+                                    <option value="">Selecione…</option>
+                                    <option>Conta Corrente</option>
+                                    <option>Conta Poupança</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label-strong">Tipo PIX</label>
+                                <select class="form-select">
+                                    <option value="">Selecione…</option>
+                                    <option>CPF</option>
+                                    <option>CNPJ</option>
+                                    <option>E-mail</option>
+                                    <option>Telefone</option>
+                                    <option>Aleatória</option>
+                                </select>
+                            </div>
+                            <div class="col-md-9">
+                                <label class="form-label-strong">Chave PIX</label>
+                                <input type="text" class="form-control" placeholder="Informe a chave PIX">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ====== RIGHT: progresso vazio + dicas ====== -->
+            <div class="col-xl-4">
+                <div class="sticky-panel panel-form">
+                    <div class="panel-head">
+                        <h3><i class="bi bi-list-check"></i> Progresso do Cadastro</h3>
+                        <span class="badge bg-light text-primary">Novo</span>
+                    </div>
+
+                    <div class="completion-hero">
+                        <div class="pct-label">Completo</div>
+                        <div class="pct-value">0%</div>
+                        <div class="progress">
+                            <div class="progress-bar" style="width:0%;"></div>
+                        </div>
+                    </div>
+
+                    <ul class="panel-section-list">
+                        <li>
+                            <span class="ico empty"><i class="bi bi-circle"></i></span>
+                            <span class="label">Dados da Empresa</span>
+                            <span class="meta">obrigatório</span>
+                        </li>
+                        <li>
+                            <span class="ico empty"><i class="bi bi-circle"></i></span>
+                            <span class="label">Sócios</span>
+                            <span class="meta">recomendado</span>
+                        </li>
+                        <li>
+                            <span class="ico empty"><i class="bi bi-lock-fill"></i></span>
+                            <span class="label">Representante</span>
+                            <span class="meta">após sócios</span>
+                        </li>
+                        <li>
+                            <span class="ico empty"><i class="bi bi-circle"></i></span>
+                            <span class="label">Endereço</span>
+                            <span class="meta">opcional</span>
+                        </li>
+                        <li>
+                            <span class="ico empty"><i class="bi bi-circle"></i></span>
+                            <span class="label">Dados Bancários</span>
+                            <span class="meta">opcional</span>
+                        </li>
+                    </ul>
+
+                    <div class="panel-actions">
+                        <button class="btn btn-primary btn-lg"><i class="bi bi-save-fill"></i> Salvar Cliente</button>
+                        <button class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Cancelar</button>
+                    </div>
+                </div>
+
+                <!-- Dica -->
+                <div class="info-tabs mt-3" style="background:#fff8e1;border-color:#f1d999;">
+                    <div class="px-3 py-2" style="background:#fff3d6;border-bottom:1px solid #f1d999;">
+                        <strong class="small text-uppercase" style="color:#8a5a00;"><i class="bi bi-lightbulb-fill"></i> Dica</strong>
+                    </div>
+                    <div class="p-3 small" style="color:#7a5500;">
+                        Você só precisa preencher <strong>Razão Social</strong> e <strong>CNPJ</strong> para salvar.
+                        Os demais dados podem ser completados depois.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <p class="text-center text-muted small my-4">
+        Mockup · proposta de UX/UI cliente · 01/05/2026
+    </p>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Mode switcher
+    document.querySelectorAll('[data-mode]').forEach(btn => {
+        btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+    });
+    document.querySelectorAll('[data-go-mode]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchMode(btn.dataset.goMode);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+    function switchMode(mode) {
+        document.querySelectorAll('.mode-block').forEach(b => {
+            b.classList.toggle('is-active', b.dataset.modeBlock === mode);
+        });
+        document.querySelectorAll('[data-mode]').forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === mode);
+        });
+    }
+</script>
+</body>
+</html>
