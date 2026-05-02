@@ -34,23 +34,30 @@ $menuItems = [
             // 'form_operacao.php' => '<i class="bi bi-plus-circle"></i> Nova Operação'
         ]
     ],
-    // Estrutura para o dropdown de Cadastro (Sacados e Cedentes)
-    'cadastro_dropdown' => [
-        'label' => 'Cadastro',
-        'icon' => 'bi-people-fill',
+    // Estrutura para o dropdown Comercial (Leads e Clientes)
+    'comercial_dropdown' => [
+        'label' => 'Comercial',
+        'icon' => 'bi-funnel-fill',
         'pages' => [
-            'listar_sacados.php',
-            'form_sacado.php',
-            'visualizar_sacado.php',
-            'excluir_sacado.php',
-            'salvar_sacado.php',
-            'listar_cedentes.php',
-            'form_cedente.php',
-            'visualizar_cedente.php',
-            'excluir_cedente.php',
-            'salvar_cedente.php'
+            'listar_leads.php',
+            'kanban_leads.php',
+            'form_lead.php',
+            'salvar_lead.php',
+            'excluir_lead.php',
+            'arquivar_lead.php',
+            'converter_lead.php',
+            'atualizar_estagio_lead.php',
+            'listar_clientes.php',
+            'form_cliente.php',
+            'visualizar_cliente.php',
+            'salvar_cliente.php',
+            'excluir_cliente.php'
         ],
         'items' => [
+            'kanban_leads.php'    => '<i class="bi bi-kanban"></i> Esteira de Venda',
+            'form_lead.php'       => '<i class="bi bi-plus-circle"></i> Novo Lead',
+            '_divider1'           => '---',
+            'form_cliente.php'    => '<i class="bi bi-person-plus"></i> Novo Cliente',
             'listar_clientes.php' => '<i class="bi bi-people"></i> Clientes'
         ]
     ],
@@ -60,11 +67,13 @@ $menuItems = [
         'icon' => 'bi-graph-up',
         'pages' => [
             'dashboard_financeiro.php',
-            'fechamento.php'
+            'fechamento.php',
+            'relatorio_visitas.php'
         ],
         'items' => [
             'dashboard_financeiro.php' => '<i class="bi bi-graph-up"></i> Relatório Geral Financeiro',
-            'fechamento.php' => '<i class="bi bi-wallet2"></i> Fechamento Mensal'
+            'fechamento.php' => '<i class="bi bi-wallet2"></i> Fechamento Mensal',
+            'relatorio_visitas.php' => '<i class="bi bi-bar-chart-line-fill"></i> Visitas por Usuário'
         ]
     ],
     // Estrutura para o dropdown de Configurações
@@ -125,10 +134,14 @@ $menuItems = [
                     </a>
                     <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDropdown_<?php echo $keyOrUrl; ?>">
                         <?php foreach ($dropdownSubItems as $url => $label):
-                                $childActiveClass = ($currentPage == $url) ? 'active' : '';
+                                if ($label === '---'): ?>
+                                    <li><hr class="dropdown-divider"></li>
+                        <?php   else:
+                                    $childActiveClass = ($currentPage == $url) ? 'active' : '';
                         ?>
                                 <li><a class="dropdown-item <?php echo $childActiveClass; ?>" href="<?php echo $url; ?>"><?php echo $label; ?></a></li>
-                        <?php endforeach; ?>
+                        <?php   endif;
+                                endforeach; ?>
 
                     </ul>
                 </li>

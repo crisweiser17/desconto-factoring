@@ -152,6 +152,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['atualizar'])) {
             email VARCHAR(255) NOT NULL UNIQUE,
             senha_hash VARCHAR(255) NOT NULL,
             criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+        // Módulo de leads (esteira comercial)
+        "CREATE TABLE IF NOT EXISTS leads (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            empresa VARCHAR(255) NOT NULL,
+            nome_contato VARCHAR(255) NOT NULL,
+            telefone VARCHAR(50) DEFAULT NULL,
+            origem ENUM('receptivo','ativo') NOT NULL DEFAULT 'receptivo',
+            estagio ENUM('novo','visita_agendada','visita_feita','aprovado','perdido','convertido') NOT NULL DEFAULT 'novo',
+            responsavel_id INT DEFAULT NULL,
+            cliente_id INT DEFAULT NULL,
+            data_visita_agendada DATETIME DEFAULT NULL,
+            motivo_perda VARCHAR(255) DEFAULT NULL,
+            observacoes TEXT DEFAULT NULL,
+            data_cadastro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            data_atualizacao TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_estagio (estagio),
+            INDEX idx_responsavel (responsavel_id),
+            INDEX idx_cliente (cliente_id),
+            INDEX idx_empresa (empresa)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+        "CREATE TABLE IF NOT EXISTS leads_historico (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            lead_id INT NOT NULL,
+            estagio_de VARCHAR(40) DEFAULT NULL,
+            estagio_para VARCHAR(40) NOT NULL,
+            usuario_id INT DEFAULT NULL,
+            observacao VARCHAR(255) DEFAULT NULL,
+            data_evento TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_lead (lead_id),
+            INDEX idx_data (data_evento),
+            FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
     ];
 
