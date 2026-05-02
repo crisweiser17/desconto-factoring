@@ -1,6 +1,5 @@
 /* style.css */
 body {
-    padding-top: 20px; /* Add some padding below the navbar if you add one */
     background-color: #f8f9fa; /* Bootstrap light grey background */
 }
 
@@ -10,6 +9,15 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     margin-bottom: 30px; /* Space at the bottom */
+}
+
+/* Navbar usa .container só para alinhar ao max-width — sem estilo de "card" */
+.navbar .container {
+    background: transparent;
+    padding: 0.5rem 1rem;
+    box-shadow: none;
+    border-radius: 0;
+    margin-bottom: 0;
 }
 
 #titulosTable th, #titulosTable td {
@@ -281,8 +289,8 @@ body.sim-page-body {
 }
 .sim-summary-actions .btn { font-weight: 600; }
 .sim-summary-actions .btn-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    justify-content: center;
     gap: 8px;
 }
 .sim-actions-divider {

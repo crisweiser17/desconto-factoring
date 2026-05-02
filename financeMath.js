@@ -47,80 +47,98 @@ function calculatePVFromDays(rate, daysArray, pmt) {
     return pmt * calculateDiscountFactorSum(rate, daysArray);
 }
 
+// Chutes alternativos tentados quando o chute principal não converge.
+// Cobrem do crédito barato (~0.5% a.m.) ao cheque especial (~15% a.m.).
+const RATE_FALLBACK_GUESSES = [0.005, 0.01, 0.02, 0.05, 0.1, 0.15, 0.20, 0.50];
+
+function _newtonRaphsonRate(guess, evaluator) {
+    const maxIter = 100;
+    const tol = 1e-7;
+    let r = guess;
+
+    for (let i = 0; i < maxIter; i++) {
+        const result = evaluator(r);
+        if (result === null) return null;
+
+        const { f, df } = result;
+        if (Math.abs(df) < tol) return null;
+
+        const rNext = r - f / df;
+
+        if (!Number.isFinite(rNext) || rNext <= -0.999999) return null;
+        if (Math.abs(rNext - r) < tol) return rNext;
+
+        r = rNext;
+    }
+
+    return null;
+}
+
+function _tryRateWithFallback(preferredGuess, evaluator) {
+    const tried = new Set();
+    const queue = [preferredGuess, ...RATE_FALLBACK_GUESSES];
+
+    // r=0 é sempre raiz da equação f(r)=PV*r - PMT*(1-(1+r)^-n), mas é
+    // espúria (limite). Newton-Raphson com chute pequeno costuma cair nela.
+    // Descartamos resultados < 0.0001% a.m. para ficar com a raiz real.
+    const MIN_VALID_RATE = 1e-6;
+
+    for (const guess of queue) {
+        if (!Number.isFinite(guess)) continue;
+        const key = guess.toFixed(6);
+        if (tried.has(key)) continue;
+        tried.add(key);
+
+        const result = _newtonRaphsonRate(guess, evaluator);
+        if (result !== null && result > MIN_VALID_RATE) return result;
+    }
+
+    return null;
+}
+
 /**
- * Calcula a Taxa de Juros (RATE) usando o método de Newton-Raphson
+ * Calcula a Taxa de Juros (RATE) usando Newton-Raphson com fallback.
  * Resolve a equação: PV * r - PMT * (1 - (1+r)^-n) = 0
  * @param {number} nper Número de períodos (meses)
  * @param {number} pmt Valor da parcela
  * @param {number} pv Valor Presente (Empréstimo)
- * @param {number} guess Chute inicial para a taxa (default 0.1)
- * @returns {number|null} Taxa de juros (decimal) ou null se não convergir
+ * @param {number} guess Chute inicial preferencial (default 0.1)
+ * @returns {number|null} Taxa positiva (decimal) ou null se não convergir
  */
 function calculateRATE(nper, pmt, pv, guess = 0.1) {
-    const maxIter = 100;
-    const tol = 1e-7;
-    let r = guess;
+    if (!(nper > 0) || !(pv > 0) || !(pmt > 0)) return null;
+    // Combinação impossível: parcelas pagam menos que o principal.
+    if (pmt * nper <= pv) return null;
 
-    for (let i = 0; i < maxIter; i++) {
-        // Função f(r) = PV * r - PMT * (1 - (1+r)^-n)
+    return _tryRateWithFallback(guess, (r) => {
         const f = pv * r - pmt * (1 - Math.pow(1 + r, -nper));
-        
-        // Derivada f'(r) = PV - PMT * n * (1+r)^(-n-1)
         const df = pv - pmt * nper * Math.pow(1 + r, -nper - 1);
-        
-        const r_next = r - f / df;
-        
-        if (Math.abs(r_next - r) < tol) {
-            return r_next;
-        }
-        r = r_next;
-    }
-    
-    return null; // Não convergiu
+        return { f, df };
+    });
 }
 
 function calculateRATEFromDays(daysArray, pmt, pv, guess = 0.1) {
     if (!Array.isArray(daysArray) || daysArray.length === 0) return null;
+    if (!(pv > 0) || !(pmt > 0)) return null;
+    // Combinação impossível: soma das parcelas <= principal.
+    if (pmt * daysArray.length <= pv) return null;
 
-    const maxIter = 100;
-    const tol = 1e-7;
-    let r = guess;
+    return _tryRateWithFallback(guess, (r) => {
+        const base = 1 + r;
+        if (base <= 0) return null;
 
-    for (let i = 0; i < maxIter; i++) {
         let factorSum = 0;
         let derivativeSum = 0;
-
         for (const days of daysArray) {
             const exponent = days / 30;
-            const base = 1 + r;
-
-            if (base <= 0) return null;
-
             factorSum += Math.pow(base, -exponent);
             derivativeSum += -exponent * Math.pow(base, -exponent - 1);
         }
 
         const f = pmt * factorSum - pv;
         const df = pmt * derivativeSum;
-
-        if (Math.abs(df) < tol) {
-            return null;
-        }
-
-        const rNext = r - (f / df);
-
-        if (!Number.isFinite(rNext) || rNext <= -0.999999) {
-            return null;
-        }
-
-        if (Math.abs(rNext - r) < tol) {
-            return rNext;
-        }
-
-        r = rNext;
-    }
-
-    return null;
+        return { f, df };
+    });
 }
 
 const financeMathApi = {

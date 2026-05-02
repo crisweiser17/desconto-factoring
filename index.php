@@ -1,6 +1,5 @@
 <?php
 require_once 'auth_check.php';
-require_once 'menu.php';
 require_once 'db_connection.php'; // Garante que a conexão $pdo esteja disponível
 
 // --- Função para ler o arquivo de configuração ---
@@ -43,6 +42,15 @@ $cedentes = $clientes;
 $erro_cedentes = $erro_clientes;
 $sacados = $clientes;
 $erro_sacados = $erro_clientes;
+
+// Pré-seleção via querystring: ?cliente_id=N seleciona o cliente nos dropdowns Cedente/Tomador
+$preselect_cliente_id = isset($_GET['cliente_id']) && is_numeric($_GET['cliente_id']) ? (int)$_GET['cliente_id'] : null;
+if ($preselect_cliente_id !== null) {
+    $idsValidos = array_column($clientes, 'id');
+    if (!in_array($preselect_cliente_id, $idsValidos)) {
+        $preselect_cliente_id = null; // ID inválido — ignora
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -85,6 +93,7 @@ $erro_sacados = $erro_clientes;
     </style>
 </head>
 <body class="sim-page-body">
+  <?php require_once 'menu.php'; ?>
 
   <div class="container-fluid px-3 px-md-4 mt-4">
 
@@ -146,9 +155,9 @@ $erro_sacados = $erro_clientes;
                           <div class="col-md-5" id="containerCedente">
                               <label for="cedente" class="form-label-strong" id="labelCedente">Cedente</label>
                               <select id="cedente" name="cedente_id" class="form-select">
-                                  <option value="" selected>-- Selecione (Obrigatório p/ Registrar) --</option>
+                                  <option value="" <?php echo $preselect_cliente_id === null ? 'selected' : ''; ?>>-- Selecione (Obrigatório p/ Registrar) --</option>
                                   <?php foreach ($cedentes as $cedente): ?>
-                                      <option value="<?php echo htmlspecialchars($cedente['id']); ?>"><?php echo htmlspecialchars($cedente['nome']); ?></option>
+                                      <option value="<?php echo htmlspecialchars($cedente['id']); ?>" <?php echo ((int)$cedente['id'] === $preselect_cliente_id) ? 'selected' : ''; ?>><?php echo htmlspecialchars($cedente['nome']); ?></option>
                                   <?php endforeach; ?>
                                   <?php if (empty($cedentes) && $erro_cedentes): ?>
                                       <option value="" disabled><?php echo htmlspecialchars($erro_cedentes); ?></option>
@@ -160,9 +169,9 @@ $erro_sacados = $erro_clientes;
                           <div class="col-md-5" id="containerTomador" style="display: none;">
                               <label for="tomador" class="form-label-strong">Tomador de Empréstimo (Sacado)</label>
                               <select id="tomador" name="tomador_id" class="form-select">
-                                  <option value="" selected>-- Selecione Tomador --</option>
+                                  <option value="" <?php echo $preselect_cliente_id === null ? 'selected' : ''; ?>>-- Selecione Tomador --</option>
                                   <?php foreach ($sacados as $sacado): ?>
-                                      <option value="<?php echo htmlspecialchars($sacado['id']); ?>"><?php echo htmlspecialchars($sacado['nome']); ?></option>
+                                      <option value="<?php echo htmlspecialchars($sacado['id']); ?>" <?php echo ((int)$sacado['id'] === $preselect_cliente_id) ? 'selected' : ''; ?>><?php echo htmlspecialchars($sacado['nome']); ?></option>
                                   <?php endforeach; ?>
                                   <?php if (empty($sacados) && $erro_sacados): ?>
                                       <option value="" disabled><?php echo htmlspecialchars($erro_sacados); ?></option>
@@ -262,6 +271,7 @@ $erro_sacados = $erro_clientes;
                   <div class="col-lg col-md-6">
                       <label for="dataPrimeiroVencimento" class="form-label">1º Vencimento</label>
                       <input type="date" class="form-control" id="dataPrimeiroVencimento">
+                      <div class="invalid-feedback" id="dataPrimeiroVencimentoFeedback">Deve ser depois da data da operação.</div>
                   </div>
               </div>
               <div class="row g-3 mt-2">
@@ -543,8 +553,7 @@ $erro_sacados = $erro_clientes;
                   <div class="sim-summary-actions">
                       <button type="button" id="calculateBtn" class="btn btn-primary btn-lg"><i class="bi bi-calculator"></i> Calcular Totais</button>
                       <div class="btn-row">
-                          <button type="button" id="exportPdfBtn" class="btn btn-outline-secondary btn-sm" disabled><i class="bi bi-file-earmark-pdf"></i> PDF Análise</button>
-                          <button type="button" id="exportPdfClienteBtn" class="btn btn-outline-secondary btn-sm" disabled><i class="bi bi-file-earmark-person"></i> PDF Cliente</button>
+                          <button type="button" id="exportPdfClienteBtn" class="btn btn-outline-secondary btn-sm" disabled><i class="bi bi-file-earmark-person"></i> Gerar PDF Simulação Cliente</button>
                       </div>
 
                       <hr class="sim-actions-divider">
@@ -769,7 +778,6 @@ $erro_sacados = $erro_clientes;
       const tituloTemplateRow = document.getElementById('tituloTemplateRow');
       const calculateBtn = document.getElementById('calculateBtn');
       const registerBtn = document.getElementById('registerBtn');
-      const exportPdfBtn = document.getElementById('exportPdfBtn');
       const resMediaDias = document.getElementById('resMediaDias');
       const resTotalOriginal = document.getElementById('resTotalOriginal');
       const resTotalPresente = document.getElementById('resTotalPresente');
@@ -1115,6 +1123,25 @@ $erro_sacados = $erro_clientes;
 
       radiosModoCalculo.forEach(r => r.addEventListener('change', updateModoFlexivel));
 
+      function setModoCalculoError(message) {
+          if (!campoCalculadoHint) return;
+          campoCalculadoHint.textContent = message;
+          campoCalculadoHint.classList.remove('d-none', 'text-muted');
+          campoCalculadoHint.classList.add('text-danger', 'fw-bold');
+          taxaMensalInput.classList.add('is-invalid');
+          valorEmprestimoInput.classList.add('is-invalid');
+          valorParcelaInput.classList.add('is-invalid');
+      }
+
+      function clearModoCalculoError() {
+          if (campoCalculadoHint) {
+              campoCalculadoHint.classList.remove('text-danger', 'fw-bold');
+          }
+          taxaMensalInput.classList.remove('is-invalid');
+          valorEmprestimoInput.classList.remove('is-invalid');
+          valorParcelaInput.classList.remove('is-invalid');
+      }
+
       function calcularValoresFlexiveis() {
           const modo = document.querySelector('input[name="modoCalculo"]:checked').value;
           const pv = parseFloat(valorEmprestimoInput.value) || 0;
@@ -1126,10 +1153,26 @@ $erro_sacados = $erro_clientes;
           const freq = frequenciaParcelasSelect.value;
           const schedule = buildEmprestimoSchedule(dataOperacaoInput.value, dataPrimeiroVencimentoInput.value, nper, freq);
           const scheduleValido = schedule.days.length === nper && schedule.days.every(days => days >= 0);
+          const primeiroVencDia = schedule.days[0];
+          const primeiroVencimentoInvalido =
+              dataPrimeiroVencimentoInput.value &&
+              dataOperacaoInput.value &&
+              Number.isFinite(primeiroVencDia) &&
+              primeiroVencDia <= 0;
           const precisaFinanceMath =
               (modo === 'parcela' && pv > 0 && nper > 0 && scheduleValido) ||
               (modo === 'taxa' && pv > 0 && pmt > 0 && nper > 0 && scheduleValido) ||
               (modo === 'emprestimo' && pmt > 0 && nper > 0 && scheduleValido);
+
+          clearModoCalculoError();
+          dataPrimeiroVencimentoInput.classList.toggle('is-invalid', !!primeiroVencimentoInvalido);
+
+          if (primeiroVencimentoInvalido) {
+              clearCalculatedFieldForMode(modo);
+              setModoCalculoError('1º vencimento deve ser posterior à data da operação. Vencimento na mesma data inflaciona a 1ª parcela.');
+              atualizarCardResumoEmprestimo();
+              return;
+          }
 
           if (precisaFinanceMath) {
               const financeMath = getFinanceMathApi();
@@ -1148,11 +1191,23 @@ $erro_sacados = $erro_clientes;
                   const calcPmt = financeMath.calculatePMTFromDays(taxa, schedule.days, pv);
                   valorParcelaInput.value = calcPmt.toFixed(2);
               } else if (modo === 'taxa') {
-                  const calcI = financeMath.calculateRATEFromDays(schedule.days, pmt, pv, 0.05);
-                  if (calcI !== null) {
-                      taxaMensalInput.value = (calcI * 100).toFixed(4);
-                  } else {
+                  // Combinação impossível: parcelas que somadas dão menos que o empréstimo
+                  // não admitem taxa positiva. Avisar antes de chamar Newton-Raphson.
+                  if (pmt * nper <= pv) {
                       taxaMensalInput.value = '';
+                      setModoCalculoError(
+                          'Soma das parcelas (' + formatCurrencyJS(pmt * nper) +
+                          ') deve ser maior que o empréstimo (' + formatCurrencyJS(pv) +
+                          ') para calcular uma taxa positiva.'
+                      );
+                  } else {
+                      const calcI = financeMath.calculateRATEFromDays(schedule.days, pmt, pv, 0.05);
+                      if (calcI !== null) {
+                          taxaMensalInput.value = (calcI * 100).toFixed(4);
+                      } else {
+                          taxaMensalInput.value = '';
+                          setModoCalculoError('Não foi possível calcular a taxa para esses valores. Revise empréstimo, parcela e prazo.');
+                      }
                   }
               } else if (modo === 'emprestimo') {
                   const calcPv = financeMath.calculatePVFromDays(taxa, schedule.days, pmt);
@@ -1162,7 +1217,7 @@ $erro_sacados = $erro_clientes;
               updateFinanceMathDependentUI();
               clearFinanceMathDependencyError();
           }
-          
+
           atualizarCardResumoEmprestimo();
       }
 
@@ -1298,6 +1353,16 @@ $erro_sacados = $erro_clientes;
               salvarRascunho();
           });
       });
+
+      // Reavaliar a calculadora flexível quando a data da operação muda
+      // (afeta a validação do 1º vencimento e o schedule de dias).
+      if (dataOperacaoInput) {
+          dataOperacaoInput.addEventListener('change', () => {
+              if (tipoEmprestimoRadio && tipoEmprestimoRadio.checked) {
+                  calcularValoresFlexiveis();
+              }
+          });
+      }
 
       // --- Funções do Empréstimo ---
       
@@ -1960,7 +2025,7 @@ $erro_sacados = $erro_clientes;
           [taxaMensalInput, dataOperacaoInput].forEach(el=>{if(!el.value||(el.type==='number'&&parseFloat(el.value)<0)){el.classList.add('is-invalid');valid=false;}});
           const titulos = []; const rows = titulosBody.querySelectorAll('tr');
           if(rows.length===0){errorMessageDiv.textContent='Adicione título.';valid=false;} else {rows.forEach((row,index)=>{const vI=row.querySelector('.valor-original:not([disabled])');const dI=row.querySelector('.data-vencimento:not([disabled])');const sI=row.querySelector('.sacado-select:not([disabled])');const tI=row.querySelector('.tipo-recebivel-select:not([disabled])');let rV=true;if(!vI||!vI.value||parseValorBR(vI.value)<=0){if(vI)vI.classList.add('is-invalid');rV=false;valid=false;}else{if(vI)vI.classList.remove('is-invalid');}if(!dI||!dI.value){if(dI)dI.classList.add('is-invalid');rV=false;valid=false;}else{if(dI)dI.classList.remove('is-invalid');}if(dI&&dI.value&&dataOperacaoInput.value&&dI.value<dataOperacaoInput.value){if(dI)dI.classList.add('is-invalid');errorMessageDiv.textContent='Venc. anterior à Data Op.';rV=false;valid=false;}if(vI&&dI&&rV){titulos.push({valorOriginal:parseValorBR(vI.value),dataVencimento:dI.value,sacadoId:sI?sI.value||null:null,tipoRecebivel:tI?tI.value||'duplicata':'duplicata'});}});if(valid&&titulos.length===0&&rows.length>0){errorMessageDiv.textContent='Preencha títulos.';valid=false;}}
-          if(!valid){if(!errorMessageDiv.textContent){errorMessageDiv.textContent='Verifique campos.';}errorMessageDiv.classList.remove('d-none');registerBtn.disabled=true;exportPdfBtn.disabled=true;return;}
+          if(!valid){if(!errorMessageDiv.textContent){errorMessageDiv.textContent='Verifique campos.';}errorMessageDiv.classList.remove('d-none');registerBtn.disabled=true;return;}
           const tipoOperacaoChecked = document.querySelector('input[name="tipoOperacao"]:checked').value;
           const data = { 
               cedente_id: tipoOperacaoChecked === 'emprestimo' ? null : cedenteSelect.value,
@@ -1986,7 +2051,7 @@ $erro_sacados = $erro_clientes;
                   taxa_antecipacao: compensacaoAtiva.taxa_antecipacao
               };
           }
-          calculateBtn.disabled = true; calculateBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Calc...'; registerBtn.disabled=true; exportPdfBtn.disabled=true;
+          calculateBtn.disabled = true; calculateBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Calc...'; registerBtn.disabled=true;
           try {
               const response = await fetch('calculate.php', {method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(data)});
               if(!response.ok){let eTxt=`Erro HTTP ${response.status}`;try{eTxt=(await response.json()).error||eTxt;}catch(_){}throw new Error(eTxt);}
@@ -2072,7 +2137,6 @@ $erro_sacados = $erro_clientes;
                    calculationResults=results;
                    lastInputDataForRegister=data;
                    registerBtn.disabled=false;
-                   exportPdfBtn.disabled=false;
                    registerFeedback.textContent='';
                    registerFeedback.className='mt-2';
                    if(exportPdfClienteBtn) exportPdfClienteBtn.disabled = false;
@@ -2082,7 +2146,6 @@ $erro_sacados = $erro_clientes;
               errorMessageDiv.textContent=`Erro: ${error.message}.`;
               errorMessageDiv.classList.remove('d-none');
               clearResultsAndRegister();
-              exportPdfBtn.disabled=true;
           } finally {
               calculateBtn.disabled=false;
               calculateBtn.textContent='Calcular Totais';
@@ -2095,7 +2158,6 @@ $erro_sacados = $erro_clientes;
          calculationResults=null;
          lastInputDataForRegister=null;
          registerBtn.disabled=true;
-         exportPdfBtn.disabled=true;
          if(exportPdfClienteBtn) exportPdfClienteBtn.disabled = true;
          if(clearRegisterFeedback){ registerFeedback.textContent=''; registerFeedback.className='mt-2';}
        }
@@ -2500,77 +2562,6 @@ $erro_sacados = $erro_clientes;
           }
       }
 
-      // --- Lógica REVISADA e SIMPLIFICADA para Exportar PDF ---
-      exportPdfBtn.addEventListener('click', function() {
-          // 1. Verifica se o botão está habilitado
-          if (exportPdfBtn.disabled) {
-              console.log("[PDF Click] Botão desabilitado.");
-              return; // Sai se desabilitado
-          }
-          console.log("[PDF Click] Botão clicado. Gerando imagem...");
-
-          // 2. Prepara o campo de dados da imagem (TENTA gerar)
-          chartImageDataInput.value = ''; // Limpa valor antigo
-          if (myFluxoChart && chartCanvas) { // Verifica se gráfico existe
-              try {
-                  if (myFluxoChart.isDestroyed) { // Se o gráfico foi destruído (por clearResults), tenta recriá-lo para capturar a imagem
-                      // Antes de tentar capturar a imagem, é crucial que `calculationResults` tenha os dados necessários
-                      if(calculationResults) {
-                           updateChart(
-                               calculationResults.chartLabels || [],
-                               calculationResults.chartDataCapitalEmprestado || [],
-                               calculationResults.chartDataCapitalRetornado || [],
-                               calculationResults.chartDataLucro || []
-                           );
-                      } else {
-                          console.warn("[PDF Click] calculationResults não disponível para recriar gráfico.");
-                          throw new Error("Dados do gráfico não disponíveis.");
-                      }
-                  }
-                  chartImageDataInput.value = myFluxoChart.toBase64Image('image/png', 1.0);
-                  // Valida se a string base64 foi gerada corretamente
-                  if (!chartImageDataInput.value || !chartImageDataInput.value.startsWith('data:image/png;base64,')) {
-                      console.error("[PDF Click] Erro: Dados base64 inválidos gerados pelo Chart.js.");
-                      alert("Erro ao gerar imagem do gráfico para o PDF. O PDF será gerado sem o gráfico.");
-                      chartImageDataInput.value = ''; // Garante limpeza se inválido
-                      // Deixa o submit prosseguir sem a imagem neste caso
-                  } else {
-                      console.log("[PDF Click] Imagem Base64 gerada OK.");
-                  }
-              } catch (e) {
-                  console.error("[PDF Click] Erro CATASTRÓFICO ao gerar Base64:", e);
-                  alert("Erro inesperado ao preparar gráfico para PDF. O PDF será gerado sem o gráfico.");
-                  chartImageDataInput.value = ''; // Garante campo vazio
-                  // Deixa o submit prosseguir sem a imagem
-              }
-          } else {
-              console.log("[PDF Click] Gráfico não renderizado na tela. Imagem não será enviada.");
-              chartImageDataInput.value = ''; // Garante campo vazio
-          }
-
-          // 3. Define os atributos do formulário para o envio do PDF
-          const originalAction = form.action;
-          const originalTarget = form.target;
-          form.action = 'export_pdf.php';   // Define action para o script PHP
-          form.target = '_blank';           // Define target para nova aba
-
-          // Converte valores BR ("1.000,50") para formato simples ("1000.50") p/ o backend PHP
-          const valorInputs = form.querySelectorAll('input.valor-original');
-          const valoresBR = [];
-          valorInputs.forEach(i => { valoresBR.push(i.value); i.value = String(parseValorBR(i.value)); });
-
-          // 4. Submete o formulário programaticamente
-          console.log("[PDF Click] Submetendo formulário para export_pdf.php...");
-          form.submit(); // Envia o formulário AGORA
-
-          // 5. Restaura os atributos originais e os valores BR após um pequeno delay
-          setTimeout(() => {
-              form.action = originalAction;
-              form.target = originalTarget;
-              valorInputs.forEach((i, idx) => { i.value = valoresBR[idx]; });
-          }, 500); // Meio segundo de delay
-      });
-
       // --- Listener para Botão PDF Cliente (type="button") ---
 if (exportPdfClienteBtn) { // Verifica se o botão existe no HTML
      exportPdfClienteBtn.addEventListener('click', function() {
@@ -2584,7 +2575,7 @@ if (exportPdfClienteBtn) { // Verifica se o botão existe no HTML
          // Define action/target e submete manualmente
          const originalAction = form.action;
          const originalTarget = form.target;
-         form.action = 'export_pdf_cliente.php'; // Script correto para simulações
+         form.action = 'gerar_recibo_cliente.php'; // Gerador unificado (modo simulação via POST)
          form.target = '_blank';               // Nova aba
 
          // Converte valores BR para formato simples antes do submit
@@ -2592,7 +2583,7 @@ if (exportPdfClienteBtn) { // Verifica se o botão existe no HTML
          const valoresBR = [];
          valorInputs.forEach(i => { valoresBR.push(i.value); i.value = String(parseValorBR(i.value)); });
 
-         console.log("[PDF Cliente Click] Submetendo para export_pdf_cliente.php...");
+         console.log("[PDF Cliente Click] Submetendo para gerar_recibo_cliente.php (modo simulação)...");
          form.submit(); // Envia
 
          // Restaura action/target e valores BR após um delay

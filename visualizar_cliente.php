@@ -26,7 +26,7 @@ try {
         exit;
     }
 
-    // Buscar sócios do cliente
+    // Sócios
     $stmt_socios = $pdo->prepare("SELECT * FROM clientes_socios WHERE cliente_id = :cliente_id ORDER BY id");
     $stmt_socios->bindParam(':cliente_id', $clienteId, PDO::PARAM_INT);
     $stmt_socios->execute();
@@ -36,390 +36,783 @@ try {
     die("Erro ao buscar dados do cliente: " . $e->getMessage());
 }
 
-// Função para formatar CPF/CNPJ
-function formatDocumento($documento) {
-    $docLimpo = preg_replace('/\D/', '', $documento);
-    if (empty($docLimpo)) {
-        return '-';
+// ===== KPIs / Operações =====
+$kpis = [
+    'total_ops' => 0,
+    'volume_total' => 0,
+    'volume_12m' => 0,
+    'lucro_12m' => 0,
+    'ticket_medio' => 0,
+    'ultima_data' => null,
+    'ultimas_ops' => [],
+];
+try {
+    $stmtKpi = $pdo->prepare("
+        SELECT
+            COUNT(*) AS total_ops,
+            COALESCE(SUM(total_original_calc), 0) AS volume_total,
+            COALESCE(SUM(CASE WHEN data_operacao >= DATE_SUB(NOW(), INTERVAL 12 MONTH) THEN total_original_calc ELSE 0 END), 0) AS volume_12m,
+            COALESCE(SUM(CASE WHEN data_operacao >= DATE_SUB(NOW(), INTERVAL 12 MONTH) THEN total_lucro_liquido_calc ELSE 0 END), 0) AS lucro_12m,
+            MAX(data_operacao) AS ultima_data
+        FROM operacoes
+        WHERE cliente_id = :cid
+    ");
+    $stmtKpi->bindValue(':cid', $clienteId, PDO::PARAM_INT);
+    $stmtKpi->execute();
+    $row = $stmtKpi->fetch(PDO::FETCH_ASSOC);
+    if ($row) {
+        $kpis['total_ops']    = (int) $row['total_ops'];
+        $kpis['volume_total'] = (float) $row['volume_total'];
+        $kpis['volume_12m']   = (float) $row['volume_12m'];
+        $kpis['lucro_12m']    = (float) $row['lucro_12m'];
+        $kpis['ultima_data']  = $row['ultima_data'];
+        $kpis['ticket_medio'] = $kpis['total_ops'] > 0 ? $kpis['volume_total'] / $kpis['total_ops'] : 0;
     }
+
+    // Últimas 5 operações
+    $stmtOps = $pdo->prepare("
+        SELECT id, data_operacao, total_original_calc, total_liquido_pago_calc, tipo_operacao
+        FROM operacoes
+        WHERE cliente_id = :cid
+        ORDER BY data_operacao DESC, id DESC
+        LIMIT 5
+    ");
+    $stmtOps->bindValue(':cid', $clienteId, PDO::PARAM_INT);
+    $stmtOps->execute();
+    $kpis['ultimas_ops'] = $stmtOps->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // Silencioso: KPIs ficam zerados se a tabela não existir ainda
+}
+
+// ===== Helpers =====
+function formatDocumento($documento) {
+    $docLimpo = preg_replace('/\D/', '', (string)$documento);
+    if (empty($docLimpo)) return '-';
     if (strlen($docLimpo) === 11) {
-        return substr($docLimpo, 0, 3) . '.' .
-               substr($docLimpo, 3, 3) . '.' .
-               substr($docLimpo, 6, 3) . '-' .
-               substr($docLimpo, 9, 2);
+        return substr($docLimpo, 0, 3) . '.' . substr($docLimpo, 3, 3) . '.' .
+               substr($docLimpo, 6, 3) . '-' . substr($docLimpo, 9, 2);
     } elseif (strlen($docLimpo) === 14) {
-        return substr($docLimpo, 0, 2) . '.' .
-               substr($docLimpo, 2, 3) . '.' .
-               substr($docLimpo, 5, 3) . '/' .
-               substr($docLimpo, 8, 4) . '-' .
-               substr($docLimpo, 12, 2);
+        return substr($docLimpo, 0, 2) . '.' . substr($docLimpo, 2, 3) . '.' .
+               substr($docLimpo, 5, 3) . '/' . substr($docLimpo, 8, 4) . '-' . substr($docLimpo, 12, 2);
     }
     return htmlspecialchars($documento);
 }
-
-// Função para formatar telefone
 function formatTelefone($telefone) {
-    $tel = preg_replace('/\D/', '', $telefone);
-    if (strlen($tel) == 11) {
-        return '(' . substr($tel, 0, 2) . ') ' . substr($tel, 2, 5) . '-' . substr($tel, 7, 4);
-    } elseif (strlen($tel) == 10) {
-        return '(' . substr($tel, 0, 2) . ') ' . substr($tel, 2, 4) . '-' . substr($tel, 6, 4);
-    }
+    $tel = preg_replace('/\D/', '', (string)$telefone);
+    if (strlen($tel) == 11) return '(' . substr($tel, 0, 2) . ') ' . substr($tel, 2, 5) . '-' . substr($tel, 7, 4);
+    if (strlen($tel) == 10) return '(' . substr($tel, 0, 2) . ') ' . substr($tel, 2, 4) . '-' . substr($tel, 6, 4);
     return $telefone;
 }
-
-// Função para formatar CEP
 function formatCEP($cep) {
-    $cepLimpo = preg_replace('/\D/', '', $cep);
-    if (strlen($cepLimpo) == 8) {
-        return substr($cepLimpo, 0, 5) . '-' . substr($cepLimpo, 5, 3);
-    }
+    $cepLimpo = preg_replace('/\D/', '', (string)$cep);
+    if (strlen($cepLimpo) == 8) return substr($cepLimpo, 0, 5) . '-' . substr($cepLimpo, 5, 3);
     return $cep;
 }
-
-function formatValorOuPadrao($valor, $padrao = '-') {
-    return !empty($valor) ? htmlspecialchars($valor) : $padrao;
+function valOuMuted($v, $padrao = 'Não informado') {
+    if ($v === null || $v === '' ) {
+        return '<span class="info-value muted">' . htmlspecialchars($padrao) . '</span>';
+    }
+    return htmlspecialchars($v);
+}
+function moedaBR($v) {
+    return 'R$ ' . number_format((float)$v, 2, ',', '.');
+}
+function moedaCompact($v) {
+    $v = (float)$v;
+    if ($v >= 1000000) return 'R$ ' . number_format($v / 1000000, 2, ',', '.') . ' mi';
+    if ($v >= 10000)   return 'R$ ' . number_format($v / 1000, 1, ',', '.') . ' mil';
+    return moedaBR($v);
+}
+function formatPorte($p) {
+    $map = [
+        'MEI' => 'MEI <span class="text-muted small">(até R$ 81 mil)</span>',
+        'ME' => 'ME <span class="text-muted small">(até R$ 360 mil)</span>',
+        'EPP' => 'EPP <span class="text-muted small">(até R$ 4,8 mi)</span>',
+        'MEDIO' => 'Médio',
+        'GRANDE' => 'Grande',
+    ];
+    return $map[$p] ?? ($p ?: '—');
+}
+function iniciais($nome) {
+    $nome = trim((string)$nome);
+    if ($nome === '') return '?';
+    $partes = preg_split('/\s+/', $nome);
+    $iniciais = '';
+    foreach ($partes as $p) {
+        if (strlen($iniciais) >= 2) break;
+        $iniciais .= mb_strtoupper(mb_substr($p, 0, 1));
+    }
+    return $iniciais;
+}
+function diasDesde($dataStr) {
+    if (!$dataStr) return null;
+    try {
+        $dt = new DateTime($dataStr);
+        $hoje = new DateTime();
+        return (int) $hoje->diff($dt)->days;
+    } catch (Exception $e) { return null; }
 }
 
-function formatTextoMultilinhaOuPadrao($valor, $padrao = '-') {
-    return !empty($valor) ? nl2br(htmlspecialchars($valor)) : $padrao;
+$ultimaDias = diasDesde($kpis['ultima_data']);
+$cadastroFmt = '';
+if (!empty($cliente['data_cadastro'])) {
+    try { $cadastroFmt = (new DateTime($cliente['data_cadastro']))->format('d/m/Y'); } catch (Exception $e) {}
 }
 
-$tituloDadosPrincipais = 'Dados da Empresa';
-$labelNomeEmpresa = 'Razão Social';
+// Identificar representante atual entre os sócios
+$repNomeNorm = strtolower(trim(preg_replace('/\s+/', ' ', $cliente['representante_nome'] ?? '')));
+$repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($pageTitle); ?></title>
+    <title><?php echo htmlspecialchars($cliente['empresa'] ?? $pageTitle); ?> · Visualizar Cliente</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
+        :root {
+            --view-grad: linear-gradient(135deg, #0a8754 0%, #15b079 100%);
+            --profit: #198754;
+            --profit-soft: #d1f0dc;
+            --warn: #b76b00;
+            --warn-soft: #fff3d6;
+            --danger: #b02a37;
+            --danger-soft: #fde2e4;
+            --neutral: #6c757d;
+            --surface: #ffffff;
+            --surface-2: #f6f8fb;
+            --border: #e3e8ef;
+        }
+        body { background: #eef2f7; font-size: 0.95rem; }
+
+        .page-toolbar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
+        .id-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 999px;
+            background: #eef4ff; color: #0a4ea8;
+            font-size: 0.78rem; font-weight: 700;
+            margin-left: 6px;
+        }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 999px;
+            font-size: 0.8rem; font-weight: 600;
+            background: var(--profit-soft); color: #0f5132;
+        }
+
+        .section-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+        .section-card .section-head {
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+        .section-card .section-head .step-num {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background: #0d6efd;
+            color: #fff;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .section-card .section-head h2 {
+            font-size: 0.95rem; font-weight: 600; margin: 0; flex: 1;
+        }
+        .section-card .section-head .head-meta {
+            font-size: 0.78rem; color: var(--neutral);
+        }
+        .section-card .section-body { padding: 18px; }
+
+        .section-card.s-people .section-head .step-num { background: #6f42c1; }
+        .section-card.s-rep    .section-head .step-num { background: #d63384; }
+        .section-card.s-addr   .section-head .step-num { background: #fd7e14; }
+        .section-card.s-bank   .section-head .step-num { background: #0a8754; }
+
+        /* Label/value styling — usa o grid do Bootstrap (row g-3 + col-md-X) igual ao form_cliente.php */
         .info-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--neutral);
             font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.25rem;
+            margin-bottom: 3px;
         }
         .info-value {
+            font-size: 0.95rem;
             color: #212529;
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            background-color: #f8f9fa;
-            border-radius: 0.375rem;
-            border: 1px solid #e9ecef;
+            font-weight: 500;
+            min-height: 22px;
+            overflow-wrap: break-word;
         }
-        .socio-item {
-            border: 1px solid #dee2e6;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            background-color: #f8f9fa;
+        .info-value.muted { color: #adb5bd; font-style: italic; font-weight: 400; }
+        .info-value a { color: #0a58ca; text-decoration: none; }
+        .info-value a:hover { text-decoration: underline; }
+
+        .socio-view-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            gap: 14px;
         }
-        .badge-id {
-            font-size: 1.1rem;
-            padding: 0.5rem 1rem;
+        .socio-view-card .avatar {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6f42c1, #d63384);
+            color: #fff;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 700; flex-shrink: 0;
+        }
+        .socio-view-card .name { font-weight: 600; }
+        .socio-view-card .doc  { font-size: 0.82rem; color: var(--neutral); }
+        .socio-view-card .role-chip {
+            display: inline-block;
+            font-size: 0.7rem; font-weight: 600;
+            padding: 2px 8px; border-radius: 999px;
+            background: #fce4ec; color: #d63384;
+            margin-left: 6px;
+        }
+
+        /* Sticky panel */
+        .sticky-panel {
+            position: sticky; top: 16px;
+            border-radius: 14px; overflow: hidden;
+            border: 1px solid var(--border);
+            background: #fff;
+        }
+        .sticky-panel .panel-head {
+            padding: 14px 18px;
+            display: flex; justify-content: space-between; align-items: center;
+            color: #fff;
+            background: var(--view-grad);
+        }
+        .sticky-panel .panel-head h3 {
+            font-size: 0.85rem; margin: 0; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.92;
+        }
+        .view-hero {
+            background: var(--view-grad);
+            color: #fff;
+            padding: 6px 18px 20px;
+        }
+        .view-hero .label { font-size: 0.74rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.04em; }
+        .view-hero .value { font-size: 1.6rem; font-weight: 700; line-height: 1.15; }
+        .view-hero .sub { font-size: 0.82rem; opacity: 0.9; margin-top: 4px; }
+
+        .view-kpi-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 8px; padding: 14px;
+            background: var(--surface);
+        }
+        .view-kpi {
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+        }
+        .view-kpi .k-label {
+            font-size: 0.7rem; color: var(--neutral);
+            text-transform: uppercase; letter-spacing: 0.04em;
+            font-weight: 600;
+        }
+        .view-kpi .k-value { font-size: 1.05rem; font-weight: 700; margin-top: 2px; }
+        .view-kpi.span2 { grid-column: 1 / -1; }
+        .view-kpi.k-good { background: var(--profit-soft); border-color: #b3e3c4; }
+        .view-kpi.k-good .k-value { color: var(--profit); }
+
+        .quick-contacts {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        .contact-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 10px; border-radius: 999px;
+            background: var(--surface-2); border: 1px solid var(--border);
+            font-size: 0.8rem; color: #495057; text-decoration: none;
+        }
+        .contact-chip:hover { background: #e9ecef; color: #212529; }
+        .contact-chip.wapp  { background: #e6f7eb; border-color: #b9e6c7; color: #146c43; }
+        .contact-chip.email { background: #eef4ff; border-color: #c8dafc; color: #0a4ea8; }
+        .contact-chip.tel   { background: #f3eeff; border-color: #ddd0f5; color: #5a32a3; }
+
+        .panel-actions {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 8px;
+            background: var(--surface);
+        }
+        .panel-actions .btn { font-weight: 600; }
+
+        .info-tabs {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 18px;
+        }
+        .ops-table { font-size: 0.88rem; margin-bottom: 0; }
+        .ops-table thead th {
+            background: var(--surface-2);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            color: var(--neutral);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 8px;
+        }
+        .ops-table tbody td { vertical-align: middle; padding: 10px 8px; }
+
+        .empty-block {
+            padding: 28px 18px;
+            text-align: center;
+            color: var(--neutral);
+            font-size: 0.88rem;
+        }
+        .empty-block i { font-size: 2.2rem; opacity: 0.4; }
+
+        @media print {
+            .page-toolbar .btn, .panel-actions, .quick-contacts { display: none !important; }
+            body { background: #fff; }
+            .sticky-panel { position: static; }
         }
     </style>
 </head>
 <body>
     <?php require_once 'menu.php'; ?>
 
-    <div class="container-fluid px-3 px-md-4 mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-            <div class="d-flex align-items-center gap-3">
-                <h1 class="mb-0">
-                    <i class="bi bi-eye-fill me-2"></i><?php echo htmlspecialchars($pageTitle); ?>
-                    <?php if (!empty($cliente['empresa'])): ?>
-                        <small class="text-muted fs-4">- <?php echo htmlspecialchars($cliente['empresa']); ?></small>
-                    <?php endif; ?>
+    <div class="container-fluid px-3 px-md-4 mt-4" style="max-width: 1500px;">
+
+        <!-- Toolbar -->
+        <div class="page-toolbar">
+            <div>
+                <h1>
+                    <i class="bi bi-building text-success"></i>
+                    <?php echo htmlspecialchars($cliente['empresa'] ?? '—'); ?>
+                    <span class="id-pill"><i class="bi bi-hash"></i>ID <?php echo (int)$cliente['id']; ?></span>
                 </h1>
-                <span class="badge bg-primary badge-id">ID: <?php echo $cliente['id']; ?></span>
+                <div class="text-muted small mt-1">
+                    CNPJ <strong><?php echo formatDocumento($cliente['documento_principal'] ?? ''); ?></strong>
+                    <?php if ($cadastroFmt): ?> · Cliente desde <?php echo $cadastroFmt; ?><?php endif; ?>
+                    · <span class="status-badge"><i class="bi bi-check-circle-fill"></i> Ativo</span>
+                </div>
             </div>
-            <div class="d-flex gap-2">
-                <a href="form_cliente.php?id=<?php echo $cliente['id']; ?>" class="btn btn-primary">
-                    <i class="bi bi-pencil-square"></i> Editar
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a href="listar_clientes.php" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Lista
                 </a>
-                <button type="button" class="btn btn-info text-white" onclick="window.print()">
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
                     <i class="bi bi-printer"></i> Imprimir
                 </button>
-                <a href="listar_clientes.php" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Voltar à Lista
+                <a href="form_cliente.php?id=<?php echo (int)$cliente['id']; ?>" class="btn btn-warning">
+                    <i class="bi bi-pencil-square"></i> Editar Cliente
                 </a>
             </div>
         </div>
 
-        <!-- Dados Principais -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-building"></i> <?php echo htmlspecialchars($tituloDadosPrincipais); ?></h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="info-label"><?php echo htmlspecialchars($labelNomeEmpresa); ?></div>
-                        <div class="info-value"><?php echo htmlspecialchars($cliente['empresa'] ?? '-'); ?></div>
+        <div class="row g-4">
+
+            <!-- ====== LEFT: dados do cliente ====== -->
+            <div class="col-xl-8">
+
+                <!-- Dados Empresa -->
+                <div class="section-card">
+                    <div class="section-head">
+                        <span class="step-num">1</span>
+                        <h2>Dados da Empresa</h2>
+                        <span class="head-meta">PJ · <?php echo formatPorte($cliente['porte'] ?? ''); ?></span>
                     </div>
-                    <div class="col-md-3">
-                        <div class="info-label">Porte</div>
-                        <div class="info-value">
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <div class="info-label">Razão Social</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['empresa'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="info-label">CNPJ</div>
+                                <div class="info-value"><?php echo formatDocumento($cliente['documento_principal'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="info-label">Porte</div>
+                                <div class="info-value"><?php echo formatPorte($cliente['porte'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="info-label">E-mail</div>
+                                <div class="info-value">
+                                    <?php if (!empty($cliente['email'])): ?>
+                                        <a href="mailto:<?php echo htmlspecialchars($cliente['email']); ?>"><?php echo htmlspecialchars($cliente['email']); ?></a>
+                                    <?php else: echo '<span class="muted">Não informado</span>'; endif; ?>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-label">Telefone</div>
+                                <div class="info-value">
+                                    <?php if (!empty($cliente['telefone'])): ?>
+                                        <a href="tel:<?php echo preg_replace('/\D/', '', $cliente['telefone']); ?>"><?php echo formatTelefone($cliente['telefone']); ?></a>
+                                    <?php else: echo '<span class="muted">Não informado</span>'; endif; ?>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-label"><i class="bi bi-whatsapp text-success"></i> WhatsApp</div>
+                                <div class="info-value">
+                                    <?php if (!empty($cliente['whatsapp'])): ?>
+                                        <a href="https://wa.me/55<?php echo preg_replace('/\D/', '', $cliente['whatsapp']); ?>" target="_blank" rel="noopener noreferrer"><?php echo formatTelefone($cliente['whatsapp']); ?></a>
+                                    <?php else: echo '<span class="muted">Não informado</span>'; endif; ?>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="info-label">Anotações</div>
+                                <div class="info-value"><?php
+                                    if (!empty($cliente['anotacoes'])) echo nl2br(htmlspecialchars($cliente['anotacoes']));
+                                    else echo '<span class="muted">Sem anotações.</span>';
+                                ?></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sócios -->
+                <div class="section-card s-people">
+                    <div class="section-head">
+                        <span class="step-num">2</span>
+                        <h2>Sócios da Empresa</h2>
+                        <span class="head-meta"><strong><?php echo count($socios); ?></strong> <?php echo count($socios) === 1 ? 'sócio cadastrado' : 'sócios cadastrados'; ?></span>
+                    </div>
+                    <div class="section-body">
+                        <?php if (!empty($socios)): ?>
+                            <div class="row g-2">
+                                <?php foreach ($socios as $socio):
+                                    $socioNomeNorm = strtolower(trim(preg_replace('/\s+/', ' ', $socio['nome'] ?? '')));
+                                    $socioCpfNorm = preg_replace('/\D/', '', $socio['cpf'] ?? '');
+                                    $isRep = ($repNomeNorm && $repCpfNorm && $socioNomeNorm === $repNomeNorm && $socioCpfNorm === $repCpfNorm);
+                                ?>
+                                    <div class="col-md-6">
+                                        <div class="socio-view-card">
+                                            <div class="avatar"><?php echo iniciais($socio['nome']); ?></div>
+                                            <div class="flex-grow-1">
+                                                <div class="name">
+                                                    <?php echo htmlspecialchars($socio['nome']); ?>
+                                                    <?php if ($isRep): ?>
+                                                        <span class="role-chip"><i class="bi bi-person-check-fill"></i> Representante</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="doc">CPF <?php echo formatDocumento($socio['cpf']); ?></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="empty-block">
+                                <i class="bi bi-people"></i>
+                                <div class="mt-2">Nenhum sócio cadastrado para esta empresa.</div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Representante -->
+                <?php if (!empty($cliente['representante_nome']) || !empty($cliente['representante_cpf'])): ?>
+                <div class="section-card s-rep">
+                    <div class="section-head">
+                        <span class="step-num">3</span>
+                        <h2>Representante Legal</h2>
+                        <span class="head-meta">Assina os contratos</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <div class="info-label">Nome</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['representante_nome'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="info-label">CPF</div>
+                                <div class="info-value"><?php echo formatDocumento($cliente['representante_cpf'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="info-label">RG</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['representante_rg'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="info-label">Nacionalidade</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['representante_nacionalidade'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="info-label">Estado Civil</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['representante_estado_civil'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="info-label">Profissão</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['representante_profissao'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-12">
+                                <div class="info-label">Endereço Completo</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['representante_endereco'] ?? ''); ?></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Endereço -->
+                <div class="section-card s-addr">
+                    <div class="section-head">
+                        <span class="step-num">4</span>
+                        <h2>Endereço da Empresa</h2>
+                        <span class="head-meta">
                             <?php
-                            $porte = $cliente['porte'] ?? '';
-                            if ($porte === 'MEDIO') {
-                                echo 'Médio';
-                            } elseif ($porte === 'GRANDE') {
-                                echo 'Grande';
-                            } elseif (!empty($porte)) {
-                                echo htmlspecialchars($porte);
-                            } else {
-                                echo '-';
+                            $cidUf = trim(($cliente['cidade'] ?? '') . ' / ' . ($cliente['estado'] ?? ''), ' /');
+                            echo htmlspecialchars($cidUf ?: '—');
+                            ?>
+                        </span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="info-label">CEP</div>
+                                <div class="info-value"><?php echo valOuMuted(formatCEP($cliente['cep'] ?? '')); ?></div>
+                            </div>
+                            <div class="col-md-7">
+                                <div class="info-label">Logradouro</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['logradouro'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="info-label">Número</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['numero'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="info-label">Complemento</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['complemento'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="info-label">Bairro</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['bairro'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="info-label">Cidade</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['cidade'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-1">
+                                <div class="info-label">UF</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['estado'] ?? ''); ?></div>
+                            </div>
+                            <?php if (!empty($cliente['endereco'])): ?>
+                            <div class="col-12">
+                                <div class="info-label">Observações</div>
+                                <div class="info-value"><?php echo nl2br(htmlspecialchars($cliente['endereco'])); ?></div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bancário -->
+                <div class="section-card s-bank">
+                    <div class="section-head">
+                        <span class="step-num">5</span>
+                        <h2>Dados Bancários</h2>
+                        <span class="head-meta">
+                            <?php
+                            $bancoTxt = trim(($cliente['conta_banco'] ?? '') . ' · ' . ($cliente['conta_tipo'] ?? ''), ' ·');
+                            echo $bancoTxt ? htmlspecialchars($bancoTxt) : '—';
+                            ?>
+                        </span>
+                    </div>
+                    <div class="section-body">
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <div class="info-label">Titular</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['conta_titular'] ?? $cliente['empresa'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="info-label">CNPJ Titular</div>
+                                <div class="info-value"><?php echo formatDocumento($cliente['conta_documento'] ?? $cliente['documento_principal'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="info-label">Banco</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['conta_banco'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="info-label">Agência</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['conta_agencia'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="info-label">Conta</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['conta_numero'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="info-label">Tipo</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['conta_tipo'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="info-label">Tipo PIX</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['conta_pix_tipo'] ?? ''); ?></div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="info-label">Chave PIX</div>
+                                <div class="info-value"><?php echo valOuMuted($cliente['conta_pix'] ?? ''); ?></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ====== RIGHT: sticky panel ====== -->
+            <div class="col-xl-4">
+                <div class="sticky-panel">
+                    <div class="panel-head">
+                        <h3><i class="bi bi-bar-chart-fill"></i> Resumo do Cliente</h3>
+                        <span class="badge bg-light text-success">Ativo</span>
+                    </div>
+
+                    <!-- Hero -->
+                    <div class="view-hero">
+                        <div class="label">Volume operado (12 meses)</div>
+                        <div class="value"><?php echo moedaBR($kpis['volume_12m']); ?></div>
+                        <div class="sub">
+                            <?php
+                            $totalOps = $kpis['total_ops'];
+                            echo $totalOps . ' ' . ($totalOps === 1 ? 'operação total' : 'operações totais');
+                            if ($kpis['ticket_medio'] > 0) {
+                                echo ' · ticket médio ' . moedaBR($kpis['ticket_medio']);
                             }
                             ?>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="info-label">CNPJ</div>
-                        <div class="info-value"><?php echo formatDocumento($cliente['documento_principal'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="info-label">Email</div>
-                        <div class="info-value">
-                            <?php if (!empty($cliente['email'])): ?>
-                                <a href="mailto:<?php echo htmlspecialchars($cliente['email']); ?>"><?php echo htmlspecialchars($cliente['email']); ?></a>
-                            <?php else: ?>
-                                -
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="info-label">Telefone</div>
-                        <div class="info-value">
-                            <?php if (!empty($cliente['telefone'])): ?>
-                                <a href="tel:<?php echo preg_replace('/\D/', '', $cliente['telefone']); ?>"><?php echo formatTelefone($cliente['telefone']); ?></a>
-                            <?php else: ?>
-                                -
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="info-label">WhatsApp</div>
-                        <div class="info-value">
-                            <?php if (!empty($cliente['whatsapp'])): ?>
-                                <a href="https://wa.me/55<?php echo preg_replace('/\D/', '', $cliente['whatsapp']); ?>" target="_blank" rel="noopener noreferrer"><?php echo formatTelefone($cliente['whatsapp']); ?></a>
-                            <?php else: ?>
-                                -
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-label">Tipo de Pessoa</div>
-                        <div class="info-value">
-                            <?php echo '<span class="badge bg-primary">Pessoa Jurídica</span>'; ?>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="info-label">Anotações</div>
-                        <div class="info-value"><?php echo formatTextoMultilinhaOuPadrao($cliente['anotacoes'] ?? ''); ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Representante -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-person-badge"></i> Representante</h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="info-label">Nome</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['representante_nome'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-label">CPF</div>
-                        <div class="info-value">
-                            <?php
-                            echo !empty($cliente['representante_cpf'])
-                                ? formatDocumento($cliente['representante_cpf'])
-                                : '-';
-                            ?>
+                    <!-- KPIs -->
+                    <div class="view-kpi-grid">
+                        <div class="view-kpi k-good">
+                            <div class="k-label">Operações totais</div>
+                            <div class="k-value"><?php echo $kpis['total_ops']; ?></div>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-label">RG</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['representante_rg'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-label">Estado Civil</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['representante_estado_civil'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-label">Profissão</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['representante_profissao'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-label">Nacionalidade</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['representante_nacionalidade'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-12">
-                        <div class="info-label">Endereço</div>
-                        <div class="info-value"><?php echo formatTextoMultilinhaOuPadrao($cliente['representante_endereco'] ?? ''); ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Endereço -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Endereço</h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <div class="info-label">CEP</div>
-                        <div class="info-value"><?php echo formatCEP($cliente['cep'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-label">Logradouro</div>
-                        <div class="info-value"><?php echo htmlspecialchars($cliente['logradouro'] ?? '-'); ?></div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="info-label">Número</div>
-                        <div class="info-value"><?php echo htmlspecialchars($cliente['numero'] ?? '-'); ?></div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="info-label">Complemento</div>
-                        <div class="info-value"><?php echo htmlspecialchars($cliente['complemento'] ?? '-'); ?></div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="info-label">Bairro</div>
-                        <div class="info-value"><?php echo htmlspecialchars($cliente['bairro'] ?? '-'); ?></div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="info-label">Cidade</div>
-                        <div class="info-value"><?php echo htmlspecialchars($cliente['cidade'] ?? '-'); ?></div>
-                    </div>
-                    <div class="col-md-1">
-                        <div class="info-label">UF</div>
-                        <div class="info-value"><?php echo htmlspecialchars($cliente['estado'] ?? '-'); ?></div>
-                    </div>
-                    <div class="col-12">
-                        <div class="info-label">Observações do Endereço</div>
-                        <div class="info-value"><?php echo formatTextoMultilinhaOuPadrao($cliente['endereco'] ?? ''); ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Dados Bancários -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-bank"></i> Dados Bancários</h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="info-label">Titular da Conta</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['conta_titular'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-label">CPF/CNPJ do Titular</div>
-                        <div class="info-value"><?php echo formatDocumento($cliente['conta_documento'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="info-label">Banco</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['conta_banco'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="info-label">Agência</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['conta_agencia'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="info-label">Conta</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['conta_numero'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="info-label">Tipo de Conta</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['conta_tipo'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="info-label">Tipo PIX</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['conta_pix_tipo'] ?? ''); ?></div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-label">Chave PIX</div>
-                        <div class="info-value"><?php echo formatValorOuPadrao($cliente['conta_pix'] ?? ''); ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-            <!-- Sócios -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-people"></i> Sócios da Empresa</h5>
-            </div>
-            <div class="card-body">
-                <?php if (!empty($socios)): ?>
-                    <div class="row">
-                        <?php foreach ($socios as $index => $socio): ?>
-                            <div class="col-md-6 mb-3">
-                                <div class="socio-item">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <h6 class="mb-0"><i class="bi bi-person-fill"></i> Sócio <?php echo $index + 1; ?></h6>
-                                        <span class="badge bg-secondary">ID: <?php echo $socio['id']; ?></span>
-                                    </div>
-                                    <div class="info-label">Nome</div>
-                                    <div class="info-value"><?php echo htmlspecialchars($socio['nome']); ?></div>
-                                    <div class="info-label">CPF</div>
-                                    <div class="info-value"><?php echo formatDocumento($socio['cpf']); ?></div>
-                                </div>
+                        <div class="view-kpi">
+                            <div class="k-label">Volume total</div>
+                            <div class="k-value"><?php echo moedaCompact($kpis['volume_total']); ?></div>
+                        </div>
+                        <div class="view-kpi">
+                            <div class="k-label">Última operação</div>
+                            <div class="k-value">
+                                <?php
+                                if ($ultimaDias === null) echo '—';
+                                elseif ($ultimaDias === 0) echo 'hoje';
+                                elseif ($ultimaDias === 1) echo 'ontem';
+                                else echo 'há ' . $ultimaDias . ' dias';
+                                ?>
                             </div>
-                        <?php endforeach; ?>
+                        </div>
+                        <div class="view-kpi">
+                            <div class="k-label">Lucro 12 meses</div>
+                            <div class="k-value"><?php echo moedaCompact($kpis['lucro_12m']); ?></div>
+                        </div>
                     </div>
-                <?php else: ?>
-                    <div class="text-muted text-center py-3">
-                        <i class="bi bi-info-circle"></i> Nenhum sócio cadastrado para esta empresa.
+
+                    <!-- Quick contacts -->
+                    <?php if (!empty($cliente['whatsapp']) || !empty($cliente['telefone']) || !empty($cliente['email'])): ?>
+                    <div class="quick-contacts">
+                        <?php if (!empty($cliente['whatsapp'])): ?>
+                            <a class="contact-chip wapp" href="https://wa.me/55<?php echo preg_replace('/\D/', '', $cliente['whatsapp']); ?>" target="_blank" rel="noopener noreferrer">
+                                <i class="bi bi-whatsapp"></i> <?php echo formatTelefone($cliente['whatsapp']); ?>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (!empty($cliente['telefone'])): ?>
+                            <a class="contact-chip tel" href="tel:<?php echo preg_replace('/\D/', '', $cliente['telefone']); ?>">
+                                <i class="bi bi-telephone-fill"></i> <?php echo formatTelefone($cliente['telefone']); ?>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (!empty($cliente['email'])): ?>
+                            <a class="contact-chip email" href="mailto:<?php echo htmlspecialchars($cliente['email']); ?>">
+                                <i class="bi bi-envelope-fill"></i> <?php echo htmlspecialchars($cliente['email']); ?>
+                            </a>
+                        <?php endif; ?>
                     </div>
+                    <?php endif; ?>
+
+                    <!-- Actions -->
+                    <div class="panel-actions">
+                        <a href="index.php?cliente_id=<?php echo (int)$cliente['id']; ?>" class="btn btn-primary">
+                            <i class="bi bi-calculator-fill"></i> Nova Simulação
+                        </a>
+                        <a href="form_cliente.php?id=<?php echo (int)$cliente['id']; ?>" class="btn btn-warning">
+                            <i class="bi bi-pencil-square"></i> Editar Cadastro
+                        </a>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                            <i class="bi bi-printer"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Últimas operações -->
+                <?php if (!empty($kpis['ultimas_ops'])): ?>
+                <div class="info-tabs mt-3">
+                    <div class="px-3 py-2 d-flex justify-content-between align-items-center" style="background:var(--surface-2);border-bottom:1px solid var(--border);">
+                        <strong class="small text-uppercase text-muted">Últimas Operações</strong>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table ops-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Data</th>
+                                    <th class="text-end">Valor</th>
+                                    <th>Tipo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($kpis['ultimas_ops'] as $op): ?>
+                                    <tr>
+                                        <td>
+                                            <a href="detalhes_operacao.php?id=<?php echo (int)$op['id']; ?>" class="text-decoration-none">
+                                                <strong>#<?php echo (int)$op['id']; ?></strong>
+                                            </a>
+                                        </td>
+                                        <td><?php
+                                            try { echo (new DateTime($op['data_operacao']))->format('d/m/Y'); }
+                                            catch (Exception $e) { echo '—'; }
+                                        ?></td>
+                                        <td class="text-end"><?php echo moedaBR($op['total_original_calc']); ?></td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border">
+                                                <?php echo $op['tipo_operacao'] === 'emprestimo' ? 'Empréstimo' : 'Antecipação'; ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 <?php endif; ?>
             </div>
-        </div>
 
-        <!-- Omitindo botoes redundantes do rodape
-        <div class="row">
-            <div class="col-12">
-                <a href="form_cliente.php?id=<?php echo $cliente['id']; ?>" class="btn btn-primary">
-                    <i class="bi bi-pencil-square"></i> Editar Cliente
-                </a>
-                <a href="listar_clientes.php" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Voltar à Lista
-                </a>
-                <button type="button" class="btn btn-info" onclick="window.print()">
-                    <i class="bi bi-printer"></i> Imprimir
-                </button>
-            </div>
         </div>
-        -->
 
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <style media="print">
-        .btn, .navbar {
-            display: none !important;
-        }
-        .card {
-            border: 1px solid #000 !important;
-            break-inside: avoid;
-        }
-        .info-value {
-            background-color: transparent !important;
-            border: none !important;
-        }
-    </style>
 </body>
 </html>

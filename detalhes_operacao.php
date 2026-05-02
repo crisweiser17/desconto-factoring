@@ -95,7 +95,14 @@ if (!function_exists('formatHtmlStatus')) {
 }
 
 if (!function_exists('getTableRowClass')) {
-    function getTableRowClass($status) {
+    function getTableRowClass($status, $data_vencimento = null) {
+        // Recebíveis vencidos (e ainda não recebidos/compensados) ganham destaque vermelho
+        if ($data_vencimento && !in_array($status, ['Recebido', 'Compensado', 'Totalmente Compensado'])) {
+            $hoje = date('Y-m-d');
+            if ($data_vencimento < $hoje) {
+                return 'table-danger fw-bold';
+            }
+        }
         switch ($status) {
             case 'Recebido': return 'table-light text-muted opacity-75';
             case 'Problema': return 'table-danger fw-bold';
@@ -152,6 +159,8 @@ if (!$operacao && !isset($error_message)) {
 $totalOriginalCalculado = 0;
 $totalLiquidoPagoCalculado = (float)($operacao['total_liquido_pago_calc'] ?? 0); // Do banco
 $totalLucroLiquidoCalculado = (float)($operacao['total_lucro_liquido_calc'] ?? 0); // Do banco
+$totalRecebidoCalculado = 0; // Soma do valor_recebido para títulos com status='Recebido'
+$capitalRecuperadoCalculado = 0; // Soma do valor_liquido_pago dos títulos já recebidos
 $totalIOFTeoricoCalculado = 0; // Acumula o IOF calculado em cada título
 $percentualLucroLiquido = 0; // Calculado no final
 $dataOperacaoDT = null;
@@ -244,6 +253,14 @@ if ($operacao && !isset($error_message)) {
                 $r['dias_para_vencimento_calc'] = $detalhe_titulo['dias'];
                 $r['valor_liquido_calc_dinamico'] = $detalhe_titulo['valor_liquido_pago'];
                 $r['lucro_liquido_calc_dinamico'] = $detalhe_titulo['lucro_liquido'];
+
+                // Acumular total efetivamente recebido e capital recuperado (apenas status='Recebido')
+                if (($r['status'] ?? '') === 'Recebido') {
+                    if (is_numeric($r['valor_recebido'] ?? null)) {
+                        $totalRecebidoCalculado += (float)$r['valor_recebido'];
+                    }
+                    $capitalRecuperadoCalculado += (float)$detalhe_titulo['valor_liquido_pago'];
+                }
                 $recebiveis_para_exibir[] = $r;
                 
                 // --- DADOS PARA O NOVO GRÁFICO ---
@@ -365,73 +382,182 @@ if ($operacao && !isset($error_message)) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <style>
-        .card-header { background-color: #e9ecef; }
+        :root {
+            --hero-bg-grad: linear-gradient(135deg, #0d3a6e 0%, #1d5fb0 100%);
+            --view-grad: linear-gradient(135deg, #0a8754 0%, #15b079 100%);
+            --profit: #198754; --profit-soft: #d1f0dc;
+            --warn: #b76b00; --warn-soft: #fff3d6;
+            --danger: #b02a37; --danger-soft: #fde2e4;
+            --info: #0a4ea8; --info-soft: #eef4ff;
+            --neutral: #6c757d;
+            --surface: #ffffff; --surface-2: #f6f8fb;
+            --border: #e3e8ef;
+        }
+        body { background: #eef2f7; font-size: 0.95rem; }
+
+        /* Toolbar */
+        .page-toolbar {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px 18px; margin-bottom: 18px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .page-toolbar h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
+        .page-toolbar h1 .subtitle { font-size: 0.95rem; font-weight: 400; color: var(--neutral); margin-left: 8px; }
+        .id-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 999px;
+            background: var(--info-soft); color: var(--info);
+            font-size: 0.78rem; font-weight: 700; margin-left: 6px;
+        }
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 999px;
+            font-size: 0.78rem; font-weight: 600;
+        }
+        .status-pill.s-aberto    { background: var(--info-soft); color: var(--info); }
+        .status-pill.s-concluida { background: var(--profit-soft); color: var(--profit); }
+        .status-pill.s-parcial   { background: var(--warn-soft); color: var(--warn); }
+        .status-pill.s-problema  { background: var(--danger-soft); color: var(--danger); }
+        .pill-tipo {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 9px; border-radius: 999px;
+            font-size: 0.78rem; font-weight: 600;
+        }
+        .pill-tipo.antecip { background: var(--profit-soft); color: var(--profit); }
+        .pill-tipo.empr    { background: var(--warn-soft); color: var(--warn); }
+
+        /* Section card (substitui .card) */
+        .section-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; margin-bottom: 18px; overflow: hidden;
+        }
+        .section-card .section-head {
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+        .section-card .section-head .step-num {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: #0d6efd; color: #fff;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
+        }
+        .section-card .section-head h2,
+        .section-card .section-head h5 {
+            font-size: 0.95rem; font-weight: 600; margin: 0; flex: 1;
+        }
+        .section-card .section-head .head-meta { font-size: 0.78rem; color: var(--neutral); }
+        .section-card .section-body { padding: 18px; }
+        .section-card.s-recb .section-head .step-num   { background: #0d6efd; }
+        .section-card.s-data .section-head .step-num   { background: #6f42c1; }
+        .section-card.s-cont .section-head .step-num   { background: #d63384; }
+        .section-card.s-anex .section-head .step-num   { background: #fd7e14; }
+        .section-card.s-anot .section-head .step-num   { background: #0a8754; }
+        .section-card.s-flux .section-head .step-num   { background: #b76b00; }
+
+        /* Sticky panel */
+        .sticky-panel {
+            position: sticky; top: 16px;
+            border-radius: 14px; overflow: hidden;
+            border: 1px solid var(--border); background: #fff;
+            margin-bottom: 18px;
+        }
+        .sticky-panel .panel-head {
+            padding: 14px 18px;
+            display: flex; justify-content: space-between; align-items: center;
+            color: #fff; background: var(--hero-bg-grad);
+        }
+        .sticky-panel .panel-head h3 {
+            font-size: 0.85rem; margin: 0; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.92;
+        }
+        .summary-hero {
+            background: var(--hero-bg-grad); color: #fff;
+            padding: 6px 18px 22px;
+        }
+        .summary-hero .h-label { font-size: 0.78rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.04em; }
+        .summary-hero .h-value { font-size: 2.05rem; font-weight: 700; line-height: 1.1; }
+        .summary-hero .h-sub { font-size: 0.8rem; opacity: 0.85; margin-top: 4px; }
+        .summary-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 8px; padding: 14px; background: var(--surface);
+        }
+        .summary-cell {
+            border-radius: 10px; padding: 10px 12px;
+            background: var(--surface-2); border: 1px solid var(--border);
+        }
+        .summary-cell .c-label {
+            font-size: 0.7rem; color: var(--neutral);
+            text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+        }
+        .summary-cell .c-value { font-size: 1.05rem; font-weight: 700; margin-top: 2px; }
+        .summary-cell.span2 { grid-column: 1 / -1; }
+        .summary-cell.profit { background: var(--profit-soft); border-color: #b3e3c4; }
+        .summary-cell.profit .c-value { color: var(--profit); }
+        .summary-cell.warn { background: var(--warn-soft); border-color: #f1d999; }
+        .summary-cell.warn .c-value { color: var(--warn); }
+        .summary-cell.info { background: #e7f1ff; border-color: #b6d4fe; }
+        .summary-cell.info .c-value { color: #0a58ca; }
+        .progress-recup {
+            margin-top: 8px; height: 8px; border-radius: 4px;
+            background: rgba(0,0,0,0.08); overflow: hidden;
+        }
+        .progress-recup-bar {
+            height: 100%; background: linear-gradient(90deg, var(--profit) 0%, #4caf80 100%);
+            border-radius: 4px; transition: width 0.4s ease;
+        }
+        .progress-breakdown {
+            display: flex; justify-content: space-between; gap: 8px;
+            margin-top: 8px; font-size: 0.78rem; color: var(--neutral);
+        }
+        .progress-breakdown b { color: #1c2229; font-weight: 700; }
+        .progress-status { margin-top: 6px; font-size: 0.78rem; font-weight: 600; }
+        .progress-status.ok { color: var(--profit); }
+        .progress-status.pending { color: var(--warn); }
+        .panel-actions {
+            padding: 14px 16px; border-top: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 8px;
+            background: var(--surface);
+        }
+        .panel-actions .btn { font-weight: 600; }
+        .panel-actions .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        /* Estilos legados preservados */
         .table th { width: auto; }
         .list-group-item strong { display: inline-block; width: 180px; }
         .chart-wrapper { position: relative; min-height: 700px; margin-top: 20px; margin-bottom: 30px; }
         .chart-wrapper canvas { max-width: 100%; max-height: 100%; }
-
-        /* Estilos para os botões de ação do recebível (copiado de listar_recebiveis.php) */
         .action-btn { margin: 0 2px; padding: 0.15rem 0.4rem; font-size: 0.8em; }
-        /* Estilos para linhas de status (copiado de listar_recebiveis.php) */
-        tr.table-light.text-muted.opacity-75 td { /* Estilos para recebido */ }
-        tr.table-danger.fw-bold td { /* Estilos para problema */ }
-        
+
         /* Tooltip customizado */
-        .tooltip-wrapper {
-            position: relative;
-            display: inline-block;
-        }
+        .tooltip-wrapper { position: relative; display: inline-block; }
         .tooltip-wrapper .tooltip-text {
-            visibility: hidden;
-            width: auto;
-            min-width: 220px;
-            max-width: 300px;
-            background-color: #000 !important;
-            color: #fff !important;
-            text-align: center;
-            border-radius: 6px;
-            padding: 10px 15px;
-            position: absolute;
-            z-index: 1000;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.2s;
-            font-size: 0.75rem;
-            white-space: normal;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-            border: 1px solid #333;
+            visibility: hidden; width: auto; min-width: 220px; max-width: 300px;
+            background-color: #000 !important; color: #fff !important;
+            text-align: center; border-radius: 6px; padding: 10px 15px;
+            position: absolute; z-index: 1000; bottom: 125%; left: 50%;
+            transform: translateX(-50%); opacity: 0; transition: opacity 0.2s;
+            font-size: 0.75rem; white-space: normal;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5); border: 1px solid #333;
         }
         .tooltip-wrapper .tooltip-text::after {
-            content: "";
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
+            content: ""; position: absolute; top: 100%; left: 50%;
+            margin-left: -5px; border-width: 5px; border-style: solid;
             border-color: #000 transparent transparent transparent;
         }
-        .tooltip-wrapper:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-        /* Estilos do Viewer.js para 90% da tela */
+        .tooltip-wrapper:hover .tooltip-text { visibility: visible; opacity: 1; }
+
+        /* Viewer.js 90% */
         .viewer-90-percent,
         .viewer-container.viewer-90-percent {
-            width: 90% !important;
-            height: 90% !important;
-            top: 5% !important;
-            left: 5% !important;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            width: 90% !important; height: 90% !important;
+            top: 5% !important; left: 5% !important;
+            border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5);
             background-color: transparent !important;
         }
-        .viewer-backdrop {
-            background-color: rgba(0, 0, 0, 0.85) !important;
-        }
+        .viewer-backdrop { background-color: rgba(0, 0, 0, 0.85) !important; }
     </style>
 </head>
 <body>
@@ -465,35 +591,76 @@ if ($operacao && !isset($error_message)) {
             $labelPagamento = $isEmprestimo ? 'Forma de Recebimento:' : 'Tipo de Pagamento:';
             ?>
 
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-3">
-                 <h1 class="mb-0">Detalhes da Operação #<?php echo htmlspecialchars($operacao['id']); ?></h1>
-                 <div class="d-flex flex-wrap gap-2">
-                    <!-- Ações Principais -->
-                    <div class="btn-group">
-                        <button id="editarOperacaoBtn" class="btn btn-warning btn-sm"><i class="bi bi-pencil-fill"></i> Editar Operação</button>
-                        <button id="gerarAnaliseInternaBtn" class="btn btn-primary btn-sm"><i class="bi bi-bar-chart-fill"></i> Gerar Análise Interna</button>
-                        <?php if (!$isEmprestimo): ?>
-                        <button id="notificarSacadosBtn" class="btn btn-info btn-sm text-white" data-operacao-id="<?php echo htmlspecialchars($operacao['id']); ?>"><i class="bi bi-envelope-fill"></i> Notificar Sacados</button>
+            <?php
+            // Determinar status agregado da operação para a toolbar
+            $statusAgg = 'Em Aberto';
+            if (!empty($recebiveis_para_exibir)) {
+                $temProblema = false; $temAberto = false; $temParcial = false; $todosRecebidos = true;
+                foreach ($recebiveis_para_exibir as $rEval) {
+                    $st = $rEval['status'] ?? '';
+                    if ($st === 'Problema') $temProblema = true;
+                    if ($st === 'Em Aberto') { $temAberto = true; $todosRecebidos = false; }
+                    if ($st === 'Parcialmente Compensado') { $temParcial = true; $todosRecebidos = false; }
+                    if (!in_array($st, ['Recebido', 'Compensado'], true)) $todosRecebidos = false;
+                }
+                if ($temProblema) $statusAgg = 'Com Problema';
+                elseif ($temAberto) $statusAgg = 'Em Aberto';
+                elseif ($temParcial) $statusAgg = 'Parcialmente Compensada';
+                elseif ($todosRecebidos) $statusAgg = 'Concluída';
+            }
+            $statusPillMap = [
+                'Em Aberto' => ['s-aberto', 'Em aberto', 'clock-fill'],
+                'Concluída' => ['s-concluida', 'Concluída', 'check-circle-fill'],
+                'Parcialmente Compensada' => ['s-parcial', 'Parcial', 'pie-chart-fill'],
+                'Com Problema' => ['s-problema', 'Com problema', 'exclamation-triangle-fill'],
+            ];
+            $sp = $statusPillMap[$statusAgg] ?? ['s-aberto', $statusAgg, 'circle-fill'];
+            $cedenteNomeTopo = $operacao['cedente_nome'] ?? ($operacao['cedente_empresa'] ?? '');
+            $dataOpFmt = !empty($operacao['data_operacao']) ? date('d/m/Y', strtotime($operacao['data_operacao'])) : '—';
+            ?>
+            <div class="page-toolbar">
+                <div>
+                    <h1>
+                        <i class="bi bi-receipt text-primary"></i>
+                        Operação <span class="text-primary">#<?php echo htmlspecialchars($operacao['id']); ?></span>
+                        <?php if ($cedenteNomeTopo): ?>
+                            <span class="subtitle">— <?php echo htmlspecialchars($cedenteNomeTopo); ?></span>
                         <?php endif; ?>
+                    </h1>
+                    <div class="text-muted small mt-1">
+                        <?php if ($isEmprestimo): ?>
+                            <span class="pill-tipo empr"><i class="bi bi-cash-coin"></i> Empréstimo</span>
+                        <?php else: ?>
+                            <span class="pill-tipo antecip"><i class="bi bi-arrow-return-left"></i> Antecipação</span>
+                        <?php endif; ?>
+                        · Registrada em <strong><?php echo $dataOpFmt; ?></strong>
+                        · <span class="status-pill <?php echo $sp[0]; ?>"><i class="bi bi-<?php echo $sp[2]; ?>"></i> <?php echo $sp[1]; ?></span>
                     </div>
-                    <!-- Ações Secundárias -->
-                    <div class="btn-group">
-                        <a href="gerar_recibo_cliente.php?id=<?php echo htmlspecialchars($operacao['id']); ?>"
-                           class="btn btn-outline-secondary btn-sm"
-                           target="_blank"
-                           title="Gerar Recibo do Cliente">
-                            <i class="bi bi-file-earmark-person"></i> Gerar Recibo
-                        </a>
-                        <a href="listar_operacoes.php" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Voltar para Lista</a>
-                    </div>
-                 </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <a href="listar_operacoes.php" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> Lista
+                    </a>
+                    <?php if (!$isEmprestimo): ?>
+                        <button id="notificarSacadosBtn" class="btn btn-success btn-sm" data-operacao-id="<?php echo htmlspecialchars($operacao['id']); ?>">
+                            <i class="bi bi-envelope-fill"></i> Notificar Sacados
+                        </button>
+                    <?php endif; ?>
+                    <button id="editarOperacaoBtn" class="btn btn-warning">
+                        <i class="bi bi-pencil-square"></i> Editar
+                    </button>
+                </div>
             </div>
 
-            <div class="card mb-4">
-                <div class="card-header">
+            <div class="row g-4">
+            <div class="col-xl-8">
+
+            <div class="section-card s-data">
+                <div class="section-head">
+                    <span class="step-num">1</span>
                     <h5 class="mb-0">Dados da Operação</h5>
                 </div>
-                <div class="card-body">
+                <div class="section-body">
                     <div class="row g-3">
                         <div class="col-md-6">
                             <strong class="text-muted d-block mb-1"><?php echo $labelParteOperacao; ?></strong>
@@ -714,24 +881,29 @@ if ($operacao && !isset($error_message)) {
                 </div>
             </div>
 
-            <h3 class="mb-3">Recebíveis da Operação</h3>
-
+            <div class="section-card s-recb">
+                <div class="section-head">
+                    <span class="step-num">2</span>
+                    <h5 class="mb-0">Recebíveis da Operação</h5>
+                    <span class="head-meta"><?php echo count($recebiveis_para_exibir ?? []); ?> título<?php echo count($recebiveis_para_exibir ?? []) === 1 ? '' : 's'; ?></span>
+                </div>
+                <div class="section-body p-0">
             <?php if (isset($error_message_recebiveis)): ?>
-                 <div class="alert alert-warning"><?php echo $error_message_recebiveis; ?></div>
+                 <div class="alert alert-warning m-3"><?php echo $error_message_recebiveis; ?></div>
             <?php elseif (empty($recebiveis_para_exibir)): ?>
-                <div class="alert alert-info">Nenhum recebível encontrado para esta operação.</div>
+                <div class="alert alert-info m-3">Nenhum recebível encontrado para esta operação.</div>
             <?php else: ?>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover">
+                    <table class="table table-bordered table-striped table-hover mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th class="text-center">ID Recebível</th>
+                                <th class="text-center">ID</th>
                                 <th class="text-center">Vencimento</th>
                                 <th class="text-center">Sacado (Devedor)</th>
-                                <th class="text-center">Tipo Recebível</th>
+                                <th class="text-center">Tipo</th>
                                 <th class="text-end">Valor Original</th>
-                                <th class="text-center">Dias para Vencimento</th>
-                                <th class="text-end">Valor Pago</th>
+                                <th class="text-end">Capital Aplicado</th>
+                                <th class="text-end">Recebido</th>
                                 <th class="text-end">Lucro</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-center" style="width: 110px;">Ações</th>
@@ -747,7 +919,19 @@ if ($operacao && !isset($error_message)) {
                                     $valor_liquido_recebido_item = $r['valor_liquido_calc_dinamico'];
                                     $lucro_atual_recebivel = $r['lucro_liquido_calc_dinamico'];
 
-                                    $rowClass = getTableRowClass($r['status']);
+                                    // Calcular dias entre hoje e o vencimento (negativo se vencido)
+                                    $dias_atraso_hoje = 0;
+                                    try {
+                                        $_hoje = new DateTime('today');
+                                        $_venc = new DateTime($r['data_vencimento']);
+                                        $_venc->setTime(0, 0, 0);
+                                        $_diff = $_hoje->diff($_venc);
+                                        $dias_atraso_hoje = $_venc < $_hoje ? -$_diff->days : $_diff->days;
+                                    } catch (Exception $e) {
+                                        $dias_atraso_hoje = 0;
+                                    }
+
+                                    $rowClass = getTableRowClass($r['status'], $r['data_vencimento'] ?? null);
                                     
                                     // Calcular saldo em aberto e buscar operação compensadora para recebíveis parcialmente compensados
                                     $saldo_aberto = null;
@@ -778,9 +962,43 @@ if ($operacao && !isset($error_message)) {
                                         }
                                     }
                                 ?>
+                                <?php
+                                    $valor_original = (float)$r['valor_original'];
+                                    $valor_recebido_db = isset($r['valor_recebido']) && is_numeric($r['valor_recebido']) ? (float)$r['valor_recebido'] : null;
+                                    $is_recebido = $r['status'] === 'Recebido';
+                                    $is_compensado = in_array($r['status'], ['Compensado', 'Totalmente Compensado']);
+                                    $is_vencido_aberto = $dias_atraso_hoje < 0 && !$is_recebido && !$is_compensado;
+                                    // Lucro realizado: se recebido com valor diferente, ajusta o lucro pela diferença
+                                    $lucro_exibicao = $lucro_atual_recebivel;
+                                    if ($is_recebido && $valor_recebido_db !== null) {
+                                        $lucro_exibicao = $valor_recebido_db - (float)$valor_liquido_recebido_item;
+                                    }
+                                    $valor_exibicao = $valor_original;
+                                    if ($is_vencido_aberto) {
+                                        $calc_corr = calcularValorCorrigido($valor_original, $r['data_vencimento']);
+                                        $valor_exibicao = $calc_corr['valor_corrigido'];
+                                    } elseif ($is_recebido && $valor_recebido_db !== null) {
+                                        $valor_exibicao = $valor_recebido_db;
+                                    }
+                                ?>
                                 <tr id="recebivel-row-<?php echo $r['id']; ?>" class="<?php echo $rowClass; ?>">
                                     <td class="text-center"><?php echo htmlspecialchars($r['id']); ?></td>
-                                    <td class="text-center"><?php echo formatHtmlDate($r['data_vencimento']); ?></td>
+                                    <td class="text-center">
+                                        <div class="text-nowrap"><?php echo formatHtmlDate($r['data_vencimento']); ?></div>
+                                        <?php
+                                        if ($is_recebido && !empty($r['data_recebimento'])) {
+                                            echo '<div class="small text-success text-nowrap"><i class="bi bi-check-circle"></i> pago em ' . formatHtmlDate($r['data_recebimento']) . '</div>';
+                                        } elseif ($is_compensado) {
+                                            echo '<div class="small text-muted">—</div>';
+                                        } elseif ($dias_atraso_hoje < 0) {
+                                            echo '<div class="small text-danger fw-bold text-nowrap">' . abs($dias_atraso_hoje) . ' dias em atraso</div>';
+                                        } elseif ($dias_atraso_hoje === 0) {
+                                            echo '<div class="small text-warning fw-bold">vence hoje</div>';
+                                        } else {
+                                            echo '<div class="small text-muted text-nowrap">em ' . htmlspecialchars($dias_atraso_hoje) . ' dias</div>';
+                                        }
+                                        ?>
+                                    </td>
                                     <td class="text-center">
                                         <?php if ($r['sacado_id']): ?>
                                             <a href="visualizar_cliente.php?id=<?php echo $r['sacado_id']; ?>" title="Ver/Editar Sacado">
@@ -792,22 +1010,48 @@ if ($operacao && !isset($error_message)) {
                                     </td>
                                     <td class="text-center"><?php echo htmlspecialchars($r['tipo_recebivel'] ?? 'N/A'); ?></td>
                                     <td class="text-end">
-                                        <?php 
-                                        $valor_original = $r['valor_original'];
-                                        if ($dias_para_vencimento < 0 && $r['status'] !== 'Recebido' && $r['status'] !== 'Compensado' && $r['status'] !== 'Totalmente Compensado') {
-                                            $calc = calcularValorCorrigido($valor_original, $r['data_vencimento']);
-                                            $valor_exibicao = $calc['valor_corrigido'];
-                                            echo '<div><span class="text-decoration-line-through text-muted small">' . formatHtmlCurrency($valor_original) . '</span></div>';
-                                            echo '<div class="text-danger fw-bold" title="Atraso de ' . $calc['dias_atraso'] . ' dias. Juros: ' . formatHtmlCurrency($calc['valor_juros']) . ' / Multa: ' . formatHtmlCurrency($calc['valor_multa']) . '">' . formatHtmlCurrency($valor_exibicao) . ' <i class="bi bi-info-circle small"></i></div>';
+                                        <?php
+                                        if ($is_vencido_aberto) {
+                                            // Em atraso e não recebido: mostra original riscado + corrigido até hoje
+                                            echo '<div class="text-nowrap"><span class="text-decoration-line-through text-muted small">' . formatHtmlCurrency($valor_original) . '</span></div>';
+                                            echo '<div class="text-danger fw-bold text-nowrap" title="Atraso de ' . $calc_corr['dias_atraso'] . ' dias. Juros: ' . formatHtmlCurrency($calc_corr['valor_juros']) . ' / Multa: ' . formatHtmlCurrency($calc_corr['valor_multa']) . '">' . formatHtmlCurrency($calc_corr['valor_corrigido']) . ' <i class="bi bi-info-circle small"></i></div>';
                                         } else {
-                                            $valor_exibicao = $valor_original;
-                                            echo '<div>' . formatHtmlCurrency($valor_original) . '</div>';
+                                            echo '<div class="text-nowrap">' . formatHtmlCurrency($valor_original) . '</div>';
                                         }
                                         ?>
                                     </td>
-                                    <td class="text-center"><?php echo htmlspecialchars($dias_para_vencimento); ?></td>
-                                    <td class="text-end"><?php echo formatHtmlCurrency($valor_liquido_recebido_item); ?></td>
-                                    <td class="text-end"><?php echo formatHtmlCurrency($lucro_atual_recebivel); ?></td>
+                                    <td class="text-end text-muted text-nowrap"><?php echo formatHtmlCurrency($valor_liquido_recebido_item); ?></td>
+                                    <td class="text-end">
+                                        <?php
+                                        if ($is_recebido && $valor_recebido_db !== null) {
+                                            $diferenca = $valor_recebido_db - $valor_original;
+                                            if (abs($diferenca) > 0.01) {
+                                                $is_acrescimo = $diferenca > 0;
+                                                $cor = $is_acrescimo ? 'text-success' : 'text-warning';
+                                                $sinal = $is_acrescimo ? '+' : '−';
+                                                $tooltip = $is_acrescimo
+                                                    ? 'Acréscimo de ' . formatHtmlCurrency(abs($diferenca)) . ' (juros/mora).'
+                                                    : 'Desconto de ' . formatHtmlCurrency(abs($diferenca)) . '.';
+                                                echo '<div class="' . $cor . ' fw-bold text-nowrap" title="' . htmlspecialchars($tooltip) . '">' . formatHtmlCurrency($valor_recebido_db) . '</div>';
+                                                echo '<div class="small ' . $cor . ' text-nowrap">' . $sinal . formatHtmlCurrency(abs($diferenca)) . ' vs original</div>';
+                                            } else {
+                                                echo '<div class="text-success fw-bold text-nowrap">' . formatHtmlCurrency($valor_recebido_db) . '</div>';
+                                            }
+                                        } elseif ($is_compensado) {
+                                            echo '<div class="text-muted text-nowrap">—</div>';
+                                        } else {
+                                            echo '<div class="text-muted text-nowrap" style="opacity: 0.55;">' . formatHtmlCurrency(0) . '</div>';
+                                        }
+                                        ?>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="text-nowrap fw-bold <?php echo $lucro_exibicao < 0 ? 'text-danger' : ''; ?>"><?php echo formatHtmlCurrency($lucro_exibicao); ?></div>
+                                        <?php if ($is_recebido): ?>
+                                            <div class="small text-success text-nowrap"><i class="bi bi-check-circle-fill"></i> realizado</div>
+                                        <?php elseif (!$is_compensado): ?>
+                                            <div class="small text-muted text-nowrap">projetado</div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-center status-cell"><?php echo formatHtmlStatus($r['status'], $r['data_recebimento'] ?? null, $saldo_aberto, $operacao_compensadora); ?></td>
                                     <td class="text-center actions-cell">
                                         <?php 
@@ -834,8 +1078,8 @@ if ($operacao && !isset($error_message)) {
                                 <td class="text-center">-</td>
                                 <td class="text-center">-</td>
                                 <td class="text-end"><?php echo formatHtmlCurrency($operacao['valor_total_compensacao']); ?></td>
-                                <td class="text-center">-</td>
                                 <td class="text-end"><?php echo formatHtmlCurrency(-$operacao['valor_total_compensacao']); ?></td>
+                                <td class="text-end"><?php echo formatHtmlCurrency(0); ?></td>
                                 <td class="text-end"><?php echo formatHtmlCurrency(0); ?></td>
                                 <td class="text-center"><span class="badge bg-warning">Abatido</span></td>
                                 <td class="text-center">-</td>
@@ -846,8 +1090,8 @@ if ($operacao && !isset($error_message)) {
                             <tr>
                                 <td colspan="4" class="text-end pe-3"><strong>Totais:</strong></td>
                                 <td class="text-end"><strong><?php echo formatHtmlCurrency($totalOriginalCalculado); ?></strong></td>
-                                <td class="text-center"></td>
-                                <td class="text-end"><strong><?php echo formatHtmlCurrency($totalLiquidoPagoCalculado); ?></strong></td>
+                                <td class="text-end text-muted"><strong><?php echo formatHtmlCurrency($totalLiquidoPagoCalculado); ?></strong></td>
+                                <td class="text-end <?php echo $totalRecebidoCalculado > 0 ? 'text-success' : 'text-muted'; ?>"><strong><?php echo formatHtmlCurrency($totalRecebidoCalculado); ?></strong></td>
                                 <td class="text-end"><strong><?php echo formatHtmlCurrency($totalLucroLiquidoCalculado); ?></strong></td>
                                 <td colspan="2"></td>
                             </tr>
@@ -855,28 +1099,29 @@ if ($operacao && !isset($error_message)) {
                     </table>
                 </div>
             <?php endif; ?>
+                </div>
+            </div>
 
             <!-- Seção de Contratos e Assinaturas -->
-            <div class="card mb-4" id="contratosCard">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="section-card s-cont" id="contratosCard">
+                <div class="section-head">
+                    <span class="step-num">3</span>
                     <h5 class="mb-0">Contratos e Assinaturas</h5>
-                    <div>
-                        <?php 
-                        $statusRaw = $operacao['status_contrato'] ?? 'pendente';
-                        $statusMap = [
-                            'aguardando_assinatura' => 'Aguardando Assinatura',
-                            'assinado' => 'Assinado',
-                            'pendente' => 'Pendente'
-                        ];
-                        $statusDisplay = $statusMap[$statusRaw] ?? ucfirst($statusRaw);
-                        $badgeClass = ($statusRaw === 'assinado') ? 'bg-success' : 'bg-warning text-dark';
-                        ?>
-                        <span class="badge <?php echo $badgeClass; ?>" id="statusContratoBadge">
-                            Status: <?php echo htmlspecialchars($statusDisplay); ?>
-                        </span>
-                    </div>
+                    <?php
+                    $statusRaw = $operacao['status_contrato'] ?? 'pendente';
+                    $statusMap = [
+                        'aguardando_assinatura' => 'Aguardando Assinatura',
+                        'assinado' => 'Assinado',
+                        'pendente' => 'Pendente'
+                    ];
+                    $statusDisplay = $statusMap[$statusRaw] ?? ucfirst($statusRaw);
+                    $badgeClass = ($statusRaw === 'assinado') ? 'bg-success' : 'bg-warning text-dark';
+                    ?>
+                    <span class="badge <?php echo $badgeClass; ?>" id="statusContratoBadge">
+                        Status: <?php echo htmlspecialchars($statusDisplay); ?>
+                    </span>
                 </div>
-                <div class="card-body">
+                <div class="section-body">
                     <div class="mb-3">
                         <button type="button" class="btn btn-primary btn-sm me-2" id="btnGerarContratos">
                             <i class="bi bi-file-earmark-text"></i> Gerar Contratos
@@ -910,14 +1155,15 @@ if ($operacao && !isset($error_message)) {
             </div>
 
             <!-- Seção de Arquivos da Operação -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="section-card s-anex">
+                <div class="section-head">
+                    <span class="step-num">4</span>
                     <h5 class="mb-0">Documentos Anexados</h5>
-                    <button type="button" class="btn btn-primary btn-sm" id="adicionarArquivosBtn">
+                    <button type="button" class="btn btn-sm" id="adicionarArquivosBtn" style="background:#fd7e14;color:#fff;">
                         <i class="bi bi-plus-circle"></i> Adicionar Arquivos
                     </button>
                 </div>
-                <div class="card-body">
+                <div class="section-body">
                     <div id="arquivos-loading" class="text-center" style="display: none;">
                         <div class="spinner-border" role="status">
                             <span class="visually-hidden">Carregando...</span>
@@ -976,14 +1222,16 @@ if ($operacao && !isset($error_message)) {
             </div>
 
             <!-- Seção de Anotações -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="section-card s-anot">
+                <div class="section-head">
+                    <span class="step-num">5</span>
                     <h5 class="mb-0">Anotações</h5>
-                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#novaAnotacaoModal">
+                    <span class="head-meta"><?php echo count($anotacoes ?? []); ?> registro<?php echo count($anotacoes ?? []) === 1 ? '' : 's'; ?></span>
+                    <button type="button" class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#novaAnotacaoModal" style="background:#0a8754;color:#fff;">
                         <i class="bi bi-plus-circle"></i> Nova Anotação
                     </button>
                 </div>
-                <div class="card-body">
+                <div class="section-body">
                     <?php if (isset($error_message_anotacoes)): ?>
                         <div class="alert alert-danger"><?php echo $error_message_anotacoes; ?></div>
                     <?php elseif (empty($anotacoes)): ?>
@@ -1363,6 +1611,19 @@ if ($operacao && !isset($error_message)) {
 
             <?php if (!$isEmprestimo): ?>
             <!-- Modal para Pré-visualização de Notificação -->
+            <?php
+            // Lê config.json para sugerir CC com o e-mail da credora
+            $_cfgEmail = [];
+            $_cfgPath = __DIR__ . '/config.json';
+            if (file_exists($_cfgPath)) {
+                $_cfgEmail = json_decode(file_get_contents($_cfgPath), true) ?: [];
+            }
+            $_defaultCc = trim((string)($_cfgEmail['resend_cc_email'] ?? ''));
+            if ($_defaultCc === '') {
+                $_defaultCc = trim((string)($_cfgEmail['empresa_email'] ?? ''));
+            }
+            $_defaultBcc = trim((string)($_cfgEmail['resend_bcc_email'] ?? ''));
+            ?>
             <div class="modal fade" id="previewNotificacaoModal" tabindex="-1" aria-labelledby="previewNotificacaoModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-xl modal-dialog-scrollable">
                     <div class="modal-content">
@@ -1382,6 +1643,20 @@ if ($operacao && !isset($error_message)) {
                                     <label for="selectSacadoPreview" class="form-label">Selecione o Sacado para visualizar o e-mail que ele receberá:</label>
                                     <select class="form-select" id="selectSacadoPreview"></select>
                                 </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-6">
+                                        <label for="emailCcInput" class="form-label small mb-1">CC <span class="text-muted">(separados por vírgula)</span></label>
+                                        <input type="text" class="form-control form-control-sm" id="emailCcInput"
+                                               value="<?php echo htmlspecialchars($_defaultCc); ?>"
+                                               placeholder="copia@dominio.com, outro@dominio.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="emailBccInput" class="form-label small mb-1">BCC <span class="text-muted">(separados por vírgula)</span></label>
+                                        <input type="text" class="form-control form-control-sm" id="emailBccInput"
+                                               value="<?php echo htmlspecialchars($_defaultBcc); ?>"
+                                               placeholder="oculto@dominio.com">
+                                    </div>
+                                </div>
                                 <div class="border rounded p-4 bg-light shadow-sm" style="min-height: 400px; overflow-y: auto;">
                                     <iframe id="iframePreviewEmail" style="width: 100%; min-height: 500px; border: none; background: #fff;"></iframe>
                                 </div>
@@ -1399,19 +1674,176 @@ if ($operacao && !isset($error_message)) {
             </div>
             <?php endif; ?>
 
-            <div id="status-feedback" class="mt-2 mb-3" style="min-height: 1.5em;"></div> <fieldset class="border p-3 rounded mb-5 mt-4">
-                <legend class="float-none w-auto px-3 h6">Fluxo de Caixa (Saída, Retorno e Lucro por Mês)</legend>
-                <?php if (empty($recebiveis_para_exibir) && $totalLiquidoPagoCalculado == 0): ?>
-                    <div class="alert alert-info text-center">Nenhum dado para gerar o gráfico.</div>
-                <?php else: ?>
-                    <div class="chart-wrapper"><canvas id="fluxoCaixaChart"></canvas></div>
-                <?php endif; ?>
-            </fieldset>
+            <div id="status-feedback" class="mt-2 mb-3" style="min-height: 1.5em;"></div>
+
+            <div class="section-card s-flux">
+                <div class="section-head">
+                    <span class="step-num">6</span>
+                    <h5 class="mb-0">Fluxo de Caixa por Mês</h5>
+                    <span class="head-meta">capital, retorno e lucro</span>
+                </div>
+                <div class="section-body">
+                    <?php if (empty($recebiveis_para_exibir) && $totalLiquidoPagoCalculado == 0): ?>
+                        <div class="alert alert-info text-center mb-0">Nenhum dado para gerar o gráfico.</div>
+                    <?php else: ?>
+                        <div class="chart-wrapper"><canvas id="fluxoCaixaChart"></canvas></div>
+                    <?php endif; ?>
+                </div>
+            </div>
 
             <form id="analiseInternaForm" method="POST" action="gera_analise_interna_pdf.php" target="_blank" style="display:none;">
                 <input type="hidden" name="operacao_id" value="<?php echo htmlspecialchars($operacao['id']); ?>">
                 <input type="hidden" name="chartImageData" id="chartImageData">
             </form>
+
+            </div><!-- /col-xl-8 -->
+
+            <!-- ===== STICKY PANEL ===== -->
+            <div class="col-xl-4">
+                <?php
+                // KPIs do painel sticky
+                $kpiTotalNominal = (float)($operacao['total_original_calc'] ?? 0);
+                $kpiLiquidoPago  = (float)($operacao['total_liquido_pago_calc'] ?? 0);
+                $kpiLucro        = (float)($operacao['total_lucro_liquido_calc'] ?? 0);
+                $kpiTaxa         = (float)($operacao['taxa_mensal'] ?? 0) * 100;
+                $kpiIof          = (float)($operacao['iof_total_calc'] ?? 0);
+                // Saldo em aberto e dias médios calculados a partir dos recebíveis
+                $kpiSaldoAberto = 0; $kpiQtdAberto = 0;
+                $kpiDiasSoma = 0; $kpiDiasCount = 0;
+                if (!empty($recebiveis_para_exibir)) {
+                    foreach ($recebiveis_para_exibir as $rk) {
+                        $stk = $rk['status'] ?? '';
+                        $vk  = (float)($rk['valor_original'] ?? 0);
+                        if ($stk === 'Em Aberto' || $stk === 'Problema') {
+                            $kpiSaldoAberto += $vk;
+                            $kpiQtdAberto++;
+                        } elseif ($stk === 'Parcialmente Compensado') {
+                            $kpiSaldoAberto += $vk;
+                            $kpiQtdAberto++;
+                        }
+                        if (!empty($rk['dias_para_vencimento_calc'])) {
+                            $kpiDiasSoma += (float)$rk['dias_para_vencimento_calc'];
+                            $kpiDiasCount++;
+                        }
+                    }
+                }
+                $kpiDiasMedios = $kpiDiasCount > 0 ? round($kpiDiasSoma / $kpiDiasCount) : 0;
+                $kpiMargem = $kpiTotalNominal > 0 ? ($kpiLucro / $kpiTotalNominal) * 100 : 0;
+
+                // Progresso financeiro
+                $kpiRecebido        = (float)$totalRecebidoCalculado;
+                $kpiCapitalAplicado = (float)$totalLiquidoPagoCalculado; // Investimento inicial total
+                $kpiCapitalRecup    = (float)$capitalRecuperadoCalculado; // Capital já recuperado dos títulos recebidos
+                $kpiLucroRealizado  = $kpiRecebido - $kpiCapitalRecup;   // Lucro travado dos recebimentos
+                $kpiFaltaBreakEven  = max(0, $kpiCapitalAplicado - $kpiRecebido);
+                $kpiPctRecuperacao  = $kpiCapitalAplicado > 0 ? min(100, ($kpiRecebido / $kpiCapitalAplicado) * 100) : 0;
+                $kpiPctNominal      = $kpiTotalNominal > 0 ? ($kpiRecebido / $kpiTotalNominal) * 100 : 0;
+                $kpiBreakEvenAtingido = $kpiCapitalAplicado > 0 && $kpiRecebido >= $kpiCapitalAplicado;
+                ?>
+                <div class="sticky-panel">
+                    <div class="panel-head">
+                        <h3><i class="bi bi-bar-chart-fill"></i> Resumo da Operação</h3>
+                        <span class="badge bg-light text-primary">#<?php echo (int)$operacao['id']; ?></span>
+                    </div>
+
+                    <div class="summary-hero">
+                        <div class="h-label">Lucro líquido <?php echo $statusAgg === 'Concluída' ? 'realizado' : 'projetado'; ?></div>
+                        <div class="h-value"><?php echo formatHtmlCurrency($kpiLucro); ?></div>
+                        <div class="h-sub">
+                            margem <?php echo number_format($kpiMargem, 1, ',', '.'); ?>%
+                            <?php if ($kpiDiasMedios > 0): ?>
+                                · <?php echo $kpiDiasMedios; ?> dias médios
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div class="summary-grid">
+                        <div class="summary-cell profit span2">
+                            <div class="c-label"><i class="bi bi-arrow-up-right"></i> Margem</div>
+                            <div class="c-value"><?php echo number_format($kpiMargem, 2, ',', '.'); ?>%</div>
+                        </div>
+                        <div class="summary-cell">
+                            <div class="c-label"><?php echo $isEmprestimo ? 'Valor a receber' : 'Total nominal'; ?></div>
+                            <div class="c-value"><?php echo formatHtmlCurrency($kpiTotalNominal); ?></div>
+                        </div>
+                        <div class="summary-cell">
+                            <div class="c-label"><?php echo $isEmprestimo ? 'Valor liberado' : 'Capital aplicado'; ?></div>
+                            <div class="c-value"><?php echo formatHtmlCurrency($kpiCapitalAplicado); ?></div>
+                        </div>
+                        <div class="summary-cell">
+                            <div class="c-label">Taxa</div>
+                            <div class="c-value"><?php echo number_format($kpiTaxa, 2, ',', '.'); ?>%</div>
+                        </div>
+                        <div class="summary-cell">
+                            <div class="c-label">Dias médios</div>
+                            <div class="c-value"><?php echo $kpiDiasMedios > 0 ? $kpiDiasMedios : '—'; ?></div>
+                        </div>
+
+                        <?php if ($kpiCapitalAplicado > 0): ?>
+                        <div class="summary-cell info span2">
+                            <div class="c-label"><i class="bi bi-graph-up-arrow"></i> Progresso financeiro</div>
+                            <div class="c-value">
+                                <?php echo formatHtmlCurrency($kpiRecebido); ?> recebido
+                                <span class="small text-muted ms-1"><?php echo number_format($kpiPctNominal, 1, ',', '.'); ?>% do nominal</span>
+                            </div>
+                            <div class="progress-recup" title="<?php echo number_format($kpiPctRecuperacao, 1, ',', '.'); ?>% do capital aplicado recuperado">
+                                <div class="progress-recup-bar" style="width: <?php echo number_format($kpiPctRecuperacao, 2, '.', ''); ?>%"></div>
+                            </div>
+                            <div class="progress-breakdown">
+                                <span>Capital recup.: <b><?php echo formatHtmlCurrency($kpiCapitalRecup); ?></b></span>
+                                <span>Lucro realiz.: <b class="<?php echo $kpiLucroRealizado > 0 ? 'text-success' : ''; ?>"><?php echo formatHtmlCurrency($kpiLucroRealizado); ?></b></span>
+                            </div>
+                            <div class="progress-status <?php echo $kpiBreakEvenAtingido ? 'ok' : 'pending'; ?>">
+                                <?php if ($kpiBreakEvenAtingido): ?>
+                                    <i class="bi bi-check-circle-fill"></i> Break-even atingido — todo recebimento agora é lucro líquido.
+                                <?php else: ?>
+                                    <i class="bi bi-arrow-clockwise"></i> Faltam <b><?php echo formatHtmlCurrency($kpiFaltaBreakEven); ?></b> em recebimentos para empatar o capital aplicado.
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if ($kpiSaldoAberto > 0): ?>
+                        <div class="summary-cell warn span2">
+                            <div class="c-label"><i class="bi bi-hourglass-split"></i> Saldo em aberto</div>
+                            <div class="c-value">
+                                <?php echo formatHtmlCurrency($kpiSaldoAberto); ?>
+                                <span class="small text-muted ms-1"><?php echo $kpiQtdAberto; ?> título<?php echo $kpiQtdAberto === 1 ? '' : 's'; ?></span>
+                            </div>
+                        </div>
+                        <?php elseif ($kpiIof > 0): ?>
+                        <div class="summary-cell warn span2">
+                            <div class="c-label"><i class="bi bi-receipt"></i> IOF total</div>
+                            <div class="c-value"><?php echo formatHtmlCurrency($kpiIof); ?></div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="panel-actions">
+                        <button id="editarOperacaoBtnSticky" class="btn btn-warning"
+                                onclick="document.getElementById('editarOperacaoBtn').click();">
+                            <i class="bi bi-pencil-square"></i> Editar Operação
+                        </button>
+                        <div class="btn-row">
+                            <button id="gerarAnaliseInternaBtn" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-file-earmark-pdf"></i> Análise PDF
+                            </button>
+                            <a href="gerar_recibo_cliente.php?id=<?php echo htmlspecialchars($operacao['id']); ?>"
+                               target="_blank" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-receipt"></i> Recibo PDF
+                            </a>
+                        </div>
+                        <?php if (!$isEmprestimo): ?>
+                            <button class="btn btn-success"
+                                    onclick="document.getElementById('notificarSacadosBtn').click();">
+                                <i class="bi bi-envelope-fill"></i> Notificar Sacados
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div><!-- /col-xl-4 -->
+
+            </div><!-- /row -->
 
         <?php endif; ?>
 
@@ -1500,10 +1932,19 @@ if ($operacao && !isset($error_message)) {
                 this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enviando...';
                 this.disabled = true;
 
+                const ccInput  = document.getElementById('emailCcInput');
+                const bccInput = document.getElementById('emailBccInput');
+                const ccVal  = ccInput  ? ccInput.value.trim()  : '';
+                const bccVal = bccInput ? bccInput.value.trim() : '';
+
                 fetch('notificar_sacados.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ operacao_id: currentOperacaoId })
+                    body: JSON.stringify({
+                        operacao_id: currentOperacaoId,
+                        cc: ccVal,
+                        bcc: bccVal
+                    })
                 })
                 .then(response => response.json())
                 .then(data => {
