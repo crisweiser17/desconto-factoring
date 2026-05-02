@@ -327,6 +327,7 @@ if (!$error) {
                             $monthData['lucro'] = $totalLucroLiquido * ($monthData['lucro'] / $lucroCalculadoTotal);
                         }
                     }
+                    unset($monthData);
                 }
             }
         }
@@ -408,6 +409,7 @@ if (!$error) {
                         $monthData['lucro'] -= $custoMes;
                     }
                 }
+                unset($monthData);
             }
         }
 
