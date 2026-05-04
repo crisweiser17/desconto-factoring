@@ -583,7 +583,7 @@ $current_filters = [
                 <a href="exportar_csv.php?<?php echo http_build_query($_GET); ?>" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-download"></i> Exportar CSV
                 </a>
-                <a href="index.php" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nova Operação</a>
+                <a href="simulacao.php" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nova Operação</a>
             </div>
         </div>
 
@@ -746,7 +746,7 @@ $current_filters = [
                     <i class="bi bi-inbox"></i>
                     <h4 class="mt-3 text-muted">Nenhuma operação registrada</h4>
                     <p>Ainda não há operações cadastradas no sistema.</p>
-                    <a href="index.php" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nova Operação</a>
+                    <a href="simulacao.php" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nova Operação</a>
                 <?php else: ?>
                     <i class="bi bi-search"></i>
                     <h4 class="mt-3 text-muted">Nenhum resultado</h4>

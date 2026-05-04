@@ -603,7 +603,7 @@ $baseParams = ['search' => $search, 'sort' => $sort, 'dir' => $dir, 'quick' => $
                                         <div class="row-actions">
                                             <a href="visualizar_cliente.php?id=<?php echo $cliente['id']; ?>" class="btn-ico" title="Visualizar"><i class="bi bi-eye-fill"></i></a>
                                             <a href="form_cliente.php?id=<?php echo $cliente['id']; ?>" class="btn-ico" title="Editar"><i class="bi bi-pencil-square"></i></a>
-                                            <a href="index.php?cliente_id=<?php echo $cliente['id']; ?>" class="btn-ico" title="Nova simulação"><i class="bi bi-calculator-fill"></i></a>
+                                            <a href="simulacao.php?cliente_id=<?php echo $cliente['id']; ?>" class="btn-ico" title="Nova simulação"><i class="bi bi-calculator-fill"></i></a>
                                             <a href="excluir_cliente.php?id=<?php echo $cliente['id']; ?>" class="btn-ico danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir este cliente? Operações associadas a ele podem ficar sem referência.');"><i class="bi bi-trash3-fill"></i></a>
                                         </div>
                                     </td>

@@ -754,7 +754,7 @@ $repCpfNorm = preg_replace('/\D/', '', $cliente['representante_cpf'] ?? '');
 
                     <!-- Actions -->
                     <div class="panel-actions">
-                        <a href="index.php?cliente_id=<?php echo (int)$cliente['id']; ?>" class="btn btn-primary">
+                        <a href="simulacao.php?cliente_id=<?php echo (int)$cliente['id']; ?>" class="btn btn-primary">
                             <i class="bi bi-calculator-fill"></i> Nova Simulação
                         </a>
                         <a href="form_cliente.php?id=<?php echo (int)$cliente['id']; ?>" class="btn btn-warning">

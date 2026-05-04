@@ -16,22 +16,22 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 // Define os links do menu, usando uma estrutura para dropdown
 // Adicionados ícones (Bootstrap Icons) como parte do label para simplicidade
 $menuItems = [
-    'index.php' => '<i class="bi bi-calculator"></i> Nova Simulação',
-    // Estrutura para o dropdown de Operações (agora incluindo Recebíveis)
-    'operacoes_dropdown' => [ // Chave para o dropdown principal
+    // Estrutura para o dropdown de Operações (inclui Nova Simulação, Operações e Recebíveis)
+    'operacoes_dropdown' => [
         'label' => 'Operações',
         'icon' => 'bi-journal-text',
-        'pages' => [ // Páginas que ativam este dropdown
+        'pages' => [
+            'simulacao.php',
+            'calcular_desconto.php',
+            'form_operacao.php',
             'listar_operacoes.php',
-            'detalhes_operacao.php', // Detalhes de operação também ativa o menu "Operações"
-            'listar_recebiveis.php', // Listar recebíveis agora ativa o menu "Operações"
-            'form_operacao.php' // Se você tiver um form para adicionar/editar operações
+            'detalhes_operacao.php',
+            'listar_recebiveis.php'
         ],
-        'items' => [ // Itens dentro do dropdown
+        'items' => [
+            'simulacao.php' => '<i class="bi bi-calculator"></i> Nova Simulação',
             'listar_operacoes.php' => '<i class="bi bi-list-ul"></i> Gerenciar Operações',
-            'listar_recebiveis.php' => '<i class="bi bi-list-check"></i> Gerenciar Recebíveis' // Recebíveis movido para cá
-            // Se houver um formulário para adicionar operação, adicione aqui
-            // 'form_operacao.php' => '<i class="bi bi-plus-circle"></i> Nova Operação'
+            'listar_recebiveis.php' => '<i class="bi bi-list-check"></i> Gerenciar Recebíveis'
         ]
     ],
     // Estrutura para o dropdown Comercial (Leads e Clientes)
@@ -94,8 +94,8 @@ $menuItems = [
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
   <div class="container">
-    <a class="navbar-brand" href="index.php">
-        <i class="bi bi-calculator-fill me-2"></i><?php echo htmlspecialchars($menuAppName); ?>
+    <a class="navbar-brand" href="kanban_leads.php">
+        <i class="bi bi-kanban-fill me-2"></i><?php echo htmlspecialchars($menuAppName); ?>
         <small class="text-secondary ms-2" style="font-size: 0.7em;"><?php echo htmlspecialchars($menuAppVersion); ?></small>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -151,12 +151,7 @@ $menuItems = [
                 $label = $item;
                 $isActive = ($currentPage == $url);
 
-                // Lógica para ativar links principais mesmo em páginas "filhas" (se necessário)
-                // O index.php é ativado por ele mesmo e por calcular_desconto.php e form_operacao.php
-                if ($url == 'index.php' && in_array($currentPage, ['index.php', 'calcular_desconto.php', 'form_operacao.php'])) {
-                    $isActive = true;
-                }
-                // NOVO: Ativa o item "Configurações" quando em config.php
+                // Ativa o item "Configurações" quando em config.php
                 if ($url == 'config.php' && $currentPage == 'config.php') { //
                     $isActive = true; //
                 }
