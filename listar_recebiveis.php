@@ -1094,7 +1094,7 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
     <script>
 document.addEventListener('DOMContentLoaded', function () {
     const feedbackDiv = document.getElementById('status-feedback');
-    const tableBody = document.querySelector('.table tbody');
+    const tableBody = document.querySelector('.data-table tbody');
     const modalRecebimento = new bootstrap.Modal(document.getElementById('modalRecebimento'));
     const btnConfirmar = document.getElementById('btnConfirmarRecebimento');
 
