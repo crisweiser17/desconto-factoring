@@ -1094,8 +1094,8 @@ $current_filters_for_pagination = $current_filters_for_links + ['sort' => $sort,
     <script>
 document.addEventListener('DOMContentLoaded', function () {
     const feedbackDiv = document.getElementById('status-feedback');
-    const tableBody = document.querySelector('.data-table tbody');
-    const modalRecebimento = new bootstrap.Modal(document.getElementById('modalRecebimento'));
+    const modalEl = document.getElementById('modalRecebimento');
+    const modalRecebimento = modalEl ? new bootstrap.Modal(modalEl) : null;
     const btnConfirmar = document.getElementById('btnConfirmarRecebimento');
 
     function performStatusUpdate(recebivelId, newStatus, valorRecebido = null) {
@@ -1157,40 +1157,38 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    if (tableBody) {
-        tableBody.addEventListener('click', function(event) {
-            const button = event.target.closest('.update-status-btn');
-            if (!button) return; // Ignora cliques fora dos botões
+    document.addEventListener('click', function(event) {
+        const button = event.target.closest('.update-status-btn');
+        if (!button) return;
 
-            const recebivelId = button.dataset.id;
-            const newStatus = button.dataset.status;
-            
-            if (newStatus === 'Recebido') {
-                const valorOriginal = button.dataset.valorOriginal;
-                const valorCorrigido = button.dataset.valorCorrigido;
-                
-                if (valorOriginal && valorCorrigido) {
-                    document.getElementById('modal_recebivel_id').value = recebivelId;
-                    document.getElementById('modal_new_status').value = newStatus;
-                    document.getElementById('modal_valor_original').value = 'R$ ' + parseFloat(valorOriginal).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    
-                    if (parseFloat(valorCorrigido) > parseFloat(valorOriginal)) {
-                        document.getElementById('div_valor_corrigido').style.display = 'block';
-                        document.getElementById('modal_valor_corrigido').value = 'R$ ' + parseFloat(valorCorrigido).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    } else {
-                        document.getElementById('div_valor_corrigido').style.display = 'none';
-                    }
-                    
-                    document.getElementById('modal_valor_recebido').value = parseFloat(valorCorrigido).toFixed(2);
-                    
-                    modalRecebimento.show();
-                    return;
+        const recebivelId = button.dataset.id;
+        const newStatus = button.dataset.status;
+
+        if (newStatus === 'Recebido') {
+            const valorOriginal = button.dataset.valorOriginal;
+            const valorCorrigido = button.dataset.valorCorrigido;
+
+            if (valorOriginal && valorCorrigido && modalRecebimento) {
+                document.getElementById('modal_recebivel_id').value = recebivelId;
+                document.getElementById('modal_new_status').value = newStatus;
+                document.getElementById('modal_valor_original').value = 'R$ ' + parseFloat(valorOriginal).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+                if (parseFloat(valorCorrigido) > parseFloat(valorOriginal)) {
+                    document.getElementById('div_valor_corrigido').style.display = 'block';
+                    document.getElementById('modal_valor_corrigido').value = 'R$ ' + parseFloat(valorCorrigido).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                } else {
+                    document.getElementById('div_valor_corrigido').style.display = 'none';
                 }
-            }
 
-            performStatusUpdate(recebivelId, newStatus);
-        });
-    }
+                document.getElementById('modal_valor_recebido').value = parseFloat(valorCorrigido).toFixed(2);
+
+                modalRecebimento.show();
+                return;
+            }
+        }
+
+        performStatusUpdate(recebivelId, newStatus);
+    });
     
     if (btnConfirmar) {
         btnConfirmar.addEventListener('click', function() {
