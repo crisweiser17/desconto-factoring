@@ -29,6 +29,13 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id']) || (int)$_GET['id'] <= 0) {
         // Inicia a transação
         $pdo->beginTransaction();
 
+        // Descobre quais tabelas dependentes existem nesta instalação
+        // (banco-v45.sql não traz todas; installer2.php/update.php criam outras sem ON DELETE CASCADE)
+        $tabelas_existentes = [];
+        foreach ($pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN) as $t) {
+            $tabelas_existentes[$t] = true;
+        }
+
         // 2a. PRIMEIRO: Buscar compensações que esta operação criou e reverter status dos recebíveis
         $sql_compensacoes = "SELECT recebivel_compensado_id, valor_compensado FROM compensacoes WHERE operacao_principal_id = :operacao_id";
         $stmt_comp = $pdo->prepare($sql_compensacoes);
@@ -82,6 +89,33 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id']) || (int)$_GET['id'] <= 0) {
         $stmt_comp_del->bindParam(':operacao_id', $operacao_id, PDO::PARAM_INT);
         $stmt_comp_del->execute();
 
+        // 2b-bis. Apagar dependências sem ON DELETE CASCADE que referenciam esta operação
+        // (operacao_arquivos_log antes de operacao_arquivos para não violar FK arquivo_id)
+        $deps_por_operacao = [
+            'operacao_arquivos_log' => 'operacao_id',
+            'operacao_anotacoes'    => 'operacao_id',
+            'generated_contracts'   => 'operation_id',
+            'operation_vehicles'    => 'operation_id',
+            'operation_guarantors'  => 'operation_id',
+            'operation_witnesses'   => 'operation_id',
+        ];
+        foreach ($deps_por_operacao as $tabela => $coluna) {
+            if (!isset($tabelas_existentes[$tabela])) continue;
+            $stmt_dep = $pdo->prepare("DELETE FROM `$tabela` WHERE `$coluna` = :operacao_id");
+            $stmt_dep->bindParam(':operacao_id', $operacao_id, PDO::PARAM_INT);
+            $stmt_dep->execute();
+        }
+
+        // Apagar anotações vinculadas aos recebíveis desta operação (FK recebivel_id sem CASCADE)
+        if (isset($tabelas_existentes['operacao_anotacoes'])) {
+            $stmt_anot_rec = $pdo->prepare(
+                "DELETE FROM operacao_anotacoes
+                 WHERE recebivel_id IN (SELECT id FROM recebiveis WHERE operacao_id = :operacao_id)"
+            );
+            $stmt_anot_rec->bindParam(':operacao_id', $operacao_id, PDO::PARAM_INT);
+            $stmt_anot_rec->execute();
+        }
+
         // 2c. Excluir os recebíveis associados à operação
         $sql_delete_recebiveis = "DELETE FROM recebiveis WHERE operacao_id = :operacao_id";
         $stmt_rec = $pdo->prepare($sql_delete_recebiveis);
@@ -115,18 +149,15 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id']) || (int)$_GET['id'] <= 0) {
         if ($pdo->inTransaction()) { // Verifica se ainda está em transação antes do rollback
              $pdo->rollBack();
         }
-        // Em produção, é melhor logar o erro detalhado e mostrar mensagem genérica.
-        // error_log("Erro ao excluir operação ID $operacao_id: " . $e->getMessage());
+        error_log("Erro ao excluir operação ID $operacao_id: " . $e->getMessage());
         $error_message = "Erro no banco de dados ao tentar excluir a operação. ";
-        // Para debug: $error_message .= "Detalhes: " . $e->getMessage();
     } catch (Exception $e) {
         // Captura outros erros gerais inesperados
          if ($pdo->inTransaction()) {
             $pdo->rollBack();
          }
-        // error_log("Erro geral ao excluir operação ID $operacao_id: " . $e->getMessage());
+        error_log("Erro geral ao excluir operação ID $operacao_id: " . $e->getMessage());
         $error_message = "Ocorreu um erro inesperado durante a exclusão. ";
-         // Para debug: $error_message .= "Detalhes: " . $e->getMessage();
     }
 }
 
