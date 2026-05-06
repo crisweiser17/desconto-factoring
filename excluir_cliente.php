@@ -13,7 +13,7 @@ if (isset($_GET['id']) && filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT)) {
         // ---------------------------------------------------------
         $sqlCheck = "SELECT 1 -- Seleciona apenas 1 para indicar existência
                      FROM operacoes o
-                     WHERE o.cliente_id = :cliente_id
+                     WHERE o.cedente_id = :cliente_id
                      LIMIT 1"; // Para assim que encontrar o primeiro
 
         $stmtCheck = $pdo->prepare($sqlCheck);
